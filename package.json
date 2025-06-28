@@ -6,9 +6,9 @@
   "scripts": {
     "cp:brewfile": "cp ~/Desktop/Brewfile ./mac/Brewfile",
     "cp:zsh-mac": "cp ~/.zshrc ./mac/.zshrc",
-    "cp:starship": "cp ~/.config/starship/starship.toml ./common/starship.toml",
-    "cp:scoop": "cp ~/Desktop/scoop_backup.json ./windows/scoop_backup.json",
-    "cp:zsh-win": "cp ~/.zshrc ./windows/.zshrc"
+    "cp:scoop": "scoop export > ./windows/scoop_backup.json",
+    "cp:zsh-win": "sh ./bash/sync_zsh_win.sh",
+    "cp:starship": "cp ~/.config/starship/starship.toml ./other/starship.toml"
   },
   "author": "",
   "license": "ISC",

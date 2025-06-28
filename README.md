@@ -12,11 +12,12 @@ $ brew bundle check                                   # 检查 Brewfile 中的
 ### windows
 - [scoop_backup.json](./windows/scoop_backup.json) - 关于 [Scoop](https://scoop.sh/) 安装应用备份文件
 ```sh
-$ scoop export > ~/Desktop/scoop_backup.json   # 导出已安装 Scoop 应用
-$ scoop import ~/Desktop/scoop_backup.json     # 从备份文件恢复所有应用
+$ scoop import ./windows/scoop_backup.json     # 从备份文件恢复所有应用
 ```
 - [.zshrc](./windows/.zshrc) - zsh 配置文件
-- [WinSW.xml](./windows/WinSW.xml) - 关于 [WinSW](https://github.com/winsw/winsw/) 来实现 [Nginx](https://nginx.org/) 自启动配置文件
+- [utils.zsh](./windows/utils.zsh) - 自定义函数
+- [_eza](./windows/_eza) - [eza](https://eza.rocks/) 自动补全配置 | [线上地址](https://github.com/eza-community/eza/tree/main/completions/zsh)
+- [WinSW.xml](./windows/WinSW.xml) - 使用 [WinSW](https://github.com/winsw/winsw/) 来实现 [Nginx](https://nginx.org/) 自启动配置文件
   - 需要将文件放置到 winsw.exe 同级目录内
 ```sh
 $ winsw start
