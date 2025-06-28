@@ -4,11 +4,13 @@
   "description": "",
   "main": "",
   "scripts": {
-    "cp:brewfile": "cp ~/Desktop/Brewfile ./mac/Brewfile",
-    "cp:zsh-mac": "cp ~/.zshrc ./mac/.zshrc",
-    "cp:scoop": "scoop export > ./windows/scoop_backup.json",
-    "cp:zsh-win": "sh ./bash/sync_zsh_win.sh",
-    "cp:starship": "cp ~/.config/starship/starship.toml ./other/starship.toml"
+    "mac:backup": "brew bundle dump --no-vscode --force --file=./mac/Brewfile",
+    "mac:setup": "brew bundle install --file=./mac/Brewfile",
+    "mac:sync": "sh ./bash/sync_zsh_mac.sh",
+    "win:backup": "scoop export > ./windows/scoop_backup.json",
+    "win:setup": "scoop import ./windows/scoop_backup.json",
+    "win:sync": "sh ./bash/sync_zsh_win.sh",
+    "other:sync": "sh ./bash/sync_other.sh"
   },
   "author": "",
   "license": "ISC",

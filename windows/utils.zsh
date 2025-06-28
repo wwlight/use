@@ -1,14 +1,14 @@
 function cdl() {
     local dir
     dir="$(zoxide query -l | fzf --reverse --height 40% \
-        --preview 'ls -l {}' \
+        --preview 'eza -l --icons {}' \
         --preview-window=right:60%)" && cd "${dir}"
 }
 
 function cdd() {
     local dir
     dir="$(find . -type d 2>/dev/null | fzf --reverse --height 40% \
-        --preview 'ls -l {}' \
+        --preview 'eza -l --icons {}' \
         --preview-window=right:60%)" && cd "${dir}"
 }
 

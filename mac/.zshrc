@@ -6,92 +6,104 @@
 # ======================
 export ZSH=$HOME/.zsh
 export ZSH_COMPDUMP=$ZSH/cache/.zcompdump-$HOST
-export HISTFILE=$ZSH/.zsh_history
-export HISTSIZE=5000
-export SAVEHIST=4000
 export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml
 export SDKMAN_DIR=$(brew --prefix sdkman-cli)/libexec
-# 更安全的 PATH 设置
-typeset -U path PATH  # 确保 PATH 唯一性
+export EZA_CONFIG_DIR=$HOME/.config/eza
+
+# PATH 设置
+typeset -U path PATH
 path=(
-    $HOME/.npm_global/bin # 自定义 npm 全局包安装路径
+    $HOME/.npm_global/bin
     $HOME/Library/pnpm
     $path
 )
 
 # ======================
+# zsh 基础选项设置
+# ======================
+# 历史记录选项
+export HISTFILE=$ZSH/.zsh_history
+export HISTSIZE=5000
+export SAVEHIST=4000
+
+# ======================
 # 历史记录配置
 # ======================
-setopt appendhistory            # 追加而非覆盖历史文件
-setopt incappendhistory         # 实时写入历史记录
-unsetopt extendedhistory        # 不记录时间戳和持续时间
-setopt histignorealldups        # 完全去重历史记录
-setopt histignorespace          # 忽略空格开头的命令
-setopt histreduceblanks         # 删除多余空白字符
-setopt histverify               # 执行前确认历史命令
-setopt histexpiredupsfirst      # 淘汰重复命令优先
-setopt histsavenodups           # 保存时删除重复项
-setopt histfindnodups           # 搜索时不显示重复项
-unsetopt sharehistory           # 禁用共享历史记录
+setopt append_history           # 追加写入（非覆盖）
+setopt inc_append_history       # 实时增量写入
+setopt hist_ignore_all_dups     # 忽略所有重复命令
+setopt hist_expire_dups_first   # 淘汰重复记录优先
+setopt hist_save_no_dups        # 保存时删除重复项
+setopt hist_find_no_dups        # 搜索时不显示重复项
+setopt hist_reduce_blanks       # 压缩多余空格
+setopt hist_ignore_space        # 忽略空格开头的命令
+setopt hist_verify              # 执行前确认历史命令
+unsetopt extended_history       # 不记录时间戳和持续时间
+unsetopt share_history          # 禁用会话间共享历史
+# 其它
+setopt auto_cd                  # 输入目录名自动cd
+setopt correct                  # 命令纠错
+setopt complete_in_word         # 在单词中间也能补全
+setopt always_to_end            # 补全后光标移到末尾
+
+# ======================
+# 补全系统初始化
+# ======================
+# 设置 fpath
+fpath=(
+    $ZSH/plugins/zsh-completions/src
+    $ZSH/zfunc
+    $fpath
+)
+# 加载自定义函数
+autoload -Uz $ZSH/zfunc/*(:t)
+# 初始化补全系统
+autoload -Uz compinit
+compinit -d $ZSH_COMPDUMP
+# 补全样式设置
+zstyle ':completion:*' menu select
+zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
+zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 
 # ======================
 # 插件配置
 # ======================
-# 插件列表 (按需加载)
 plugins=(
     fast-syntax-highlighting
     zsh-autosuggestions
-    zsh-hist
     incr
 )
 
-# 加载插件
 for plugin ($plugins); do
     plugin_path=$ZSH/plugins/$plugin/$plugin.plugin.zsh
     [ -f $plugin_path ] && source $plugin_path || \
     source $ZSH/plugins/$plugin/$plugin.zsh
 done
 
-# zsh-hist 插件配置
-zstyle ':hist:*' expand-aliases yes
-zstyle ':hist:*' ignore-dups yes    # 启用插件内部去重
-zstyle ':hist:*' ignore-space yes   # 忽略空格开头的命令
-
-# 自动建议配置
+# 插件配置
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
-ZSH_AUTOSUGGEST_USE_ASYNC=1      # 启用异步加载
-
-# 补全功能
-fpath=($ZSH/plugins/zsh-completions/src $fpath)
-# 延迟加载补全系统
-autoload -Uz compinit
-if [[ -n ${ZSH_COMPDUMP} ]]; then
-    compinit -i -d "${ZSH_COMPDUMP}"
-else
-    compinit -i
-fi
+ZSH_AUTOSUGGEST_USE_ASYNC=1
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#53555c"
 
 # ======================
 # 工具初始化
 # ======================
-# fnm
+# Node.js 版本管理 (fnm)
 eval "$(fnm env --use-on-cd)"
 
-# zoxide
+# 模糊搜索 (fzf)
+source <(fzf --zsh)
+
+# 智能目录跳转 (zoxide)
 eval "$(zoxide init zsh --cmd cd)"
-function cdl() {
-    local dir
-    dir="$(zoxide query -l | fzf --reverse --height 40% \
-        --preview 'ls -l {}' \
-        --preview-window=right:60%)" && cd "${dir}"
-}
-function cdd() {
-    local dir
-    dir="$(find . -type d 2>/dev/null | fzf --reverse --height 40% \
-        --preview 'ls -l {}' \
-        --preview-window=right:60%)" && cd "${dir}"
-}
+
+# Python 版本管理 (uv)
+eval "$(uv generate-shell-completion zsh)"
+eval "$(uvx --generate-shell-completion zsh)"
+
+# sdkman sdk 版本管理工具
+[[ -s "${SDKMAN_DIR}/bin/sdkman-init.sh" ]] && source "${SDKMAN_DIR}/bin/sdkman-init.sh"
 
 # starship
 eval "$(starship init zsh)"
@@ -101,42 +113,39 @@ function set_win_title(){
 starship_precmd_user_func="set_win_title"
 precmd_functions+=(set_win_title)
 
-# sdkman sdk 版本管理工具
-[[ -s "${SDKMAN_DIR}/bin/sdkman-init.sh" ]] && source "${SDKMAN_DIR}/bin/sdkman-init.sh"
-
-# uv python 版本管理工具
-eval "$(uv generate-shell-completion zsh)"
-eval "$(uvx --generate-shell-completion zsh)"
-
-# ngrok 自动补全
-if command -v ngrok &>/dev/null; then
-    eval "$(ngrok completion)"
-fi
-
-# fzf
-source <(fzf --zsh)
-
 # ======================
 # 别名设置
 # ======================
 alias cls="clear"
-alias ls='lsd'
-alias l='ls -l'
-alias la='ls -a'
-alias lla='ls -la'
-alias lt='ls --tree'
-
+alias reload="source ~/.zshrc"
+alias ls='eza --icons'
+alias l='eza -l --icons'
+alias la='eza -la --icons'
+alias lt='eza --tree --icons'
+# @antfu/ni 别名
 alias nio="ni --prefer-offline"
 alias s="nr start"
 alias d="nr dev"
 alias b="nr build"
-
+# Git 别名
 alias gp='git push'
 alias gl='git pull'
 alias grt='cd "$(git rev-parse --show-toplevel)"'
 alias gc='git branch | fzf | xargs git checkout' # 搜索 git 分支并切换
-
+# 其它
 alias ping="gping"
-alias t='tldr' # tldr 命令
+alias t='tldr'
 alias of="onefetch"
+
+# ======================
+# 自定义函数加载
+# ======================
+CUSTOM_FUNCTIONS_DIR="$ZSH/functions"
+if [[ -d "$CUSTOM_FUNCTIONS_DIR" ]]; then
+    for func_file in "$CUSTOM_FUNCTIONS_DIR"/*.zsh; do
+        if [[ -r "$func_file" ]]; then
+            source "$func_file"
+        fi
+    done
+fi
 # end

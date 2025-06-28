@@ -74,7 +74,7 @@ done
 ZSH_AUTOSUGGEST_STRATEGY=(history completion)
 ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 ZSH_AUTOSUGGEST_USE_ASYNC=1
-ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#00ff00"
+ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#53555c"
 
 # ======================
 # 工具初始化
@@ -82,15 +82,15 @@ ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#00ff00"
 # Node.js 版本管理 (fnm)
 eval "$(fnm env --use-on-cd)"
 
+# 模糊搜索 (fzf)
+source <(fzf --zsh)
+
 # 智能目录跳转 (zoxide)
 eval "$(zoxide init zsh --cmd cd)"
 
 # Python 版本管理 (uv)
 eval "$(uv generate-shell-completion zsh)"
 eval "$(uvx --generate-shell-completion zsh)"
-
-# 模糊搜索 (fzf)
-source <(fzf --zsh)
 
 # starship
 eval "$(starship init zsh)"

@@ -1,3 +1,17 @@
+function cdl() {
+    local dir
+    dir="$(zoxide query -l | fzf --reverse --height 40% \
+        --preview 'eza -l --icons {}' \
+        --preview-window=right:60%)" && cd "${dir}"
+}
+
+function cdd() {
+    local dir
+    dir="$(find . -type d 2>/dev/null | fzf --reverse --height 40% \
+        --preview 'eza -l --icons {}' \
+        --preview-window=right:60%)" && cd "${dir}"
+}
+
 # 添加清理历史记录的函数
 function history_clean() {
     # 创建临时文件
