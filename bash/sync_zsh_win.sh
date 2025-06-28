@@ -1,5 +1,15 @@
 #!/bin/bash
 
+# 引入公共函数库
+source ./bash/utils.sh
+
+# 检查是否在 Windows 环境运行
+check_target_system "Windows"
+
+# =========================
+# 主脚本开始
+# =========================
+
 # 默认不自动选择
 direction=""
 

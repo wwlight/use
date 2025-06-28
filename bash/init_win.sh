@@ -1,21 +1,20 @@
 #!/bin/bash
 
+# 引入公共函数库
+SCRIPT_DIR="./bash"
+source "$SCRIPT_DIR/utils.sh"
+
+# 检查是否在 Windows 环境运行
+check_target_system "Windows"
+
+# =========================
+# 主脚本开始
+# =========================
+
 # 定义路径
 SCOOP_BACKUP="./windows/scoop_backup.json"
-SCRIPT_DIR="./bash"
 ZSH_SCRIPT="$SCRIPT_DIR/sync_zsh_win.sh"
 OTHER_SCRIPT="$SCRIPT_DIR/sync_other.sh"
-
-# 颜色定义
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-NC='\033[0m' # No Color
-
-# 打印带颜色的状态信息
-info() { echo -e "${GREEN}[INFO]${NC} $1"; }
-warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
 
 # 1. 创建目录结构
 info "正在创建目录结构..."

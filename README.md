@@ -2,15 +2,15 @@
 
 ### 同步命令
 ```sh
-$ sh ./sync_init_mac.sh       # 初始化 mac 本地安装
-$ sh ./sync_init_win.sh       # 初始化 windows 本地安装
-$ nr mac:backup               # 备份 mac brew 安装软件
-$ nr mac:setup                # 安装 mac brew 软件
-$ nr mac:sync 1               # 同步本地 mac zsh 配置文件到仓库
-$ nr win:backup               # 备份 windows scoop 安装软件
-$ nr win:setup                # 安装 windows scoop 软件
-$ nr win:sync 1               # 同步本地 windows zsh 配置文件到仓库
-$ nr other:sync 1             # 同步本地其它配置文件到仓库
+$ sh ./bash/init_mac.sh            # 初始化 mac 软件安装
+$ sh ./bash/init_win.sh            # 初始化 windows 软件安装
+$ nr mac:backup                    # 备份 mac brew 安装软件
+$ nr mac:setup                     # 安装 mac brew 软件
+$ nr mac:sync 1                    # 同步本地 mac zsh 配置文件到仓库
+$ nr win:backup                    # 备份 windows scoop 安装软件
+$ nr win:setup                     # 安装 windows scoop 软件
+$ nr win:sync 1                    # 同步本地 windows zsh 配置文件到仓库
+$ nr other:sync 1                  # 同步本地其它配置文件到仓库
 ```
 
 ### mac
@@ -25,6 +25,7 @@ $ nr other:sync 1             # 同步本地其它配置文件到仓库
 ```sh
 $ cp ./windows/WinSW.xml D:/DevelopApplication/Scoop/apps/winsw/current
 $ winsw install
+$ winsw uninstall
 $ winsw start
 $ winsw stop
 $ winsw restart
@@ -33,4 +34,4 @@ $ winsw status
 
 ### 其它
 - [starship.toml](./other/starship.toml) - [starship](https://starship.rs/) 配置文件
-- [_eza](./other/_eza) - [eza](https://eza.rocks/) 自动补全配置 | [线上地址](https://github.com/eza-community/eza/tree/main/completions/zsh)
+- [_eza](./other/_eza) - [eza](https://eza.rocks/) 自动补全配置 | [官方地址](https://github.com/eza-community/eza/tree/main/completions/zsh)
