@@ -4,9 +4,9 @@
             "Name": "main",
             "Source": "https://github.com/ScoopInstaller/Main",
             "Updated": {
-                "value": "\/Date(1750681934000)\/",
+                "value": "\/Date(1751071175000)\/",
                 "DisplayHint": 2,
-                "DateTime": "2025?6?23? 20:32:14"
+                "DateTime": "2025年6月28日 8:39:35"
             },
             "Manifests": 1391
         },
@@ -14,19 +14,19 @@
             "Name": "extras",
             "Source": "https://github.com/ScoopInstaller/Extras",
             "Updated": {
-                "value": "\/Date(1750685987000)\/",
+                "value": "\/Date(1751071199000)\/",
                 "DisplayHint": 2,
-                "DateTime": "2025?6?23? 21:39:47"
+                "DateTime": "2025年6月28日 8:39:59"
             },
-            "Manifests": 2167
+            "Manifests": 2169
         },
         {
             "Name": "nerd-fonts",
             "Source": "https://github.com/matthewjberger/scoop-nerd-fonts",
             "Updated": {
-                "value": "\/Date(1750238841000)\/",
+                "value": "\/Date(1751031274000)\/",
                 "DisplayHint": 2,
-                "DateTime": "2025?6?18? 17:27:21"
+                "DateTime": "2025年6月27日 21:34:34"
             },
             "Manifests": 367
         }
@@ -85,8 +85,8 @@
             "Info": "",
             "Source": "main",
             "Name": "fzf",
-            "Version": "0.62.0",
-            "Updated": "\/Date(1750262904909)\/"
+            "Version": "0.63.0",
+            "Updated": "\/Date(1751087038761)\/"
         },
         {
             "Info": "",
@@ -106,8 +106,8 @@
             "Info": "",
             "Source": "extras",
             "Name": "googlechrome",
-            "Version": "137.0.7151.120",
-            "Updated": "\/Date(1750688844392)\/"
+            "Version": "138.0.7204.50",
+            "Updated": "\/Date(1751087177837)\/"
         },
         {
             "Info": "",
@@ -146,6 +146,13 @@
         },
         {
             "Info": "",
+            "Source": "main",
+            "Name": "lsd",
+            "Version": "1.1.5",
+            "Updated": "\/Date(1751082261397)\/"
+        },
+        {
+            "Info": "",
             "Source": "nerd-fonts",
             "Name": "LXGWWenKaiMono",
             "Version": "1.520",
@@ -155,8 +162,8 @@
             "Info": "",
             "Source": "nerd-fonts",
             "Name": "Maple-Mono-NF-CN",
-            "Version": "7.3",
-            "Updated": "\/Date(1750422011875)\/"
+            "Version": "7.4",
+            "Updated": "\/Date(1751087240338)\/"
         },
         {
             "Info": "",
@@ -176,15 +183,15 @@
             "Info": "",
             "Source": "main",
             "Name": "nginx",
-            "Version": "1.27.5",
-            "Updated": "\/Date(1750262998741)\/"
+            "Version": "1.29.0",
+            "Updated": "\/Date(1751087252865)\/"
         },
         {
             "Info": "",
             "Source": "main",
             "Name": "ngrok",
-            "Version": "3.23.2",
-            "Updated": "\/Date(1750688639627)\/"
+            "Version": "3.23.3",
+            "Updated": "\/Date(1751087267570)\/"
         },
         {
             "Info": "",
@@ -202,10 +209,17 @@
         },
         {
             "Info": "",
+            "Source": "main",
+            "Name": "pnpm",
+            "Version": "10.12.4",
+            "Updated": "\/Date(1751083677874)\/"
+        },
+        {
+            "Info": "",
             "Source": "extras",
             "Name": "potplayer",
-            "Version": "250514",
-            "Updated": "\/Date(1750263634800)\/"
+            "Version": "250625",
+            "Updated": "\/Date(1751087290583)\/"
         },
         {
             "Info": "",
@@ -253,36 +267,36 @@
             "Info": "",
             "Source": "main",
             "Name": "uv",
-            "Version": "0.7.13",
-            "Updated": "\/Date(1750263054587)\/"
+            "Version": "0.7.16",
+            "Updated": "\/Date(1751087307602)\/"
         },
         {
             "Info": "",
             "Source": "extras",
             "Name": "vscode",
-            "Version": "1.101.1",
-            "Updated": "\/Date(1750421906382)\/"
+            "Version": "1.101.2",
+            "Updated": "\/Date(1751087348176)\/"
         },
         {
             "Info": "",
             "Source": "extras",
             "Name": "webstorm",
-            "Version": "2025.1.2-251.26094.131",
-            "Updated": "\/Date(1750265497722)\/"
+            "Version": "2025.1.3-251.26927.40",
+            "Updated": "\/Date(1751087726224)\/"
         },
         {
             "Info": "",
             "Source": "extras",
             "Name": "wechat",
-            "Version": "4.0.5.26",
-            "Updated": "\/Date(1750264850412)\/"
+            "Version": "4.0.5.27",
+            "Updated": "\/Date(1751087804584)\/"
         },
         {
             "Info": "",
             "Source": "extras",
             "Name": "winrar",
-            "Version": "7.11",
-            "Updated": "\/Date(1750332924148)\/"
+            "Version": "7.12",
+            "Updated": "\/Date(1751087817987)\/"
         },
         {
             "Info": "",
