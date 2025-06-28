@@ -1,0 +1,16 @@
+{
+  "name": "use",
+  "version": "1.0.0",
+  "description": "",
+  "main": "",
+  "scripts": {
+    "cp:brewfile": "cp ~/Desktop/Brewfile ./mac/Brewfile",
+    "cp:zsh-mac": "cp ~/.zshrc ./mac/.zshrc",
+    "cp:starship": "cp ~/.config/starship/starship.toml ./common/starship.toml",
+    "cp:scoop": "cp ~/Desktop/scoop_backup.json ./windows/scoop_backup.json",
+    "cp:zsh-win": "cp ~/.zshrc ./windows/.zshrc"
+  },
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.12.4"
+}
