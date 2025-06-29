@@ -10,11 +10,11 @@ export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml
 export SDKMAN_DIR=$(brew --prefix sdkman-cli)/libexec
 export EZA_CONFIG_DIR=$HOME/.config/eza
 
-# PATH 设置
+# PATH 设置 (N == Null Glob)
 typeset -U path PATH
 path=(
-    $HOME/.npm_global/bin
-    $HOME/Library/pnpm
+    $HOME/.npm_global/bin(N)
+    $HOME/Library/pnpm(N)
     $path
 )
 
@@ -98,7 +98,7 @@ source <(fzf --zsh)
 # 智能目录跳转 (zoxide)
 eval "$(zoxide init zsh --cmd cd)"
 
-# Python 版本管理 (uv)
+# Python 包管理器和虚拟环境工具 (uv)
 eval "$(uv generate-shell-completion zsh)"
 eval "$(uvx --generate-shell-completion zsh)"
 

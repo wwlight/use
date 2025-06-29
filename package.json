@@ -6,7 +6,7 @@
   "scripts": {
     "mac:backup": "brew bundle dump --no-vscode --force --file=./mac/Brewfile",
     "mac:setup": "brew bundle install --file=./mac/Brewfile",
-    "mac:sync": "bash.exe ./bash/mac-zsh-sync.sh",
+    "mac:sync": "sh ./bash/mac-zsh-sync.sh",
     "win:backup": "scoop export > ./windows/scoop_backup.json",
     "win:setup": "scoop import ./windows/scoop_backup.json",
     "win:zsh": "bash.exe ./bash/win-zsh-install.sh",

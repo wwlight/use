@@ -2,7 +2,7 @@
 
 ### 同步命令
 ```sh
-$ bash.exe ./bash/mac-init.sh            # 初始化 mac 软件安装
+$ sh ./bash/mac-init.sh                  # 初始化 mac 软件安装
 $ nr mac:backup                          # 备份 mac brew 安装软件
 $ nr mac:setup                           # 安装 mac brew 软件
 $ nr mac:sync 1                          # 同步本地 mac zsh 配置文件到仓库

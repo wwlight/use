@@ -26,15 +26,24 @@ setup_directories() {
 install_zsh_plugins() {
     info "步骤2/4: 正在安装 zsh 插件..."
 
-    declare -A PLUGINS=(
-        ["https://github.com/zdharma-continuum/fast-syntax-highlighting.git"]="fast-syntax-highlighting"
-        ["https://github.com/zsh-users/zsh-autosuggestions.git"]="zsh-autosuggestions"
-        ["https://github.com/zsh-users/zsh-completions.git"]="zsh-completions"
+    # 使用兼容旧版 Bash 的数组代替关联数组
+    local PLUGINS_REPOS=(
+        "https://github.com/zdharma-continuum/fast-syntax-highlighting.git"
+        "https://github.com/zsh-users/zsh-autosuggestions.git"
+        "https://github.com/zsh-users/zsh-completions.git"
+    )
+
+    local PLUGINS_NAMES=(
+        "fast-syntax-highlighting"
+        "zsh-autosuggestions"
+        "zsh-completions"
     )
 
     local ZSH_PLUGINS_DIR="$HOME/.zsh/plugins"
-    for repo in "${!PLUGINS[@]}"; do
-        local plugin_name="${PLUGINS[$repo]}"
+
+    for i in "${!PLUGINS_REPOS[@]}"; do
+        local repo="${PLUGINS_REPOS[$i]}"
+        local plugin_name="${PLUGINS_NAMES[$i]}"
         local target_dir="$ZSH_PLUGINS_DIR/$plugin_name"
 
         if [ ! -d "$target_dir" ]; then
@@ -56,14 +65,17 @@ install_brew_dependencies() {
 
     if ! command -v brew &> /dev/null; then
         error "Homebrew 未安装！请先安装 Homebrew。"
+        return 1
     fi
 
     if [ -f "$BREWFILE" ]; then
         brew bundle install --file="$BREWFILE" || {
             error "Brewfile 依赖安装失败！"
+            return 1
         }
     else
         error "找不到 Brewfile: $BREWFILE"
+        return 1
     fi
 }
 
