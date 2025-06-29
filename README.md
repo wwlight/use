@@ -9,6 +9,7 @@ $ nr mac:sync 1                          # 同步本地 mac zsh 配置文件到�
 $ bash.exe ./bash/win-init.sh            # 初始化 windows 软件安装
 $ nr win:backup                          # 备份 windows scoop 安装软件
 $ nr win:setup                           # 安装 windows scoop 软件
+$ nr win:zsh                             # 安装 zsh
 $ nr win:sync 1                          # 同步本地 windows zsh 配置文件到仓库
 $ nr win:clink                           # 安装 clink 插件
 $ nr win:git-extras                      # 安装 git-extras 插件

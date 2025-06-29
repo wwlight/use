@@ -30,10 +30,14 @@ install_git_extras() {
 
     # 步骤4: 安装
     info "步骤4/5: 正在安装 git-extras..."
+    local git_path=$(scoop prefix git)
+    if [[ -z "$git_path" ]]; then
+        error "无法获取 Git 路径"
+        return 1
+    fi
     if [[ -f "./install.cmd" ]]; then
-        git_path=$(scoop prefix git)
         ./install.cmd "$git_path" || {
-            warn "安装命令执行可能不完全成功，但可能已部分安装"
+            warn "安装命令执行可能不完全成功，请手动检查"
         }
     else
         warn "未找到 install.cmd 文件"
@@ -48,10 +52,7 @@ install_git_extras() {
 
     # 清理
     info "清理临时文件..."
-    cd ~/Desktop && rm -rf git-extras || {
-        warn "未能完全清理临时文件"
-    }
-
+    cd ~/Desktop && smart_clean "git-extras"
     info "🎉 git-extras 安装完成!"
 }
 

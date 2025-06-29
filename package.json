@@ -9,6 +9,7 @@
     "mac:sync": "bash.exe ./bash/mac-zsh-sync.sh",
     "win:backup": "scoop export > ./windows/scoop_backup.json",
     "win:setup": "scoop import ./windows/scoop_backup.json",
+    "win:zsh": "bash.exe ./bash/win-zsh-install.sh",
     "win:sync": "bash.exe ./bash/win-zsh-sync.sh",
     "win:clink": "bash.exe ./bash/win-clink-setup.sh",
     "win:git-extras": "bash.exe ./bash/win-git-extras-install.sh",
