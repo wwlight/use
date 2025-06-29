@@ -11,6 +11,8 @@ $ nr win:backup                    # 备份 windows scoop 安装软件
 $ nr win:setup                     # 安装 windows scoop 软件
 $ nr win:sync 1                    # 同步本地 windows zsh 配置文件到仓库
 $ nr other:sync 1                  # 同步本地其它配置文件到仓库
+$ nr setup:clink                   # 安装 clink 插件
+$ nr setup:git                     # 安装 git-extras 插件
 ```
 
 ### mac

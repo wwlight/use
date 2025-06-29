@@ -10,7 +10,9 @@
     "win:backup": "scoop export > ./windows/scoop_backup.json",
     "win:setup": "scoop import ./windows/scoop_backup.json",
     "win:sync": "sh ./bash/sync_zsh_win.sh",
-    "other:sync": "sh ./bash/sync_other.sh"
+    "other:sync": "sh ./bash/sync_other.sh",
+    "setup:clink": "sh ./bash/setup_clink.sh",
+    "setup:git": "sh ./bash/setup_git_extras.sh"
   },
   "author": "",
   "license": "ISC",
