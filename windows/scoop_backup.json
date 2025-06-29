@@ -4,9 +4,9 @@
             "Name": "main",
             "Source": "https://github.com/ScoopInstaller/Main",
             "Updated": {
-                "value": "\/Date(1751113855000)\/",
+                "value": "\/Date(1751157951000)\/",
                 "DisplayHint": 2,
-                "DateTime": "2025年6月28日 20:30:55"
+                "DateTime": "2025年6月29日 8:45:51"
             },
             "Manifests": 1391
         },
@@ -14,9 +14,9 @@
             "Name": "extras",
             "Source": "https://github.com/ScoopInstaller/Extras",
             "Updated": {
-                "value": "\/Date(1751113831000)\/",
+                "value": "\/Date(1751157975000)\/",
                 "DisplayHint": 2,
-                "DateTime": "2025年6月28日 20:30:31"
+                "DateTime": "2025年6月29日 8:46:15"
             },
             "Manifests": 2169
         },
@@ -24,9 +24,9 @@
             "Name": "nerd-fonts",
             "Source": "https://github.com/matthewjberger/scoop-nerd-fonts",
             "Updated": {
-                "value": "\/Date(1751031274000)\/",
+                "value": "\/Date(1751120509000)\/",
                 "DisplayHint": 2,
-                "DateTime": "2025年6月27日 21:34:34"
+                "DateTime": "2025年6月28日 22:21:49"
             },
             "Manifests": 367
         }
@@ -37,280 +37,273 @@
             "Source": "main",
             "Name": "7zip",
             "Version": "24.09",
-            "Updated": "\/Date(1750262876871)\/"
-        },
-        {
-            "Info": "",
-            "Source": "main",
-            "Name": "adb",
-            "Version": "36.0.0",
-            "Updated": "\/Date(1750262885670)\/"
+            "Updated": "\/Date(1751155807507)\/"
         },
         {
             "Info": "Held package",
             "Source": "main",
             "Name": "clink",
             "Version": "1.7.20",
-            "Updated": "\/Date(1750262889905)\/"
+            "Updated": "\/Date(1751156169187)\/"
         },
         {
             "Info": "",
             "Source": "main",
             "Name": "dark",
             "Version": "3.14.1",
-            "Updated": "\/Date(1750262894383)\/"
+            "Updated": "\/Date(1751156172853)\/"
         },
         {
             "Info": "",
             "Source": "main",
             "Name": "eza",
             "Version": "0.21.6",
-            "Updated": "\/Date(1751095718568)\/"
+            "Updated": "\/Date(1751156175464)\/"
         },
         {
             "Info": "",
             "Source": "nerd-fonts",
             "Name": "FiraCode-NF",
             "Version": "3.4.0",
-            "Updated": "\/Date(1750263282417)\/"
+            "Updated": "\/Date(1751156184045)\/"
         },
         {
             "Info": "",
             "Source": "nerd-fonts",
             "Name": "FiraCode-NF-Mono",
             "Version": "3.4.0",
-            "Updated": "\/Date(1750263297806)\/"
+            "Updated": "\/Date(1751156192386)\/"
         },
         {
             "Info": "",
             "Source": "main",
             "Name": "fnm",
             "Version": "1.38.1",
-            "Updated": "\/Date(1750262900504)\/"
+            "Updated": "\/Date(1751156195823)\/"
         },
         {
             "Info": "",
             "Source": "main",
             "Name": "fzf",
             "Version": "0.63.0",
-            "Updated": "\/Date(1751087038761)\/"
+            "Updated": "\/Date(1751156199632)\/"
         },
         {
             "Info": "",
             "Source": "main",
             "Name": "gh",
             "Version": "2.74.2",
-            "Updated": "\/Date(1750339637281)\/"
+            "Updated": "\/Date(1751156205003)\/"
         },
         {
             "Info": "Held package",
             "Source": "main",
             "Name": "git",
             "Version": "2.50.0",
-            "Updated": "\/Date(1750336228136)\/"
+            "Updated": "\/Date(1751156205444)\/"
         },
         {
             "Info": "",
             "Source": "extras",
             "Name": "googlechrome",
             "Version": "138.0.7204.50",
-            "Updated": "\/Date(1751087177837)\/"
+            "Updated": "\/Date(1751156297370)\/"
         },
         {
             "Info": "",
             "Source": "main",
             "Name": "gping",
             "Version": "1.18.0",
-            "Updated": "\/Date(1750262976214)\/"
+            "Updated": "\/Date(1751156300289)\/"
         },
         {
             "Info": "",
             "Source": "main",
             "Name": "gsudo",
             "Version": "2.6.0",
-            "Updated": "\/Date(1750262989456)\/"
+            "Updated": "\/Date(1751156304747)\/"
         },
         {
             "Info": "",
             "Source": "extras",
             "Name": "hyper",
             "Version": "3.4.1",
-            "Updated": "\/Date(1750263341161)\/"
+            "Updated": "\/Date(1751156326154)\/"
         },
         {
             "Info": "",
             "Source": "main",
             "Name": "innounp",
             "Version": "2.64.5",
-            "Updated": "\/Date(1750688412080)\/"
+            "Updated": "\/Date(1751156328107)\/"
         },
         {
             "Info": "",
             "Source": "extras",
             "Name": "keyviz",
             "Version": "1.0.6",
-            "Updated": "\/Date(1750263356298)\/"
+            "Updated": "\/Date(1751156335142)\/"
         },
         {
             "Info": "",
             "Source": "nerd-fonts",
             "Name": "LXGWWenKaiMono",
             "Version": "1.520",
-            "Updated": "\/Date(1750263397724)\/"
+            "Updated": "\/Date(1751156357707)\/"
         },
         {
             "Info": "",
             "Source": "nerd-fonts",
             "Name": "Maple-Mono-NF-CN",
             "Version": "7.4",
-            "Updated": "\/Date(1751087240338)\/"
+            "Updated": "\/Date(1751156394212)\/"
         },
         {
             "Info": "",
             "Source": "extras",
             "Name": "mihomo-party",
             "Version": "1.7.6",
-            "Updated": "\/Date(1750263466543)\/"
+            "Updated": "\/Date(1751156423496)\/"
         },
         {
             "Info": "",
             "Source": "nerd-fonts",
             "Name": "Monaspace-NF-Mono",
             "Version": "3.4.0",
-            "Updated": "\/Date(1750421961704)\/"
+            "Updated": "\/Date(1751156468730)\/"
         },
         {
             "Info": "",
             "Source": "main",
             "Name": "nginx",
             "Version": "1.29.0",
-            "Updated": "\/Date(1751087252865)\/"
+            "Updated": "\/Date(1751156472724)\/"
         },
         {
             "Info": "",
             "Source": "main",
             "Name": "ngrok",
             "Version": "3.23.3",
-            "Updated": "\/Date(1751087267570)\/"
+            "Updated": "\/Date(1751156479688)\/"
         },
         {
             "Info": "",
             "Source": "extras",
             "Name": "obsidian",
             "Version": "1.8.10",
-            "Updated": "\/Date(1750263606313)\/"
+            "Updated": "\/Date(1751156540917)\/"
         },
         {
             "Info": "",
             "Source": "extras",
             "Name": "onefetch",
             "Version": "2.24.0",
-            "Updated": "\/Date(1750263611761)\/"
+            "Updated": "\/Date(1751156545147)\/"
         },
         {
             "Info": "",
             "Source": "main",
             "Name": "pnpm",
             "Version": "10.12.4",
-            "Updated": "\/Date(1751083677874)\/"
+            "Updated": "\/Date(1751156563280)\/"
         },
         {
             "Info": "",
             "Source": "extras",
             "Name": "potplayer",
             "Version": "250625",
-            "Updated": "\/Date(1751087290583)\/"
+            "Updated": "\/Date(1751156576958)\/"
         },
         {
             "Info": "",
             "Source": "extras",
             "Name": "powertoys",
             "Version": "0.91.1",
-            "Updated": "\/Date(1750264251200)\/"
+            "Updated": "\/Date(1751156739530)\/"
         },
         {
             "Info": "",
             "Source": "main",
             "Name": "pyenv",
             "Version": "3.1.1",
-            "Updated": "\/Date(1750263033521)\/"
+            "Updated": "\/Date(1751156745164)\/"
         },
         {
             "Info": "",
             "Source": "main",
             "Name": "rustup",
             "Version": "1.28.2",
-            "Updated": "\/Date(1750690089553)\/"
+            "Updated": "\/Date(1751156824795)\/"
         },
         {
             "Info": "",
             "Source": "main",
             "Name": "starship",
             "Version": "1.23.0",
-            "Updated": "\/Date(1750263038340)\/"
+            "Updated": "\/Date(1751156831317)\/"
         },
         {
             "Info": "",
             "Source": "extras",
             "Name": "switchhosts",
             "Version": "4.2.0.6119",
-            "Updated": "\/Date(1750264313085)\/"
+            "Updated": "\/Date(1751156870736)\/"
         },
         {
             "Info": "",
             "Source": "main",
             "Name": "tlrc",
             "Version": "1.11.1",
-            "Updated": "\/Date(1750263042239)\/"
+            "Updated": "\/Date(1751156874328)\/"
         },
         {
             "Info": "",
             "Source": "main",
             "Name": "uv",
             "Version": "0.7.16",
-            "Updated": "\/Date(1751087307602)\/"
+            "Updated": "\/Date(1751156882355)\/"
         },
         {
             "Info": "",
             "Source": "extras",
             "Name": "vscode",
             "Version": "1.101.2",
-            "Updated": "\/Date(1751087348176)\/"
+            "Updated": "\/Date(1751156951221)\/"
         },
         {
             "Info": "",
             "Source": "extras",
             "Name": "webstorm",
             "Version": "2025.1.3-251.26927.40",
-            "Updated": "\/Date(1751087726224)\/"
+            "Updated": "\/Date(1751157312348)\/"
         },
         {
             "Info": "",
             "Source": "extras",
             "Name": "wechat",
             "Version": "4.0.5.27",
-            "Updated": "\/Date(1751087804584)\/"
+            "Updated": "\/Date(1751157372584)\/"
         },
         {
             "Info": "",
             "Source": "extras",
             "Name": "winrar",
             "Version": "7.12",
-            "Updated": "\/Date(1751087817987)\/"
+            "Updated": "\/Date(1751157379279)\/"
         },
         {
             "Info": "",
             "Source": "main",
             "Name": "winsw",
             "Version": "2.12.0",
-            "Updated": "\/Date(1751116229714)\/"
+            "Updated": "\/Date(1751157386722)\/"
         },
         {
             "Info": "",
             "Source": "main",
             "Name": "zoxide",
             "Version": "0.9.8",
-            "Updated": "\/Date(1750263057443)\/"
+            "Updated": "\/Date(1751157389143)\/"
         }
     ]
 }
