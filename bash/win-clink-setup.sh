@@ -34,18 +34,19 @@ install_clink_plugins() {
     fi
 
     # 获取 clink 路径
-    clink_path=$(scoop prefix clink)
+    local clink_path=$(scoop prefix clink)
     if [ -z "$clink_path" ] || [ ! -d "$clink_path" ]; then
         error "获取 clink 安装路径失败"
     fi
-    scripts_path="$clink_path/scripts"
-    info "Clink 安装路径: $clink_path"
+    local scripts_path="$clink_path\\scripts"
+    info "Clink 安装路径: "
+    echo "$clink_path"
 
     # 3. 下载并配置插件
     info "步骤3/4: 处理插件..."
     for repo in "${!PLUGINS[@]}"; do
         plugin_dir="${PLUGINS[$repo]}"
-        target_path="$scripts_path/$plugin_dir"
+        target_path="$scripts_path\\$plugin_dir"
 
         if [ ! -d "$target_path" ]; then
             info "正在下载插件: $plugin_dir..."
@@ -65,6 +66,9 @@ install_clink_plugins() {
             info "插件 $plugin_dir 已存在，跳过下载"
         fi
     done
+
+    info "复制 starship.lua 配置文件..."
+    cp -v "./other/starship.lua" "$scripts_path\\starship.lua"
 
     # 4. 启用自动运行
     info "步骤4/4: 启用 clink 自动运行..."

@@ -22,7 +22,7 @@ install_git_extras() {
 
     # 步骤3: 检出最新版本
     info "步骤3/5: 检出最新版本..."
-    latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1))
+    local latest_tag=$(git describe --tags $(git rev-list --tags --max-count=1))
     git checkout "$latest_tag" || {
         error "检出最新标签失败"
     }
