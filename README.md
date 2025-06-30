@@ -2,17 +2,19 @@
 
 ### 同步命令
 ```sh
-$ sh ./bash/mac-init.sh                  # 初始化 mac 软件安装
+$ nr mac:init                            # 初始化 mac 软件安装
 $ nr mac:backup                          # 备份 mac brew 安装软件
 $ nr mac:setup                           # 安装 mac brew 软件
 $ nr mac:sync 1                          # 同步本地 mac zsh 配置文件到仓库
-$ bash.exe ./bash/win-init.sh            # 初始化 windows 软件安装
+
+$ nr win:init                            # 初始化 windows 软件安装
 $ nr win:backup                          # 备份 windows scoop 安装软件
 $ nr win:setup                           # 安装 windows scoop 软件
-$ nr win:zsh                             # 安装 zsh
 $ nr win:sync 1                          # 同步本地 windows zsh 配置文件到仓库
+$ nr win:zsh                             # 安装 zsh 到 git
 $ nr win:clink                           # 安装 clink 插件
 $ nr win:git-extras                      # 安装 git-extras 插件
+
 $ nr other:sync 1                        # 同步本地其它配置文件到仓库
 ```
 
@@ -26,7 +28,7 @@ $ nr other:sync 1                        # 同步本地其它配置文件到仓�
 - [utils.zsh](./windows/utils.zsh) - 自定义函数
 - [WinSW.xml](./windows/WinSW.xml) - 使用 [WinSW](https://github.com/winsw/winsw/) 来实现 [Nginx](https://nginx.org/) 自启动配置文件
 ```sh
-$ cp ./windows/WinSW.xml D:/DevelopApplication/Scoop/apps/winsw/current
+$ cp ./windows/WinSW.xml "$(scoop prefix winsw | tr -d '\r')\\WinSW.xml"
 $ winsw install
 $ winsw uninstall
 $ winsw start

@@ -21,8 +21,8 @@ case $direction in
         ;;
     2)
         # other 目录 -> 本地目录
-        cp -v ./other/_eza ~/.zsh/zfunc/_eza
-        cp -v ./other/starship.toml ~/.config/starship/starship.toml
+        mkdir -p ~/.zsh/zfunc && cp -v ./other/_eza ~/.zsh/zfunc/_eza
+        mkdir -p ~/.config/starship && cp -v ./other/starship.toml ~/.config/starship/starship.toml
         ;;
     *)
         echo "无效选择"

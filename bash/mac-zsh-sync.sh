@@ -31,10 +31,13 @@ case $direction in
         cp -v ~/.zsh/functions/utils.zsh ./mac/utils.zsh
         ;;
     2)
+        # 备份系统 .zshrc 文件
+        backup_file ~/.zshrc ~/.zsh/backup
+
         # mac 目录 -> 本地目录
         cp -v ./mac/.zshrc ~/.zshrc
         cp -v ./mac/.bashrc ~/.bashrc
-        cp -v ./mac/utils.zsh ~/.zsh/functions/utils.zsh
+        mkdir -p ~/.zsh/functions && cp -v ./mac/utils.zsh ~/.zsh/functions/utils.zsh
         ;;
     *)
         echo "无效选择"

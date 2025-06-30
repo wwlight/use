@@ -31,10 +31,13 @@ case $direction in
         cp -v ~/.zsh/functions/utils.zsh ./windows/utils.zsh
         ;;
     2)
+        # 备份系统 .zshrc 文件
+        backup_file ~/.zshrc ~/.zsh/backup
+
         # windows 目录 -> 本地目录
         cp -v ./windows/.zshrc ~/.zshrc
         cp -v ./windows/.bashrc ~/.bashrc
-        cp -v ./windows/utils.zsh ~/.zsh/functions/utils.zsh
+        mkdir -p ~/.zsh/functions && cp -v ./windows/utils.zsh ~/.zsh/functions/utils.zsh
         ;;
     *)
         echo "无效选择"
