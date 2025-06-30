@@ -15,8 +15,41 @@ setup_directories() {
     mkdir -p ~/.npm_global || warn ".npm_global 目录已存在"
 }
 
+install_or_restore_scoop() {
+    info "步骤2/4: 正在安装/恢复 Scoop 应用..."
+    local SCOOP_BACKUP="./windows/scoop_backup.json"
+
+    # 检查是否已安装 Scoop
+    if ! command -v scoop &> /dev/null; then
+        info "Scoop 未安装，正在安装 Scoop..."
+
+        # 设置 Scoop 安装路径
+        export SCOOP='D:\DevelopApplication\Scoop'
+        [Environment]::SetEnvironmentVariable('SCOOP', $env:SCOOP, 'User')
+
+        # 设置执行策略
+        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+        # 安装 Scoop
+        iex "& {$(irm get.scoop.sh)} -RunAsAdmin" || {
+            error "Scoop 安装失败！"
+            return 1
+        }
+        info "Scoop 安装成功"
+    fi
+
+    # 恢复 Scoop 应用
+    if [ -f "$SCOOP_BACKUP" ]; then
+        scoop import "$SCOOP_BACKUP" || {
+            error "Scoop 应用恢复失败！"
+        }
+    else
+        error "找不到 Scoop 备份文件: $SCOOP_BACKUP"
+    fi
+}
+
 install_zsh_plugins() {
-    info "步骤2/4: 正在安装 zsh 插件..."
+    info "步骤3/4: 正在安装 zsh 插件..."
 
     # 保持原始顺序：key=仓库URL，value=插件目录名
     declare -A PLUGINS=(
@@ -43,33 +76,16 @@ install_zsh_plugins() {
     done
 }
 
-restore_scoop_apps() {
-    info "步骤3/4: 正在恢复 Scoop 应用..."
-    local SCOOP_BACKUP="./windows/scoop_backup.json"
-
-    if ! command -v scoop &> /dev/null; then
-        error "Scoop 未安装！请先安装 Scoop。"
-    fi
-
-    if [ -f "$SCOOP_BACKUP" ]; then
-        scoop import "$SCOOP_BACKUP" || {
-            error "Scoop 应用恢复失败！"
-        }
-    else
-        error "找不到 Scoop 备份文件: $SCOOP_BACKUP"
-    fi
-}
-
 sync_configurations() {
     info "步骤4/4: 正在同步配置..."
-    local ZSH_SCRIPT="$SCRIPT_DIR/win-zsh-sync.sh"
+    local CONFIG_SCRIPT="$SCRIPT_DIR/win-config-sync.sh"
     local OTHER_SCRIPT="$SCRIPT_DIR/other-sync.sh"
 
     # 同步 zsh 配置
-    if [ -f "$ZSH_SCRIPT" ]; then
-        sh "$ZSH_SCRIPT" 2 || error "同步 zsh 配置失败！"
+    if [ -f "$CONFIG_SCRIPT" ]; then
+        sh "$CONFIG_SCRIPT" 2 || error "同步配置失败！"
     else
-        error "找不到 zsh 同步脚本: $ZSH_SCRIPT"
+        error "找不到配置同步脚本: $CONFIG_SCRIPT"
     fi
 
     # 同步其他配置
@@ -80,6 +96,7 @@ sync_configurations() {
     fi
 }
 
+
 # ==============================
 # 主执行流程
 # ==============================
@@ -87,10 +104,10 @@ main() {
     info "===== Windows 系统配置脚本 ====="
     check_target_system "Windows"
 
-    setup_directories       # 步骤1: 创建目录结构
-    install_zsh_plugins     # 步骤2: 安装 zsh 插件
-    restore_scoop_apps      # 步骤3: 恢复 Scoop 应用
-    sync_configurations     # 步骤4: 同步配置
+    setup_directories              # 步骤1: 创建目录结构
+    install_or_restore_scoop       # 步骤2: 安装/恢复 Scoop 应用
+    install_zsh_plugins            # 步骤3: 安装 zsh 插件
+    sync_configurations            # 步骤4: 同步配置
 
     info "🎉 所有操作完成！系统已准备就绪。"
 }

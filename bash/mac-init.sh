@@ -23,8 +23,45 @@ setup_directories() {
     done
 }
 
+install_or_restore_brew() {
+    info "步骤2/4: 正在安装/恢复 Homebrew 及依赖..."
+    local BREWFILE="./mac/Brewfile"
+
+    # 检查并安装 Homebrew
+    if ! command -v brew &> /dev/null; then
+        info "Homebrew 未安装，正在自动安装..."
+        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || {
+            error "Homebrew 安装失败！"
+            return 1
+        }
+
+        info "同步 Homebrew 配置文件..."
+        cp -v ./mac/.zprofile ~/.zprofile
+        source ~/.zprofile
+        brew update || {
+            error "Homebrew 更新失败！"
+            return 1
+        }
+        info "Homebrew 安装成功"
+    fi
+
+
+    # 安装 Brewfile 依赖
+    if [ -f "$BREWFILE" ]; then
+        info "正在从 Brewfile 安装依赖..."
+        brew bundle install --file="$BREWFILE" || {
+            error "Brewfile 依赖安装失败！"
+            return 1
+        }
+        info "Brewfile 依赖安装完成"
+    else
+        error "找不到 Brewfile: $BREWFILE"
+        return 1
+    fi
+}
+
 install_zsh_plugins() {
-    info "步骤2/4: 正在安装 zsh 插件..."
+    info "步骤3/4: 正在安装 zsh 插件..."
 
     # 使用兼容旧版 Bash 的数组代替关联数组
     local PLUGINS_REPOS=(
@@ -59,36 +96,16 @@ install_zsh_plugins() {
     done
 }
 
-install_brew_dependencies() {
-    info "步骤3/4: 正在处理 Homebrew 依赖..."
-    local BREWFILE="./mac/Brewfile"
-
-    if ! command -v brew &> /dev/null; then
-        error "Homebrew 未安装！请先安装 Homebrew。"
-        return 1
-    fi
-
-    if [ -f "$BREWFILE" ]; then
-        brew bundle install --file="$BREWFILE" || {
-            error "Brewfile 依赖安装失败！"
-            return 1
-        }
-    else
-        error "找不到 Brewfile: $BREWFILE"
-        return 1
-    fi
-}
-
 sync_configurations() {
     info "步骤4/4: 正在同步配置..."
-    local ZSH_SCRIPT="$SCRIPT_DIR/mac-zsh-sync.sh"
+    local CONFIG_SCRIPT="$SCRIPT_DIR/mac-config-sync.sh"
     local OTHER_SCRIPT="$SCRIPT_DIR/other-sync.sh"
 
     # 同步 zsh 配置
-    if [ -f "$ZSH_SCRIPT" ]; then
-        sh "$ZSH_SCRIPT" 2 || error "同步 zsh 配置失败！"
+    if [ -f "$CONFIG_SCRIPT" ]; then
+        sh "$CONFIG_SCRIPT" 2 || error "同步配置失败！"
     else
-        error "找不到 zsh 同步脚本: $ZSH_SCRIPT"
+        error "找不到配置同步脚本: $CONFIG_SCRIPT"
     fi
 
     # 同步其他配置
@@ -106,10 +123,10 @@ main() {
     info "===== macOS 系统配置脚本 ====="
     check_target_system "macOS"
 
-    setup_directories              # 步骤1: 创建目录结构
-    install_zsh_plugins            # 步骤2: 安装 zsh 插件
-    install_brew_dependencies      # 步骤3: 安装 Homebrew 依赖
-    sync_configurations            # 步骤4: 同步配置
+    setup_directories            # 步骤1: 创建目录结构
+    install_or_restore_brew      # 步骤2: 安装/恢复 Homebrew 及依赖
+    install_zsh_plugins          # 步骤3: 安装 zsh 插件
+    sync_configurations          # 步骤4: 同步配置
 
     info "🎉 所有操作完成！系统已准备就绪。"
 }

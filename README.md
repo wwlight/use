@@ -2,15 +2,15 @@
 
 ### 同步命令
 ```sh
-$ nr mac:init                            # 初始化 mac 软件安装
+$ bash ./bash/mac-init.sh                # 初始化 mac 软件安装
 $ nr mac:backup                          # 备份 mac brew 安装软件
 $ nr mac:setup                           # 安装 mac brew 软件
-$ nr mac:sync 1                          # 同步本地 mac zsh 配置文件到仓库
+$ nr mac:sync 1                          # 同步本地 mac 配置文件到仓库
 
-$ nr win:init                            # 初始化 windows 软件安装
+$ bash ./bash/win-init.sh                # 初始化 windows 软件安装
 $ nr win:backup                          # 备份 windows scoop 安装软件
 $ nr win:setup                           # 安装 windows scoop 软件
-$ nr win:sync 1                          # 同步本地 windows zsh 配置文件到仓库
+$ nr win:sync 1                          # 同步本地 windows 配置文件到仓库
 $ nr win:zsh                             # 安装 zsh 到 git
 $ nr win:clink                           # 安装 clink 插件
 $ nr win:git-extras                      # 安装 git-extras 插件
@@ -20,6 +20,7 @@ $ nr other:sync 1                        # 同步本地其它配置文件到仓�
 
 ### mac
 - [Brewfile](./mac/Brewfile) - 关于 [Homebrew](https://brew.sh/) 安装应用备份文件
+- [.zprofile](./mac/.zprofile) - brew 及镜像配置文件
 - [.zshrc](./mac/.zshrc) - zsh 配置文件
 
 ### windows

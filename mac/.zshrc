@@ -90,7 +90,7 @@ ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#53555c"
 # 工具初始化
 # ======================
 # Node.js 版本管理 (fnm)
-eval "$(fnm env --use-on-cd)"
+eval "$(fnm env --use-on-cd --shell zsh)"
 
 # 模糊搜索 (fzf)
 source <(fzf --zsh)

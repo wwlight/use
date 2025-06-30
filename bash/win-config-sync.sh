@@ -31,8 +31,8 @@ case $direction in
         cp -v ~/.zsh/functions/utils.zsh ./windows/utils.zsh
         ;;
     2)
-        # 备份系统 .zshrc 文件
-        backup_file ~/.zshrc ~/.zsh/backup
+        # 备份系统配置文件
+        backup_file ~/.zshrc ~/.backup
 
         # windows 目录 -> 本地目录
         cp -v ./windows/.zshrc ~/.zshrc

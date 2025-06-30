@@ -8,9 +8,17 @@ GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
 
-info() { echo -e "${GREEN}[INFO]${NC} $1"; }
-warn() { echo -e "${YELLOW}[WARN]${NC} $1"; }
-error() { echo -e "${RED}[ERROR]${NC} $1"; exit 1; }
+safe_echo() {
+    if [[ "$(uname -s)" == "Darwin" ]]; then
+        printf "%b\n" "$1"
+    else
+        echo -e "$1"
+    fi
+}
+
+info() { safe_echo "${GREEN}[INFO]${NC} $1"; }
+warn() { safe_echo "${YELLOW}[WARN]${NC} $1"; }
+error() { safe_echo "${RED}[ERROR]${NC} $1"; exit 1; }
 
 # ==============================
 # 系统环境检测
@@ -49,7 +57,6 @@ smart_clean() {
     fi
 }
 
-
 # ==============================
 # 备份（支持自定义路径+日期序号+错误不中断）
 # 使用方法: backup_file <目标文件> [备份目录]
@@ -72,8 +79,15 @@ backup_file() {
 
     # 生成备份文件名（格式：原文件名.bak.年月日.序号）
     local file_name=$(basename "$target_file")
-    local backup_base="${backup_dir}/${file_name}.bak.$(date +%Y%m%d)"
-    local next_num=$(ls "${backup_base}."* 2>/dev/null | wc -l)
+    local date_str=$(date +%Y%m%d)
+    local backup_base="${backup_dir}/${file_name}.bak.${date_str}"
+
+    # 查找已存在的备份文件确定下一个序号
+    local next_num=0
+    while [ -f "${backup_base}.${next_num}" ]; do
+        ((next_num++))
+    done
+
     local backup_file="${backup_base}.${next_num}"
 
     # 执行备份
