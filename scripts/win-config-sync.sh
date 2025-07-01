@@ -38,6 +38,7 @@ case $direction in
         cp -v ./windows/.zshrc ~/.zshrc
         cp -v ./windows/.bashrc ~/.bashrc
         mkdir -p ~/.zsh/functions && cp -v ./windows/utils.zsh ~/.zsh/functions/utils.zsh
+        cp -v ./windows/fnm_init.cmd ~/fnm_init.cmd
         ;;
     *)
         echo "无效选择"
