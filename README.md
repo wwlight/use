@@ -2,12 +2,13 @@
 
 ### 同步命令
 ```sh
-$ bash ./bash/mac-init.sh                # 初始化 mac 软件安装
+$ bash ./scripts/mac-init.sh             # 初始化 mac 软件安装
 $ nr mac:backup                          # 备份 mac brew 安装软件
 $ nr mac:setup                           # 安装 mac brew 软件
 $ nr mac:sync 1                          # 同步本地 mac 配置文件到仓库
 
-$ bash ./bash/win-init.sh                # 初始化 windows 软件安装
+$ ./scripts/win-scoop-install.ps1        # 初始化 windows 安装 scoop
+$ bash ./scripts/win-init.sh             # 初始化 windows 软件安装（基于 scoop）
 $ nr win:backup                          # 备份 windows scoop 安装软件
 $ nr win:setup                           # 安装 windows scoop 软件
 $ nr win:sync 1                          # 同步本地 windows 配置文件到仓库

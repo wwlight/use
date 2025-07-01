@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 引入公共函数库
-SCRIPT_DIR="./bash"
+SCRIPT_DIR="./scripts"
 source "$SCRIPT_DIR/utils.sh"
 
 # ==============================

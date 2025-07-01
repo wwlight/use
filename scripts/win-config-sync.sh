@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 引入公共函数库
-source ./bash/utils.sh
+source ./scripts/utils.sh
 
 # 检查是否在 Windows 环境运行
 check_target_system "Windows"

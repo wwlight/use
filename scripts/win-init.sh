@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 引入公共函数库
-SCRIPT_DIR="./bash"
+SCRIPT_DIR="./scripts"
 source "$SCRIPT_DIR/utils.sh"
 
 # ==============================
@@ -16,42 +16,28 @@ setup_directories() {
 }
 
 install_or_restore_scoop() {
-    info "步骤2/4: 正在安装/恢复 Scoop 应用..."
+    info "步骤2/4: 正在恢复 Scoop 应用..."
     local SCOOP_BACKUP="./windows/scoop_backup.json"
 
-    # 检查是否已安装 Scoop
     if ! command -v scoop &> /dev/null; then
-        info "Scoop 未安装，正在安装 Scoop..."
-
-        # 设置 Scoop 安装路径
-        export SCOOP='D:\DevelopApplication\Scoop'
-        [Environment]::SetEnvironmentVariable('SCOOP', $env:SCOOP, 'User')
-
-        # 设置执行策略
-        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-
-        # 安装 Scoop
-        iex "& {$(irm get.scoop.sh)} -RunAsAdmin" || {
-            error "Scoop 安装失败！"
-            return 1
-        }
-        info "Scoop 安装成功"
+        error "Scoop 未安装！请先安装 Scoop。"
+        return 1
     fi
 
-    # 恢复 Scoop 应用
     if [ -f "$SCOOP_BACKUP" ]; then
         scoop import "$SCOOP_BACKUP" || {
             error "Scoop 应用恢复失败！"
+            return 1
         }
     else
         error "找不到 Scoop 备份文件: $SCOOP_BACKUP"
+        return 1
     fi
 }
 
 install_zsh_plugins() {
     info "步骤3/4: 正在安装 zsh 插件..."
 
-    # 保持原始顺序：key=仓库URL，value=插件目录名
     declare -A PLUGINS=(
         ["https://github.com/zdharma-continuum/fast-syntax-highlighting.git"]="fast-syntax-highlighting"
         ["https://github.com/zsh-users/zsh-autosuggestions.git"]="zsh-autosuggestions"
@@ -96,7 +82,6 @@ sync_configurations() {
     fi
 }
 
-
 # ==============================
 # 主执行流程
 # ==============================
@@ -105,7 +90,7 @@ main() {
     check_target_system "Windows"
 
     setup_directories              # 步骤1: 创建目录结构
-    install_or_restore_scoop       # 步骤2: 安装/恢复 Scoop 应用
+    install_or_restore_scoop       # 步骤2: 恢复 Scoop 应用
     install_zsh_plugins            # 步骤3: 安装 zsh 插件
     sync_configurations            # 步骤4: 同步配置
 

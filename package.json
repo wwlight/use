@@ -6,14 +6,14 @@
   "scripts": {
     "mac:backup": "brew bundle dump --no-vscode --force --file=./mac/Brewfile",
     "mac:setup": "brew bundle install --file=./mac/Brewfile",
-    "mac:sync": "bash ./bash/mac-config-sync.sh",
+    "mac:sync": "bash ./scripts/mac-config-sync.sh",
     "win:backup": "scoop export > ./windows/scoop_backup.json",
     "win:setup": "scoop import ./windows/scoop_backup.json",
-    "win:sync": "bash ./bash/win-config-sync.sh",
-    "win:zsh": "bash ./bash/win-zsh-install.sh",
-    "win:clink": "bash ./bash/win-clink-setup.sh",
-    "win:git-extras": "bash ./bash/win-git-extras-install.sh",
-    "other:sync": "bash ./bash/other-sync.sh"
+    "win:sync": "bash ./scripts/win-config-sync.sh",
+    "win:zsh": "bash ./scripts/win-zsh-install.sh",
+    "win:clink": "bash ./scripts/win-clink-setup.sh",
+    "win:git-extras": "bash ./scripts/win-git-extras-install.sh",
+    "other:sync": "bash ./scripts/other-sync.sh"
   },
   "author": "",
   "license": "ISC",
