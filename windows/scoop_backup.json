@@ -4,9 +4,9 @@
             "Name": "main",
             "Source": "https://github.com/ScoopInstaller/Main",
             "Updated": {
-                "value": "\/Date(1751157951000)\/",
+                "value": "\/Date(1751185795000)\/",
                 "DisplayHint": 2,
-                "DateTime": "2025年6月29日 8:45:51"
+                "DateTime": "2025年6月29日 16:29:55"
             },
             "Manifests": 1391
         },
@@ -14,9 +14,9 @@
             "Name": "extras",
             "Source": "https://github.com/ScoopInstaller/Extras",
             "Updated": {
-                "value": "\/Date(1751157975000)\/",
+                "value": "\/Date(1751185770000)\/",
                 "DisplayHint": 2,
-                "DateTime": "2025年6月29日 8:46:15"
+                "DateTime": "2025年6月29日 16:29:30"
             },
             "Manifests": 2169
         },
@@ -100,7 +100,7 @@
             "Source": "main",
             "Name": "git",
             "Version": "2.50.0",
-            "Updated": "\/Date(1751156205444)\/"
+            "Updated": "\/Date(1751193129521)\/"
         },
         {
             "Info": "",
@@ -226,7 +226,7 @@
             "Source": "main",
             "Name": "pyenv",
             "Version": "3.1.1",
-            "Updated": "\/Date(1751156745164)\/"
+            "Updated": "\/Date(1751201516204)\/"
         },
         {
             "Info": "",
@@ -289,7 +289,7 @@
             "Source": "extras",
             "Name": "winrar",
             "Version": "7.12",
-            "Updated": "\/Date(1751157379279)\/"
+            "Updated": "\/Date(1751186726984)\/"
         },
         {
             "Info": "",

@@ -3,20 +3,16 @@ command_timeout = 10000
 # 在提示符之间插入空行
 add_newline = true
 
-# 将提示符中的 '❯' 替换为 '➜'
+# 字符
 [character]
 success_symbol = '[➜](bold green)'
+error_symbol = '[✗](bold red) '
 
-# 禁用 'package' 组件，将其隐藏
+# 禁用 package 组件
 [package]
 disabled = true
 
 [localip]
-ssh_only = false
+ssh_only = true
 format = '[$localipv4](bold green) '
-disabled = true
-
-[cmd_duration]
-min_time = 500
-format = 'underwent [$duration](bold yellow)'
-disabled = true
+disabled = false

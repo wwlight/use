@@ -81,8 +81,8 @@ $ clink inject             # 临时运行
 $ scoop hold clink         # 禁止更新
 ```
 ```sh
-# starship
-# code $profile 打开配置文件，将下面内容填入
+# starship 关于 powershell 配置
+# code $PROFILE 打开配置文件，将下面内容填入
 
 Invoke-Expression (&starship init powershell)
 # Invoke-Expression (& "$env:SCOOP\\apps\\starship\\current\\starship.exe" init powershell)
