@@ -30,6 +30,13 @@ install_or_restore_brew() {
     # 检查并安装 Homebrew
     if ! command -v brew &> /dev/null; then
         info "Homebrew 未安装，正在自动安装..."
+
+        # 从镜像下载安装脚本并安装 Homebrew
+        # git clone --depth=1 https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/install.git brew-install
+        # /bin/bash brew-install/install.sh
+        # rm -rf brew-install
+
+        # 使用官方安装脚本
         /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || {
             error "Homebrew 安装失败！"
             return 1
@@ -44,7 +51,6 @@ install_or_restore_brew() {
         }
         info "Homebrew 安装成功"
     fi
-
 
     # 安装 Brewfile 依赖
     if [ -f "$BREWFILE" ]; then

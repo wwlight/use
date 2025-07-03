@@ -11,8 +11,8 @@
     "win:setup": "scoop import ./windows/scoop_backup.json",
     "win:sync": "bash ./scripts/win-config-sync.sh",
     "win:zsh": "bash ./scripts/win-zsh-install.sh",
-    "win:clink": "bash ./scripts/win-clink-setup.sh",
     "win:git-extras": "bash ./scripts/win-git-extras-install.sh",
+    "win:clink": "bash ./scripts/win-clink-install.sh",
     "other:sync": "bash ./scripts/other-sync.sh"
   },
   "author": "",

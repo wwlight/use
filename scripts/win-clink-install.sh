@@ -67,12 +67,13 @@ install_clink_plugins() {
         fi
     done
 
+    # 复制 starship 配置文件，借助 clink 自动加载
     info "复制 starship.lua 配置文件..."
     cp -v "./windows/starship.lua" "$scripts_path\\starship.lua"
 
     # 4. 启用自动运行
     info "步骤4/4: 启用 clink 自动运行..."
-    clink autorun install || {
+    clink autorun install -- --quiet || {
         warn "clink 自动运行启用失败"
     }
     info "clink 自动运行已启用"

@@ -8,7 +8,7 @@
 $ bash ./scripts/mac-init.sh             # 初始化 mac 软件安装（支持自动安装 brew）
 $ nr mac:backup                          # 备份 mac brew 安装软件
 $ nr mac:setup                           # 安装 mac brew 软件
-$ nr mac:sync 1                          # 同步本地 mac 配置文件到仓库
+$ nr mac:sync 1                          # 同步 mac 本地配置文件到仓库
 ```
 
 <details>
@@ -41,10 +41,10 @@ $ nr mac:sync 1                          # 同步本地 mac 配置文件到仓�
 $ bash ./scripts/win-init.sh             # 初始化 windows 软件安装（基于 scoop 和 git）
 $ nr win:backup                          # 备份 windows scoop 安装软件
 $ nr win:setup                           # 安装 windows scoop 软件
-$ nr win:sync 1                          # 同步本地 windows 配置文件到仓库
+$ nr win:sync 1                          # 同步 windows 本地配置文件到仓库
 $ nr win:zsh                             # 安装 zsh 到 git
-$ nr win:clink                           # 安装 clink 插件
 $ nr win:git-extras                      # 安装 git-extras 插件
+$ nr win:clink                           # 安装 clink 插件（cmd 扩展）
 ```
 
 <details>
@@ -74,11 +74,11 @@ $ hyper install hyperpower
 ```sh
 # clink
 $ clink info
-$ clink autorun install    # 启用自动运行
-$ clink autorun uninstall  # 禁用自动运行
-$ clink inject             # 临时运行
+$ clink autorun install -- --quiet     # 启用自动运行
+$ clink autorun uninstall              # 禁用自动运行
+$ clink inject                         # 临时运行
 
-$ scoop hold clink         # 禁止更新
+$ scoop hold clink                     # 禁止更新
 ```
 ```sh
 # starship 关于 powershell 配置
@@ -87,6 +87,11 @@ $ scoop hold clink         # 禁止更新
 Invoke-Expression (&starship init powershell)
 # Invoke-Expression (& "$env:SCOOP\\apps\\starship\\current\\starship.exe" init powershell)
 $ENV:STARSHIP_CONFIG = "$HOME\\.config\\starship\\starship.toml"
+```
+
+```text
+Q：隐藏 powershell/cmd 启动时的提示信息
+A：在 powershell/cmd 目标路径后追加 -NoLogo
 ```
 
 </details>

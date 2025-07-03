@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # 引入公共函数库
-SCRIPT_DIR="./scripts"
+SCRIPT_DIR="."
 source "$SCRIPT_DIR/utils.sh"
 
 # ==============================
@@ -16,7 +16,7 @@ setup_directories() {
 }
 
 install_or_restore_scoop() {
-    info "步骤2/4: 正在恢复 Scoop 应用..."
+    info "步骤2/4: 正在安装/恢复 Scoop 应用..."
     local SCOOP_BACKUP="./windows/scoop_backup.json"
 
     if ! command -v scoop &> /dev/null; then
@@ -90,7 +90,7 @@ main() {
     check_target_system "Windows"
 
     setup_directories              # 步骤1: 创建目录结构
-    install_or_restore_scoop       # 步骤2: 恢复 Scoop 应用
+    install_or_restore_scoop       # 步骤2: 安装/恢复 Scoop 应用
     install_zsh_plugins            # 步骤3: 安装 zsh 插件
     sync_configurations            # 步骤4: 同步配置
 

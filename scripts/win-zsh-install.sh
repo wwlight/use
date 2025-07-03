@@ -28,6 +28,7 @@ install_zsh_for_git() {
         return 1
     fi
     info "Git 路径: $git_path"
+    echo
 
     # 步骤3: 直接解压到 Git 目录
     info "步骤3/4: 直接解压到 Git 目录..."
@@ -39,6 +40,7 @@ install_zsh_for_git() {
 
     # 创建临时目录用于解压
     local temp_extract_dir="$HOME/Desktop/zsh-temp-extract"
+    smart_clean "$temp_extract_dir"
     mkdir -p "$temp_extract_dir"
 
     # 直接解压 .tar.zst 到临时目录
@@ -52,7 +54,7 @@ install_zsh_for_git() {
     # 移动文件到 Git 目录
     info "移动文件到 Git 目录..."
     shopt -s dotglob  # 包含隐藏文件
-    if cp -rf "$temp_extract_dir"/* "$git_path" 2>/dev/null; then
+    if cp -rf "$temp_extract_dir"/* "$git_path" 2> "$HOME/Desktop/cp_error.log"; then
         info "文件移动完成"
     else
         error "移动失败"

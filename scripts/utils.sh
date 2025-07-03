@@ -9,10 +9,12 @@ YELLOW='\033[0;33m'
 NC='\033[0m' # No Color
 
 safe_echo() {
-    if [[ "$(uname -s)" == "Darwin" ]]; then
+    if command -v printf >/dev/null && printf "%b" "$1" >/dev/null 2>&1; then
         printf "%b\n" "$1"
-    else
+    elif echo -e "$1" >/dev/null 2>&1; then
         echo -e "$1"
+    else
+        echo "$1"
     fi
 }
 
@@ -24,12 +26,20 @@ error() { safe_echo "${RED}[ERROR]${NC} $1"; exit 1; }
 # 系统环境检测
 # ==============================
 detect_system() {
-    case "$(uname -s)" in
-        Darwin*)  echo "macOS";;
-        Linux*)   [[ $(uname -r) == *microsoft* ]] && echo "WSL" || echo "Linux";;
-        CYGWIN*|MINGW*|MSYS*) echo "Windows";;
-        *)        error "不支持的系统类型";;
-    esac
+    if command -v uname &>/dev/null; then
+        case "$(uname -s)" in
+            Darwin*)  echo "macOS";;
+            Linux*)   [[ $(uname -r) == *microsoft* ]] && echo "WSL" || echo "Linux";;
+            CYGWIN*|MINGW*|MSYS*) echo "Windows";;
+            *)        echo "Unknown";;
+        esac
+    else
+        if [[ "$OSTYPE" == "win32" || "$OSTYPE" == "msys" ]]; then
+            echo "Windows"
+        else
+            echo "Unknown"
+        fi
+    fi
 }
 
 # ==============================
