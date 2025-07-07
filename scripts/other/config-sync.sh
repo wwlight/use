@@ -16,13 +16,13 @@ fi
 case $direction in
     1)
         # 本地目录 -> other 目录
-        cp -v ~/.zsh/zfunc/_eza ./other/_eza
-        cp -v ~/.config/starship/starship.toml ./other/starship.toml
+        cp -v ~/.zsh/zfunc/_eza ./configs/other/_eza
+        cp -v ~/.config/starship/starship.toml ./configs/other/starship.toml
         ;;
     2)
         # other 目录 -> 本地目录
-        mkdir -p ~/.zsh/zfunc && cp -v ./other/_eza ~/.zsh/zfunc/_eza
-        mkdir -p ~/.config/starship && cp -v ./other/starship.toml ~/.config/starship/starship.toml
+        mkdir -p ~/.zsh/zfunc && cp -v ./configs/other/_eza ~/.zsh/zfunc/_eza
+        mkdir -p ~/.config/starship && cp -v ./configs/other/starship.toml ~/.config/starship/starship.toml
         ;;
     *)
         echo "无效选择"

@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # 引入公共函数库
-source ./scripts/utils.sh
+SCRIPT_DIR="./scripts"
+source "$SCRIPT_DIR/utils.sh"
 
 # 检查是否在 Windows 环境运行
 check_target_system "Windows"
@@ -26,19 +27,19 @@ fi
 case $direction in
     1)
         # 本地目录 -> windows 目录
-        cp -v ~/.zshrc ./windows/.zshrc
-        cp -v ~/.bashrc ./windows/.bashrc
-        cp -v ~/.zsh/functions/utils.zsh ./windows/utils.zsh
+        cp -v ~/.zshrc ./configs/windows/.zshrc
+        cp -v ~/.bashrc ./configs/windows/.bashrc
+        cp -v ~/.zsh/functions/utils.zsh ./configs/windows/utils.zsh
         ;;
     2)
         # 备份系统配置文件
         backup_file ~/.zshrc ~/.backup
 
         # windows 目录 -> 本地目录
-        cp -v ./windows/.zshrc ~/.zshrc
-        cp -v ./windows/.bashrc ~/.bashrc
-        mkdir -p ~/.zsh/functions && cp -v ./windows/utils.zsh ~/.zsh/functions/utils.zsh
-        cp -v ./windows/fnm_init.cmd ~/fnm_init.cmd
+        cp -v ./configs/windows/.zshrc ~/.zshrc
+        cp -v ./configs/windows/.bashrc ~/.bashrc
+        mkdir -p ~/.zsh/functions && cp -v ./configs/windows/utils.zsh ~/.zsh/functions/utils.zsh
+        cp -v ./configs/windows/fnm_init.cmd ~/fnm_init.cmd
         ;;
     *)
         echo "无效选择"

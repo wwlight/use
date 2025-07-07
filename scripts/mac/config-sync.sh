@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # 引入公共函数库
-source ./scripts/utils.sh
+SCRIPT_DIR="./scripts"
+source "$SCRIPT_DIR/utils.sh"
 
 # 检查是否在 macOS 环境运行
 check_target_system "macOS"
@@ -26,20 +27,20 @@ fi
 case $direction in
     1)
         # 本地目录 -> mac 目录
-        cp -v ~/.zprofile ./mac/.zprofile
-        cp -v ~/.zshrc ./mac/.zshrc
-        cp -v ~/.bashrc ./mac/.bashrc
-        cp -v ~/.zsh/functions/utils.zsh ./mac/utils.zsh
+        cp -v ~/.zprofile ./configs/mac/.zprofile
+        cp -v ~/.zshrc ./configs/mac/.zshrc
+        cp -v ~/.bashrc ./configs/mac/.bashrc
+        cp -v ~/.zsh/functions/utils.zsh ./configs/mac/utils.zsh
         ;;
     2)
         # 备份系统配置文件
         backup_file ~/.zshrc ~/.backup
 
         # mac 目录 -> 本地目录
-        cp -v ./mac/.zprofile ~/.zprofile
-        cp -v ./mac/.zshrc ~/.zshrc
-        cp -v ./mac/.bashrc ~/.bashrc
-        mkdir -p ~/.zsh/functions && cp -v ./mac/utils.zsh ~/.zsh/functions/utils.zsh
+        cp -v ./configs/mac/.zprofile ~/.zprofile
+        cp -v ./configs/mac/.zshrc ~/.zshrc
+        cp -v ./configs/mac/.bashrc ~/.bashrc
+        mkdir -p ~/.zsh/functions && cp -v ./configs/mac/utils.zsh ~/.zsh/functions/utils.zsh
         ;;
     *)
         echo "无效选择"

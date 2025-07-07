@@ -25,7 +25,7 @@ setup_directories() {
 
 install_or_restore_brew() {
     info "步骤2/4: 正在安装/恢复 Homebrew 及依赖..."
-    local BREWFILE="./mac/Brewfile"
+    local BREWFILE="./configs/mac/Brewfile"
 
     # 检查并安装 Homebrew
     if ! command -v brew &> /dev/null; then
@@ -43,7 +43,7 @@ install_or_restore_brew() {
         }
 
         info "同步 Homebrew 配置文件..."
-        cp -v ./mac/.zprofile ~/.zprofile
+        cp -v ./configs/mac/.zprofile ~/.zprofile
         source ~/.zprofile
         brew update || {
             error "Homebrew 更新失败！"
@@ -104,8 +104,8 @@ install_zsh_plugins() {
 
 sync_configurations() {
     info "步骤4/4: 正在同步配置..."
-    local CONFIG_SCRIPT="$SCRIPT_DIR/mac-config-sync.sh"
-    local OTHER_SCRIPT="$SCRIPT_DIR/other-sync.sh"
+    local CONFIG_SCRIPT="$SCRIPT_DIR/mac/config-sync.sh"
+    local OTHER_SCRIPT="$SCRIPT_DIR/other/config-sync.sh"
 
     # 同步 zsh 配置
     if [ -f "$CONFIG_SCRIPT" ]; then
