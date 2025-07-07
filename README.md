@@ -96,20 +96,20 @@ A：在 powershell/cmd 目标路径后追加 -NoLogo
 
 </details>
 
-## other
+## common
 
 #### 操作命令
 
 ```sh
-$ nr other:sync 1                        # 同步本地其它配置文件到仓库
-$ nr other:sync 2                        # 同步仓库其它配置文件到本地
+$ nr common:sync 1                        # 同步本地配置文件到仓库
+$ nr common:sync 2                        # 同步仓库配置文件到本地
 ```
 
 <details>
 <summary>文件说明</summary>
 
-- [_eza](./configs/other/_eza) - [eza](https://eza.rocks/) 自动补全配置 | [官方地址](https://github.com/eza-community/eza/tree/main/completions/zsh)
-- [starship.toml](./configs/other/starship.toml) - [starship](https://starship.rs/) 配置文件
+- [_eza](./configs/common/_eza) - [eza](https://eza.rocks/) 自动补全配置 | [官方地址](https://github.com/eza-community/eza/tree/main/completions/zsh)
+- [starship.toml](./configs/common/starship.toml) - [starship](https://starship.rs/) 配置文件
 
 </details>
 

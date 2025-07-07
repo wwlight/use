@@ -13,7 +13,7 @@
     "win:zsh": "bash ./scripts/windows/zsh-install.sh",
     "win:git-extras": "bash ./scripts/windows/git-extras-install.sh",
     "win:clink": "bash ./scripts/windows/clink-install.sh",
-    "other:sync": "bash ./scripts/other/config-sync.sh"
+    "common:sync": "bash ./scripts/common/config-sync.sh"
   },
   "author": "",
   "license": "ISC",

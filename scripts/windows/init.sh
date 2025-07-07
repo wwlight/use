@@ -2,7 +2,7 @@
 
 # 引入公共函数库
 SCRIPT_DIR="./scripts"
-source "$SCRIPT_DIR/utils.sh"
+source "$SCRIPT_DIR/lib/utils.sh"
 
 # ==============================
 # 主安装函数
@@ -65,7 +65,7 @@ install_zsh_plugins() {
 sync_configurations() {
     info "步骤4/4: 正在同步配置..."
     local CONFIG_SCRIPT="$SCRIPT_DIR/windows/config-sync.sh"
-    local OTHER_SCRIPT="$SCRIPT_DIR/other/config-sync.sh"
+    local COMMON_SCRIPT="$SCRIPT_DIR/common/config-sync.sh"
 
     # 同步 zsh 配置
     if [ -f "$CONFIG_SCRIPT" ]; then
@@ -74,11 +74,11 @@ sync_configurations() {
         error "找不到配置同步脚本: $CONFIG_SCRIPT"
     fi
 
-    # 同步其他配置
-    if [ -f "$OTHER_SCRIPT" ]; then
-        sh "$OTHER_SCRIPT" 2 || error "同步其他配置失败！"
+    # 同步公共配置
+    if [ -f "$COMMON_SCRIPT" ]; then
+        sh "$COMMON_SCRIPT" 2 || error "同步公共配置失败！"
     else
-        warn "找不到其他同步脚本: $OTHER_SCRIPT"
+        warn "找不到公共同步脚本: $COMMON_SCRIPT"
     fi
 }
 

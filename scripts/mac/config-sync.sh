@@ -2,7 +2,7 @@
 
 # 引入公共函数库
 SCRIPT_DIR="./scripts"
-source "$SCRIPT_DIR/utils.sh"
+source "$SCRIPT_DIR/lib/utils.sh"
 
 # 检查是否在 macOS 环境运行
 check_target_system "macOS"

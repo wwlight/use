@@ -2,7 +2,7 @@
 
 # 引入公共函数库
 SCRIPT_DIR="./scripts"
-source "$SCRIPT_DIR/utils.sh"
+source "$SCRIPT_DIR/lib/utils.sh"
 
 # ==============================
 # 主安装函数
