@@ -13,7 +13,7 @@ install_zsh_for_git() {
     local zip_file="$HOME/Desktop/zsh-5.9-4-x86_64.pkg.tar.zst"
 
     info "步骤1/4: 下载 zsh 压缩包..."
-    if ! curl -L -o "$zip_file" "$download_url"; then
+    if ! curl --ssl-no-revoke -L "$download_url" -o "$zip_file"; then
         error "下载 zsh 压缩包失败"
         return 1
     fi

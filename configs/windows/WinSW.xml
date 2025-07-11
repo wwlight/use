@@ -2,15 +2,15 @@
   <id>nginx</id>
   <name>Nginx Web Server</name>
   <description>Nginx web server (managed by Scoop)</description>
-  <executable>D:\\DevelopApplication\\Scoop\\apps\\nginx\\current\\nginx.exe</executable>
-  <logpath>D:\\DevelopApplication\\Scoop\\apps\\nginx\\current\\logs</logpath>
+  <executable>D:\\SoftwareApps\\Scoop\\apps\\nginx\\current\\nginx.exe</executable>
+  <logpath>D:\\SoftwareApps\\Scoop\\apps\\nginx\\current\\logs</logpath>
   <logmode>roll</logmode>
   <depend></depend>
   <startargument>-p</startargument>
-  <startargument>D:\\DevelopApplication\\Scoop\\apps\\nginx\\current</startargument>
-  <stopexecutable>D:\\DevelopApplication\\Scoop\\apps\\nginx\\current\\nginx.exe</stopexecutable>
+  <startargument>D:\\SoftwareApps\\Scoop\\apps\\nginx\\current</startargument>
+  <stopexecutable>D:\\SoftwareApps\\Scoop\\apps\\nginx\\current\\nginx.exe</stopexecutable>
   <stopargument>-p</stopargument>
-  <stopargument>D:\\DevelopApplication\\Scoop\\apps\\nginx\\current</stopargument>
+  <stopargument>D:\\SoftwareApps\\Scoop\\apps\\nginx\\current</stopargument>
   <stopargument>-s</stopargument>
   <stopargument>stop</stopargument>
 </service>

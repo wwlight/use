@@ -26,10 +26,10 @@ $ nr mac:sync 1                          # 同步 mac 本地配置文件到仓�
 > [!NOTE]
 > 在 powershell 中安装 scoop
 > ```sh
-> $env:SCOOP='D:\DevelopApplication\Scoop'
+> $env:SCOOP='D:\SoftwareApps\Scoop'
 > [Environment]::SetEnvironmentVariable('SCOOP', $env:SCOOP, 'User')
 > Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-> iex "& {$(irm get.scoop.sh)} -RunAsAdmin"
+> Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
 > ```
 > ```sh
 > scoop install git

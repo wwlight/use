@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/lib/utils.sh"
 # ==============================
 setup_directories() {
     info "步骤1/4: 正在创建目录结构..."
-    mkdir -p D:/{DevelopApplication,SystemApplication} || warn "部分 D: 目录已存在"
+    mkdir -p D:/SoftwareApps || warn "部分 D: 目录已存在"
     mkdir -p ~/.zsh/{plugins,cache,functions,zfunc} || warn "部分 .zsh 目录已存在"
     mkdir -p ~/.config/starship || warn ".config/starship 目录已存在"
     mkdir -p ~/.npm_global || warn ".npm_global 目录已存在"
