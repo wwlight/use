@@ -59,7 +59,11 @@ fpath=(
 autoload -Uz $ZSH/zfunc/*(:t)
 # 初始化补全系统
 autoload -Uz compinit
-compinit -d $ZSH_COMPDUMP
+if [[ -n $ZSH_COMPDUMP(#qN.mh+24) ]]; then
+    compinit -C -d $ZSH_COMPDUMP
+else
+    compinit -i -d $ZSH_COMPDUMP
+fi
 # 补全样式设置
 zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'

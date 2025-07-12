@@ -55,24 +55,27 @@ install_clink_plugins() {
                 continue
             }
             info "$plugin_dir 下载完成"
-
-            info "正在注册插件: $plugin_dir..."
-            clink installscripts "$target_path" || {
-                warn "$plugin_dir 注册失败"
-            } && {
-                info "$plugin_dir 注册成功"
-            }
         else
             info "插件 $plugin_dir 已存在，跳过下载"
         fi
     done
 
-    # 复制 starship 配置文件，借助 clink 自动加载
-    info "复制 starship.lua 配置文件..."
+    # 复制 starship 启动插件，借助 clink 在 cmd 中使用
+    info "复制 starship.lua 启动插件..."
     cp -v "./configs/windows/starship.lua" "$scripts_path\\starship.lua"
+
+    # 注册插件
+    info "注册插件: $scripts_path..."
+    clink installscripts "$scripts_path" || {
+        warn "$scripts_path 注册失败"
+    } && {
+        info "$scripts_path 注册成功"
+    }
+    echo
 
     # 4. 启用自动运行
     info "步骤4/4: 启用 clink 自动运行..."
+    clink set tips.enable false
     clink autorun install -- --quiet || {
         warn "clink 自动运行启用失败"
     }

@@ -112,6 +112,7 @@ sync_configurations() {
     info "步骤4/4: 正在同步配置..."
     local CONFIG_SCRIPT="$SCRIPT_DIR/mac/config-sync.sh"
     local COMMON_SCRIPT="$SCRIPT_DIR/common/config-sync.sh"
+    local BASE_SCRIPT="$SCRIPT_DIR/common/bash-setup.sh"
 
     # 同步 zsh 配置
     if [ -f "$CONFIG_SCRIPT" ]; then
@@ -125,6 +126,13 @@ sync_configurations() {
         sh "$COMMON_SCRIPT" 2 || error "同步公共配置失败！"
     else
         warn "找不到公共同步脚本: $COMMON_SCRIPT"
+    fi
+
+    # 基础配置初始化
+    if [ -f "$BASE_SCRIPT" ]; then
+        sh "$BASE_SCRIPT" 2 || error "基础配置初始化失败！"
+    else
+        warn "找不到基础配置初始化脚本: $BASE_SCRIPT"
     fi
 }
 

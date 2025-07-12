@@ -91,7 +91,8 @@ $ENV:STARSHIP_CONFIG = "$HOME\\.config\\starship\\starship.toml"
 
 ```text
 Q：隐藏 powershell/cmd 启动时的提示信息
-A：在 powershell/cmd 目标路径后追加 -NoLogo
+A：在 powershell 目标路径后追加 -NoLogo
+A：在 cmd 目标路径后追加 -NoLogo /k
 ```
 
 </details>
