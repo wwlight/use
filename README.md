@@ -104,6 +104,7 @@ A：在 cmd 目标路径后追加 -NoLogo /k
 ```sh
 $ nr common:sync 1                        # 同步本地配置文件到仓库
 $ nr common:sync 2                        # 同步仓库配置文件到本地
+$ nr common:setup                         # 关于 git 和 node 设置
 ```
 
 <details>

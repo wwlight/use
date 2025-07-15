@@ -12,7 +12,6 @@ function cdd() {
         --preview-window=right:60%)" && cd "${dir}"
 }
 
-# 克隆到 "E:/open-source"
 function cloneo() {
     # 参数检查
     if [ $# -eq 0 ]; then
@@ -25,9 +24,19 @@ function cloneo() {
         return 1
     fi
 
+    # 动态确定基础目录
+    local base_dir
+    if [ -d "/e" ] || [ -d "/e/" ] || [ -d "E:" ] || [ -d "E:/" ]; then
+        base_dir="E:/open-source"
+    elif [ -d "/d" ] || [ -d "/d/" ] || [ -d "D:" ] || [ -d "D:/" ]; then
+        base_dir="D:/open-source"
+    else
+        echo "错误：未找到 E: 或 D: 盘"
+        return 1
+    fi
+
     local repo="$1"
     local custom_dir="$2"
-    local base_dir="E:/open-source"
     local repo_name
     local target_dir
 
@@ -96,7 +105,6 @@ function cloneo() {
     echo "✅ 成功克隆到: $target_dir"
 }
 
-# 克隆到 "E:/dev-code"
 function cloned() {
     # 参数检查
     if [ $# -eq 0 ]; then
@@ -109,9 +117,19 @@ function cloned() {
         return 1
     fi
 
+    # 动态确定基础目录
+    local base_dir
+    if [ -d "/e" ] || [ -d "/e/" ] || [ -d "E:" ] || [ -d "E:/" ]; then
+        base_dir="E:/dev-code"
+    elif [ -d "/d" ] || [ -d "/d/" ] || [ -d "D:" ] || [ -d "D:/" ]; then
+        base_dir="D:/dev-code"
+    else
+        echo "错误：未找到 E: 或 D: 盘"
+        return 1
+    fi
+
     local repo="$1"
     local custom_dir="$2"
-    local base_dir="E:/dev-code"
     local repo_name
     local target_dir
 

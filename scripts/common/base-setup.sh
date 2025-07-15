@@ -32,12 +32,20 @@ setup_git() {
     # 记住提交账号密码
     git config --global credential.helper store
 
-    # 提示输入用户名和邮箱
-    read -p "请输入 Git 用户名: " username
-    git config --global user.name "$username"
+    # 询问是否跳过用户名和邮箱配置
+    read -p "是否跳过 Git 用户名和邮箱配置？(y/n) [默认 n]: " skip_config
+    skip_config=${skip_config:-n}  # 默认值为 'n'
 
-    read -p "请输入 Git 邮箱: " email
-    git config --global user.email "$email"
+    if [[ "$skip_config" != "y" && "$skip_config" != "Y" ]]; then
+        # 提示输入用户名和邮箱
+        read -p "请输入 Git 用户名: " username
+        git config --global user.name "$username"
+
+        read -p "请输入 Git 邮箱: " email
+        git config --global user.email "$email"
+    else
+        info "已跳过 Git 用户名和邮箱配置"
+    fi
 
     # 显示更新后的配置
     info "更新后的 Git 全局配置:"

@@ -112,7 +112,7 @@ sync_configurations() {
     info "步骤4/4: 正在同步配置..."
     local CONFIG_SCRIPT="$SCRIPT_DIR/mac/config-sync.sh"
     local COMMON_SCRIPT="$SCRIPT_DIR/common/config-sync.sh"
-    local BASE_SCRIPT="$SCRIPT_DIR/common/bash-setup.sh"
+    local BASE_SCRIPT="$SCRIPT_DIR/common/base-setup.sh"
 
     # 同步 zsh 配置
     if [ -f "$CONFIG_SCRIPT" ]; then
