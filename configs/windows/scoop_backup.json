@@ -4,29 +4,29 @@
             "Name": "main",
             "Source": "https://github.com/ScoopInstaller/Main",
             "Updated": {
-                "value": "\/Date(1752540195000)\/",
+                "value": "\/Date(1753245180000)\/",
                 "DisplayHint": 2,
-                "DateTime": "2025Äê7ÔÂ15ÈÕ 8:43:15"
+                "DateTime": "2025å¹´7æœˆ23æ—¥ 12:33:00"
             },
-            "Manifests": 1396
+            "Manifests": 1397
         },
         {
             "Name": "extras",
             "Source": "https://github.com/ScoopInstaller/Extras",
             "Updated": {
-                "value": "\/Date(1752540248000)\/",
+                "value": "\/Date(1753245166000)\/",
                 "DisplayHint": 2,
-                "DateTime": "2025Äê7ÔÂ15ÈÕ 8:44:08"
+                "DateTime": "2025å¹´7æœˆ23æ—¥ 12:32:46"
             },
-            "Manifests": 2169
+            "Manifests": 2171
         },
         {
             "Name": "nerd-fonts",
             "Source": "https://github.com/matthewjberger/scoop-nerd-fonts",
             "Updated": {
-                "value": "\/Date(1752398830000)\/",
+                "value": "\/Date(1753202047000)\/",
                 "DisplayHint": 2,
-                "DateTime": "2025Äê7ÔÂ13ÈÕ 17:27:10"
+                "DateTime": "2025å¹´7æœˆ23æ—¥ 0:34:07"
             },
             "Manifests": 367
         }
@@ -57,8 +57,8 @@
             "Info": "",
             "Source": "main",
             "Name": "eza",
-            "Version": "0.22.1",
-            "Updated": "\/Date(1752460245050)\/"
+            "Version": "0.23.0",
+            "Updated": "\/Date(1753059770549)\/"
         },
         {
             "Info": "",
@@ -83,6 +83,13 @@
         },
         {
             "Info": "",
+            "Source": "extras",
+            "Name": "fscapture",
+            "Version": "11.0",
+            "Updated": "\/Date(1753060361445)\/"
+        },
+        {
+            "Info": "",
             "Source": "main",
             "Name": "fzf",
             "Version": "0.64.0",
@@ -92,8 +99,8 @@
             "Info": "",
             "Source": "main",
             "Name": "gh",
-            "Version": "2.75.0",
-            "Updated": "\/Date(1752460272663)\/"
+            "Version": "2.76.0",
+            "Updated": "\/Date(1753059783914)\/"
         },
         {
             "Info": "Held package",
@@ -106,8 +113,8 @@
             "Info": "",
             "Source": "extras",
             "Name": "googlechrome",
-            "Version": "138.0.7204.101",
-            "Updated": "\/Date(1752459832995)\/"
+            "Version": "138.0.7204.158",
+            "Updated": "\/Date(1753060092677)\/"
         },
         {
             "Info": "",
@@ -167,6 +174,13 @@
         },
         {
             "Info": "",
+            "Source": "extras",
+            "Name": "motrix",
+            "Version": "1.8.19",
+            "Updated": "\/Date(1752643099934)\/"
+        },
+        {
+            "Info": "",
             "Source": "main",
             "Name": "nginx",
             "Version": "1.29.0",
@@ -176,8 +190,8 @@
             "Info": "",
             "Source": "main",
             "Name": "ngrok",
-            "Version": "3.23.3",
-            "Updated": "\/Date(1752460974546)\/"
+            "Version": "3.24.0",
+            "Updated": "\/Date(1753060104000)\/"
         },
         {
             "Info": "",
@@ -253,22 +267,15 @@
             "Info": "",
             "Source": "main",
             "Name": "uv",
-            "Version": "0.7.20",
-            "Updated": "\/Date(1752462283710)\/"
+            "Version": "0.8.2",
+            "Updated": "\/Date(1753251248902)\/"
         },
         {
             "Info": "",
             "Source": "extras",
             "Name": "vscode",
-            "Version": "1.102.0",
-            "Updated": "\/Date(1752459263883)\/"
-        },
-        {
-            "Info": "",
-            "Source": "extras",
-            "Name": "webstorm",
-            "Version": "2025.1.3-251.26927.40",
-            "Updated": "\/Date(1752468581174)\/"
+            "Version": "1.102.1",
+            "Updated": "\/Date(1753060303770)\/"
         },
         {
             "Info": "",
