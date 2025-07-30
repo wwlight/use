@@ -14,7 +14,7 @@
     "win:git-extras": "bash ./scripts/windows/git-extras-install.sh",
     "win:clink": "bash ./scripts/windows/clink-install.sh",
     "common:sync": "bash ./scripts/common/config-sync.sh",
-    "common:setup": "bash ./scripts/common/config-sync.sh"
+    "common:setup": "bash ./scripts/common/base-setup.sh"
   },
   "author": "",
   "license": "ISC",
