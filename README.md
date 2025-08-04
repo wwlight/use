@@ -66,10 +66,11 @@ $ winsw restart
 $ winsw status
 ```
 ```sh
-# hyper
-$ hyper install hyper-dracula
-$ hyper install hyperborder
-$ hyper install hyperpower
+# ~/.config/ghostty/config
+# theme: catppuccin-macchiato | citruszest | darkside | deep | Github Dark | tokyonight-storm
+theme = "tokyonight-storm"
+font-family = "FiraCode Nerd Font Mono Bold"
+font-size = 16
 ```
 ```sh
 # clink
@@ -120,5 +121,7 @@ $ nr common:setup                         # 关于 git 和 node 设置
 > ```sh
 > # 自定义 npm 全局包安装位置
 > $ npm config set prefix ~/.npm_global
-> path=($HOME/.npm_global/bin $path)     # .zshrc
+>
+> # .zshrc
+> path=($HOME/.npm_global/bin $path)
 > ```
