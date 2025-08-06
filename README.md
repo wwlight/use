@@ -39,7 +39,7 @@ $ nr mac:sync 1                          # 同步 mac 本地配置文件到仓�
 
 ```sh
 $ bash ./scripts/windows/init.sh         # 初始化 windows 软件安装（基于 scoop 和 git）
-$ nr win:backup                          # 备份 windows scoop 安装软件
+$ nr win:backup                          # 备份 windows scoop 安装软件（chcp 65001）
 $ nr win:setup                           # 安装 windows scoop 软件
 $ nr win:sync 1                          # 同步 windows 本地配置文件到仓库
 $ nr win:zsh                             # 安装 zsh 到 git

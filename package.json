@@ -7,7 +7,7 @@
     "mac:backup": "brew bundle dump --no-vscode --force --file=./configs/mac/Brewfile",
     "mac:setup": "brew bundle install --file=./configs/mac/Brewfile",
     "mac:sync": "bash ./scripts/mac/config-sync.sh",
-    "win:backup": "chcp 65001 && scoop export > ./configs/windows/scoop_backup.json",
+    "win:backup": "scoop export > ./configs/windows/scoop_backup.json",
     "win:setup": "scoop import ./configs/windows/scoop_backup.json",
     "win:sync": "bash ./scripts/windows/config-sync.sh",
     "win:zsh": "bash ./scripts/windows/zsh-install.sh",
