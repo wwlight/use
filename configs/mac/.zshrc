@@ -75,7 +75,6 @@ zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 plugins=(
     fast-syntax-highlighting
     zsh-autosuggestions
-    incr
 )
 
 for plugin ($plugins); do
@@ -138,7 +137,6 @@ alias grt='cd "$(git rev-parse --show-toplevel)"'
 alias gc='git branch | fzf | xargs git checkout' # 搜索 git 分支并切换
 # 其它
 alias ping="gping"
-alias t='tldr'
 alias of="onefetch"
 
 # ======================
