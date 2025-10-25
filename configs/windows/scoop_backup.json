@@ -4,293 +4,293 @@
             "Info": "",
             "Name": "7zip",
             "Version": "25.01",
-            "Source": "main",
-            "Updated": "2025-08-06T22:11:30.5653814+08:00"
+            "Updated": "2025-08-06T22:11:30.5653814+08:00",
+            "Source": "main"
+        },
+        {
+            "Info": "",
+            "Name": "clash-party",
+            "Version": "1.8.8",
+            "Updated": "2025-10-25T15:23:08.0801616+08:00",
+            "Source": "extras"
         },
         {
             "Info": "",
             "Name": "clink",
-            "Version": "1.7.22",
-            "Source": "main",
-            "Updated": "2025-08-11T21:35:27.6745986+08:00"
+            "Version": "1.8.7",
+            "Updated": "2025-10-25T15:07:05.4869966+08:00",
+            "Source": "main"
         },
         {
             "Info": "",
             "Name": "dark",
             "Version": "3.14.1",
-            "Source": "main",
-            "Updated": "2025-07-11T22:31:42.533029+08:00"
+            "Updated": "2025-07-11T22:31:42.533029+08:00",
+            "Source": "main"
         },
         {
             "Info": "",
             "Name": "eza",
-            "Version": "0.23.0",
-            "Source": "main",
-            "Updated": "2025-08-06T22:11:35.6849924+08:00"
+            "Version": "0.23.4",
+            "Updated": "2025-10-25T15:07:08.367353+08:00",
+            "Source": "main"
         },
         {
             "Info": "",
             "Name": "FiraCode-NF",
             "Version": "3.4.0",
-            "Source": "nerd-fonts",
-            "Updated": "2025-07-11T23:32:36.9001981+08:00"
+            "Updated": "2025-07-11T23:32:36.9001981+08:00",
+            "Source": "nerd-fonts"
         },
         {
             "Info": "",
             "Name": "FiraCode-NF-Mono",
             "Version": "3.4.0",
-            "Source": "nerd-fonts",
-            "Updated": "2025-07-11T23:32:51.8582786+08:00"
+            "Updated": "2025-07-11T23:32:51.8582786+08:00",
+            "Source": "nerd-fonts"
         },
         {
             "Info": "",
             "Name": "fnm",
             "Version": "1.38.1",
-            "Source": "main",
-            "Updated": "2025-07-11T22:31:52.7313662+08:00"
+            "Updated": "2025-07-11T22:31:52.7313662+08:00",
+            "Source": "main"
         },
         {
             "Info": "",
             "Name": "fscapture",
-            "Version": "11.0",
-            "Source": "extras",
-            "Updated": "2025-07-30T21:00:44.6223595+08:00"
+            "Version": "11.1",
+            "Updated": "2025-10-25T15:07:20.9711356+08:00",
+            "Source": "extras"
         },
         {
             "Info": "",
             "Name": "fzf",
-            "Version": "0.65.1",
-            "Source": "main",
-            "Updated": "2025-08-06T22:11:42.31186+08:00"
+            "Version": "0.66.0",
+            "Updated": "2025-10-25T15:07:23.9543402+08:00",
+            "Source": "main"
         },
         {
             "Info": "",
             "Name": "gh",
-            "Version": "2.76.2",
-            "Source": "main",
-            "Updated": "2025-08-06T22:11:57.2311958+08:00"
+            "Version": "2.82.1",
+            "Updated": "2025-10-25T15:07:34.1230015+08:00",
+            "Source": "main"
         },
         {
-            "Info": "Held package",
+            "Info": "",
             "Name": "git",
-            "Version": "2.50.1",
-            "Source": "main",
-            "Updated": "2025-07-11T22:32:08.9257492+08:00"
+            "Version": "2.51.1",
+            "Updated": "2025-10-25T15:58:33.8413814+08:00",
+            "Source": "main"
         },
         {
             "Info": "",
             "Name": "googlechrome",
-            "Version": "139.0.7258.67",
-            "Source": "extras",
-            "Updated": "2025-08-06T23:30:03.8275188+08:00"
+            "Version": "141.0.7390.123",
+            "Updated": "2025-10-25T15:10:53.944449+08:00",
+            "Source": "extras"
         },
         {
             "Info": "",
             "Name": "gping",
-            "Version": "1.18.0",
-            "Source": "main",
-            "Updated": "2025-07-11T22:32:12.0949211+08:00"
+            "Version": "1.20.1",
+            "Updated": "2025-09-13T11:42:36.1867046+08:00",
+            "Source": "main"
         },
         {
             "Info": "",
             "Name": "hyper",
             "Version": "3.4.1",
-            "Source": "extras",
-            "Updated": "2025-07-11T23:58:16.11969+08:00"
+            "Updated": "2025-07-11T23:58:16.11969+08:00",
+            "Source": "extras"
         },
         {
             "Info": "",
             "Name": "innounp",
-            "Version": "2.64.6",
-            "Source": "main",
-            "Updated": "2025-08-06T22:29:56.0860585+08:00"
+            "Version": "2.65.2",
+            "Updated": "2025-09-13T11:48:01.8989156+08:00",
+            "Source": "main"
         },
         {
             "Info": "",
             "Name": "keyviz",
             "Version": "1.0.6",
-            "Source": "extras",
-            "Updated": "2025-07-11T23:58:35.2085869+08:00"
+            "Updated": "2025-07-11T23:58:35.2085869+08:00",
+            "Source": "extras"
         },
         {
             "Info": "",
             "Name": "LXGWWenKaiMono",
-            "Version": "1.520",
-            "Source": "nerd-fonts",
-            "Updated": "2025-07-11T23:33:45.9615898+08:00"
+            "Version": "1.521",
+            "Updated": "2025-10-25T15:12:03.7094114+08:00",
+            "Source": "nerd-fonts"
         },
         {
             "Info": "",
             "Name": "Maple-Mono-NF-CN",
-            "Version": "7.5",
-            "Source": "nerd-fonts",
-            "Updated": "2025-08-06T22:31:29.2382038+08:00"
-        },
-        {
-            "Info": "",
-            "Name": "mihomo-party",
-            "Version": "1.8.3",
-            "Source": "extras",
-            "Updated": "2025-08-11T21:32:28.7020084+08:00"
+            "Version": "7.8",
+            "Updated": "2025-10-25T15:13:19.0216943+08:00",
+            "Source": "nerd-fonts"
         },
         {
             "Info": "",
             "Name": "Monaspace-NF-Mono",
             "Version": "3.4.0",
-            "Source": "nerd-fonts",
-            "Updated": "2025-07-11T23:36:55.4801842+08:00"
+            "Updated": "2025-07-11T23:36:55.4801842+08:00",
+            "Source": "nerd-fonts"
         },
         {
             "Info": "",
             "Name": "motrix",
             "Version": "1.8.19",
-            "Source": "extras",
-            "Updated": "2025-07-30T21:04:42.6381915+08:00"
+            "Updated": "2025-07-30T21:04:42.6381915+08:00",
+            "Source": "extras"
         },
         {
             "Info": "",
             "Name": "nginx",
-            "Version": "1.29.0",
-            "Source": "main",
-            "Updated": "2025-07-11T22:33:03.3821399+08:00"
+            "Version": "1.29.2",
+            "Updated": "2025-10-25T15:34:17.202235+08:00",
+            "Source": "main"
         },
         {
             "Info": "",
             "Name": "ngrok",
-            "Version": "3.26.0",
-            "Source": "main",
-            "Updated": "2025-08-11T21:32:35.9774155+08:00"
+            "Version": "3.32.0",
+            "Updated": "2025-10-25T15:37:32.4834261+08:00",
+            "Source": "main"
         },
         {
             "Info": "",
             "Name": "obsidian",
-            "Version": "1.8.10",
-            "Source": "extras",
-            "Updated": "2025-07-12T00:13:32.5797722+08:00"
+            "Version": "1.9.14",
+            "Updated": "2025-10-25T15:42:44.5394402+08:00",
+            "Source": "extras"
         },
         {
             "Info": "",
             "Name": "onefetch",
             "Version": "2.25.0",
-            "Source": "extras",
-            "Updated": "2025-07-11T23:59:37.6685812+08:00"
+            "Updated": "2025-07-11T23:59:37.6685812+08:00",
+            "Source": "extras"
         },
         {
             "Info": "",
             "Name": "pnpm",
-            "Version": "10.14.0",
-            "Source": "main",
-            "Updated": "2025-08-06T22:33:33.6389991+08:00"
+            "Version": "10.19.0",
+            "Updated": "2025-10-25T15:43:11.8557879+08:00",
+            "Source": "main"
         },
         {
             "Info": "",
             "Name": "potplayer",
-            "Version": "250625",
-            "Source": "extras",
-            "Updated": "2025-07-12T00:00:10.3626256+08:00"
+            "Version": "250909",
+            "Updated": "2025-09-13T12:27:22.4883318+08:00",
+            "Source": "extras"
         },
         {
             "Info": "",
             "Name": "powertoys",
-            "Version": "0.92.1",
-            "Source": "extras",
-            "Updated": "2025-07-12T00:16:05.765759+08:00"
+            "Version": "0.95.1",
+            "Updated": "2025-10-25T15:47:18.3972741+08:00",
+            "Source": "extras"
         },
         {
             "Info": "",
             "Name": "pyenv",
             "Version": "3.1.1",
-            "Source": "main",
-            "Updated": "2025-07-11T22:39:27.2823798+08:00"
+            "Updated": "2025-07-11T22:39:27.2823798+08:00",
+            "Source": "main"
         },
         {
             "Info": "",
             "Name": "rustup",
             "Version": "1.28.2",
-            "Source": "main",
-            "Updated": "2025-07-12T00:04:11.0180231+08:00"
+            "Updated": "2025-07-12T00:04:11.0180231+08:00",
+            "Source": "main"
         },
         {
             "Info": "",
             "Name": "starship",
             "Version": "1.23.0",
-            "Source": "main",
-            "Updated": "2025-07-12T00:04:21.5664541+08:00"
+            "Updated": "2025-07-12T00:04:21.5664541+08:00",
+            "Source": "main"
         },
         {
             "Info": "",
             "Name": "switchhosts",
             "Version": "4.2.0.6119",
-            "Source": "extras",
-            "Updated": "2025-07-12T00:04:41.4995436+08:00"
+            "Updated": "2025-07-12T00:04:41.4995436+08:00",
+            "Source": "extras"
         },
         {
             "Info": "",
             "Name": "tlrc",
-            "Version": "1.11.1",
-            "Source": "main",
-            "Updated": "2025-07-12T00:04:46.2001565+08:00"
+            "Version": "1.12.0",
+            "Updated": "2025-10-25T15:47:22.2253035+08:00",
+            "Source": "main"
         },
         {
             "Info": "",
             "Name": "uv",
-            "Version": "0.8.8",
-            "Source": "main",
-            "Updated": "2025-08-11T21:32:44.2576569+08:00"
+            "Version": "0.9.5",
+            "Updated": "2025-10-25T15:49:02.0155675+08:00",
+            "Source": "main"
         },
         {
             "Info": "",
             "Name": "vscode",
-            "Version": "1.103.0",
-            "Source": "extras",
-            "Updated": "2025-08-11T21:34:09.4444834+08:00"
+            "Version": "1.105.1",
+            "Updated": "2025-10-25T15:49:49.0976079+08:00",
+            "Source": "extras"
         },
         {
             "Info": "",
             "Name": "wechat",
-            "Version": "4.0.6.33",
-            "Source": "extras",
-            "Updated": "2025-08-06T22:35:47.4295962+08:00"
+            "Version": "4.1.1.19",
+            "Updated": "2025-10-25T15:50:59.1934794+08:00",
+            "Source": "extras"
         },
         {
             "Info": "",
             "Name": "winrar",
             "Version": "7.13",
-            "Source": "extras",
-            "Updated": "2025-08-06T22:36:06.2169912+08:00"
+            "Updated": "2025-08-06T22:36:06.2169912+08:00",
+            "Source": "extras"
         },
         {
             "Info": "",
             "Name": "winsw",
             "Version": "2.12.0",
-            "Source": "main",
-            "Updated": "2025-07-12T00:10:56.4543248+08:00"
+            "Updated": "2025-07-12T00:10:56.4543248+08:00",
+            "Source": "main"
         },
         {
             "Info": "",
             "Name": "zoxide",
             "Version": "0.9.8",
-            "Source": "main",
-            "Updated": "2025-07-12T00:10:59.5521621+08:00"
+            "Updated": "2025-07-12T00:10:59.5521621+08:00",
+            "Source": "main"
         }
     ],
     "buckets": [
         {
             "Name": "main",
             "Source": "https://github.com/ScoopInstaller/Main",
-            "Updated": "2025-08-11T20:32:10+08:00",
-            "Manifests": 1398
+            "Updated": "2025-10-25T12:29:47+08:00",
+            "Manifests": 1407
         },
         {
             "Name": "extras",
             "Source": "https://github.com/ScoopInstaller/Extras",
-            "Updated": "2025-08-11T20:31:33+08:00",
-            "Manifests": 2177
+            "Updated": "2025-10-25T12:29:14+08:00",
+            "Manifests": 2206
         },
         {
             "Name": "nerd-fonts",
             "Source": "https://github.com/matthewjberger/scoop-nerd-fonts",
-            "Updated": "2025-08-01T20:56:07+08:00",
+            "Updated": "2025-10-22T16:34:46+08:00",
             "Manifests": 367
         }
     ]
