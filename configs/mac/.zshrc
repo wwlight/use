@@ -14,7 +14,6 @@ export EZA_CONFIG_DIR=$HOME/.config/eza
 typeset -U path PATH
 path=(
     $HOME/.npm_global/bin(N)
-    $HOME/Library/pnpm(N)
     $path
 )
 
