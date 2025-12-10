@@ -89,11 +89,10 @@ Invoke-Expression (&starship init powershell)
 # Invoke-Expression (& "$env:SCOOP\\apps\\starship\\current\\starship.exe" init powershell)
 $ENV:STARSHIP_CONFIG = "$HOME\\.config\\starship\\starship.toml"
 ```
-
 ```text
 Q：隐藏 powershell/cmd 启动时的提示信息
-A：在 powershell 目标路径后追加 -NoLogo
-A：在 cmd 目标路径后追加 -NoLogo /k
+A：在 powershell 目标路径后追加 -NoLogo 或者 -nologo
+A：在 cmd 目标路径后追加 -NoLogo /k 或者 -nologo /k
 ```
 
 </details>
