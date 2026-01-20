@@ -137,6 +137,7 @@ alias gc='git branch | fzf | xargs git checkout' # 搜索 git 分支并切换
 # 其它
 alias ping="gping"
 alias of="onefetch"
+alias oc="opencode"
 
 # ======================
 # 自定义函数加载
