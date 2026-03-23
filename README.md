@@ -54,7 +54,6 @@ $ nr win:clink                           # 安装 clink 插件（cmd 扩展）
 - [.zshrc](./configs/windows/.zshrc) - zsh 配置文件
 - [utils.zsh](./configs/windows/utils.zsh) - 自定义函数
 - [starship.lua](./configs/windows/starship.lua) - 在 cmd 中，基于 [clink](https://chrisant996.github.io/clink/) 来使用 [starship](https://starship.rs/)
-- [fnm_init.cmd](./configs/windows/fnm_init.cmd) - 在 cmd 中，使用 [fnm](https://github.com/Schniz/fnm#zsh) 相关配置
 - [WinSW.xml](./configs/windows/WinSW.xml) - 使用 [WinSW](https://github.com/winsw/winsw/) 来实现 [Nginx](https://nginx.org/) 自启动配置文件
 ```sh
 $ cp ./configs/windows/WinSW.xml "$(scoop prefix winsw | tr -d '\r')\\WinSW.xml"
@@ -64,13 +63,6 @@ $ winsw start
 $ winsw stop
 $ winsw restart
 $ winsw status
-```
-```sh
-# ~/.config/ghostty/config
-# theme: catppuccin-macchiato | citruszest | darkside | deep | Github Dark | tokyonight-storm
-theme = "tokyonight-storm"
-font-family = "FiraCode Nerd Font Mono Bold"
-font-size = 16
 ```
 ```sh
 # clink

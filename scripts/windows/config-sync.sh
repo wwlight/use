@@ -43,7 +43,6 @@ case $direction in
         mkdir -p ~/.zsh/functions && cp -v ./configs/windows/utils.zsh ~/.zsh/functions/utils.zsh
         mkdir -p ~/Documents/WindowsPowerShell && cp -v ./configs/windows/pwsh5_profile.ps1 ~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1
         mkdir -p ~/Documents/PowerShell && cp -v ./configs/windows/pwsh7_profile.ps1 ~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1
-        cp -v ./configs/windows/fnm_init.cmd ~/fnm_init.cmd
         ;;
     *)
         echo "无效选择"

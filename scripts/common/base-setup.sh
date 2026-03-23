@@ -52,38 +52,6 @@ setup_git() {
     git config --global -l
 }
 
-# ==============================
-# 设置 fnm 和 Node.js
-# ==============================
-setup_node() {
-    # 检查是否安装 fnm
-    if ! command -v fnm &> /dev/null; then
-        error "fnm 未安装，跳过 Node.js 配置"
-        return
-    fi
-
-    info "配置 Node.js..."
-
-    # 列出已安装版本
-    info "已安装的 Node.js 版本:"
-    fnm ls
-
-    # 安装 LTS 版本
-    info "安装最新的 LTS 版本..."
-    fnm install --lts
-
-    # 显示 Node.js 版本
-    info "当前 Node.js 版本:"
-    node -v
-
-    # 设置 npm 全局安装目录
-    info "设置 npm 全局安装目录..."
-    npm config set prefix ~/.npm_global
-
-    # 安装 ni 工具
-    info "安装 @antfu/ni..."
-    npm i -g @antfu/ni
-}
 
 # ==============================
 # 主执行流程
@@ -91,7 +59,6 @@ setup_node() {
 main() {
     setup_git
     info "\n=================================\n"
-    setup_node
 }
 
 # 执行主函数

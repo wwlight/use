@@ -86,8 +86,6 @@ ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#53555c"
 # ======================
 # 工具初始化
 # ======================
-# Node.js 版本管理 (fnm)
-eval "$(fnm env --use-on-cd --shell zsh)"
 
 # 模糊搜索 (fzf)
 source <(fzf --zsh)
@@ -128,8 +126,9 @@ alias grt='cd "$(git rev-parse --show-toplevel)"'
 alias gc='git branch | fzf | xargs git checkout' # 搜索 git 分支并切换
 # 其它
 alias ping="gping"
-alias t='tldr'
 alias of="onefetch"
+alias oc="opencode"
+alias v="vp"
 
 # ======================
 # 自定义函数加载
