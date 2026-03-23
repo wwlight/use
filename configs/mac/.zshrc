@@ -13,7 +13,10 @@ export EZA_CONFIG_DIR=$HOME/.config/eza
 # PATH 设置 (N == Null Glob)
 typeset -U path PATH
 path=(
+    $HOME/.vite-plus/bin(N)
+    $HOME/.opencode/bin(N)
     $HOME/.npm_global/bin(N)
+    $HOME/.cargo/bin(N)
     $path
 )
 
@@ -91,8 +94,6 @@ ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#53555c"
 # ======================
 # 工具初始化
 # ======================
-# Node.js 版本管理 (fnm)
-eval "$(fnm env --use-on-cd --shell zsh)"
 
 # 模糊搜索 (fzf)
 source <(fzf --zsh)
@@ -138,6 +139,7 @@ alias gc='git branch | fzf | xargs git checkout' # 搜索 git 分支并切换
 alias ping="gping"
 alias of="onefetch"
 alias oc="opencode"
+alias v="vp"
 
 # ======================
 # 自定义函数加载

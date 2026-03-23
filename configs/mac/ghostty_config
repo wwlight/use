@@ -1,0 +1,91 @@
+# This is the configuration file for Ghostty.
+# ~/.config/ghostty/config
+# This template file has been automatically created at the following
+# path since Ghostty couldn't find any existing config files on your system:
+#
+# The template does not set any default options, since Ghostty ships
+# with sensible defaults for all options. Users should only need to set
+# options that they want to change from the default.
+#
+# Run `ghostty +show-config --default --docs` to view a list of
+# all available config options and their default values.
+#
+# Additionally, each config option is also explained in detail
+# on Ghostty's website, at https://ghostty.org/docs/config.
+
+# 字体与排版
+font-family = FiraCode Nerd Font Mono Bold
+# 字体大小：适应 M1 Mac mini 外接显示器的 14 像素
+font-size = 15
+# 字体加粗处理：开启后会让文字看起来更厚实、更清晰
+font-thicken = true
+# 调整行高：35% 的额外行高让代码看起来不拥挤
+adjust-cell-height = 35%
+# theme: Catppuccin Macchiato | Citruszest | Darkside | Deep | Github Dark | TokyoNight Storm
+theme = "TokyoNight Storm"
+# 窗口内边距：给文字留出呼吸空间
+window-padding-x = 12
+window-padding-y = 8
+# 自动平衡内边距
+window-padding-balance = true
+# 窗口装饰：使用 macOS 默认的风格
+window-decoration = auto
+# 标题栏字体
+window-title-font-family = FiraCode Nerd Font Mono Bold
+# 关闭窗口时不弹出确认框
+confirm-close-surface = false
+# 最后一个窗口关闭后自动退出 App
+quit-after-last-window-closed = true
+# 滚动行数限制：十万行，即使是超长日志也能翻回去看
+scrollback-limit = 100000
+# 输入时隐藏鼠标指针：避免遮挡视野
+mouse-hide-while-typing = true
+# 选中即复制：选中文本后自动存入剪贴板
+copy-on-select = clipboard
+# 鼠标连击间隔
+click-repeat-interval = 300
+# 允许读取和写入系统剪贴板
+clipboard-read = allow
+clipboard-write = allow
+# 禁用粘贴保护，让复制粘贴更快捷
+clipboard-paste-protection = false
+
+# 自动检测当前使用的 Shell (如 zsh)
+shell-integration = detect
+# 开启光标同步、sudo 提升以及标题同步功能
+shell-integration-features = cursor,sudo,title
+
+# 调大字体：Cmd + 等号
+keybind = super+equal=increase_font_size:1
+# 调小字体：Cmd + 减号
+keybind = super+minus=decrease_font_size:1
+# 重置字体大小：Cmd + 0
+keybind = super+zero=reset_font_size
+
+# 左右分屏：Cmd + D
+keybind = super+d=new_split:right
+# 上下分屏：Cmd + Shift + D
+keybind = super+shift+d=new_split:down
+# 关闭当前分屏/窗口：Cmd + W
+keybind = super+w=close_surface
+# 切换全屏/分屏缩放
+keybind = super+shift+enter=toggle_split_zoom
+
+# 分屏间切换：Cmd + Alt + 方向键
+keybind = super+alt+left=goto_split:left
+keybind = super+alt+right=goto_split:right
+keybind = super+alt+up=goto_split:top
+keybind = super+alt+down=goto_split:bottom
+
+# 快速滚动
+keybind = super+up=scroll_to_top
+keybind = super+down=scroll_to_bottom
+keybind = page_up=scroll_page_up
+keybind = page_down=scroll_page_down
+
+# 禁用“加粗即变亮”的旧式风格
+bold-is-bright = false
+# 自动检查更新
+auto-update = check
+# 终端协议类型
+term = xterm-ghostty

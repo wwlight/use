@@ -31,6 +31,7 @@ case $direction in
         cp -v ~/.zshrc ./configs/mac/.zshrc
         cp -v ~/.bashrc ./configs/mac/.bashrc
         cp -v ~/.zsh/functions/utils.zsh ./configs/mac/utils.zsh
+        cp -v ~/.config/ghostty/config ./configs/mac/ghostty_config
         ;;
     2)
         # 备份系统配置文件
@@ -41,6 +42,7 @@ case $direction in
         cp -v ./configs/mac/.zshrc ~/.zshrc
         cp -v ./configs/mac/.bashrc ~/.bashrc
         mkdir -p ~/.zsh/functions && cp -v ./configs/mac/utils.zsh ~/.zsh/functions/utils.zsh
+        mkdir -p ~/.config/ghostty && cp -v ./configs/mac/ghostty_config ~/.config/ghostty/config
         ;;
     *)
         echo "无效选择"
