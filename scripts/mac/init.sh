@@ -15,7 +15,6 @@ setup_directories() {
         "$HOME/.zsh/functions"
         "$HOME/.zsh/zfunc"
         "$HOME/.config/starship"
-        "$HOME/.npm_global"
     )
 
     for dir in "${directories[@]}"; do

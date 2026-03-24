@@ -106,13 +106,3 @@ $ nr common:setup                         # 关于 git 和 node 设置
 - [starship.toml](./configs/common/starship.toml) - [starship](https://starship.rs/) 配置文件
 
 </details>
-
-
-> [!NOTE]
-> ```sh
-> # 自定义 npm 全局包安装位置
-> $ npm config set prefix ~/.npm_global
->
-> # .zshrc
-> path=($HOME/.npm_global/bin $path)
-> ```

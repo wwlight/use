@@ -12,7 +12,6 @@ setup_directories() {
     mkdir -p D:/SoftwareApps || warn "部分 D: 目录已存在"
     mkdir -p ~/.zsh/{plugins,cache,functions,zfunc} || warn "部分 .zsh 目录已存在"
     mkdir -p ~/.config/starship || warn ".config/starship 目录已存在"
-    mkdir -p ~/.npm_global || warn ".npm_global 目录已存在"
 }
 
 install_or_restore_scoop() {

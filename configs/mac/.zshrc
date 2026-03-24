@@ -15,7 +15,6 @@ typeset -U path PATH
 path=(
     $HOME/.vite-plus/bin(N)
     $HOME/.opencode/bin(N)
-    $HOME/.npm_global/bin(N)
     $HOME/.cargo/bin(N)
     $path
 )
@@ -125,11 +124,13 @@ alias ls='eza --icons'
 alias l='eza -l --icons'
 alias la='eza -la --icons'
 alias lt='eza --tree --icons'
-# @antfu/ni 别名
-alias nio="ni --prefer-offline"
-alias s="nr start"
-alias d="nr dev"
-alias b="nr build"
+# vp (vite+) 别名
+alias v="vp"
+alias vc="v create"
+alias vr="v run"
+alias s="vr start"
+alias d="vr dev"
+alias b="vr build"
 # Git 别名
 alias gp='git push'
 alias gl='git pull'
@@ -139,7 +140,6 @@ alias gc='git branch | fzf | xargs git checkout' # 搜索 git 分支并切换
 alias ping="gping"
 alias of="onefetch"
 alias oc="opencode"
-alias v="vp"
 
 # ======================
 # 自定义函数加载
