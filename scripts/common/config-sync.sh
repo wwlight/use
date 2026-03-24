@@ -1,5 +1,11 @@
 #!/bin/bash
 
+# 引入公共函数库
+SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$SCRIPT_DIR/lib/utils.sh"
+
 # 默认不自动选择
 direction=""
 
@@ -16,13 +22,13 @@ fi
 case $direction in
     1)
         # 本地目录 -> common 目录
-        cp -v ~/.zsh/zfunc/_eza ./configs/common/_eza
-        cp -v ~/.config/starship/starship.toml ./configs/common/starship.toml
+        cp -v ~/.zsh/zfunc/_eza "$PROJECT_ROOT/configs/common/_eza"
+        cp -v ~/.config/starship/starship.toml "$PROJECT_ROOT/configs/common/starship.toml"
         ;;
     2)
         # common 目录 -> 本地目录
-        mkdir -p ~/.zsh/zfunc && cp -v ./configs/common/_eza ~/.zsh/zfunc/_eza
-        mkdir -p ~/.config/starship && cp -v ./configs/common/starship.toml ~/.config/starship/starship.toml
+        mkdir -p ~/.zsh/zfunc && cp -v "$PROJECT_ROOT/configs/common/_eza" ~/.zsh/zfunc/_eza
+        mkdir -p ~/.config/starship && cp -v "$PROJECT_ROOT/configs/common/starship.toml" ~/.config/starship/starship.toml
         ;;
     *)
         echo "无效选择"

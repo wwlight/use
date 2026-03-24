@@ -1,14 +1,16 @@
 #!/bin/bash
 
-# 引入公共函数库
-SCRIPT_DIR="./scripts"
+# 引入公共函数库（基于脚本绝对路径，支持在任意目录执行）
+SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
 
 # ==============================
 # 主安装函数
 # ==============================
 setup_directories() {
-    info "步骤1/4: 正在创建目录结构..."
+    info "步骤1/5: 正在创建目录结构..."
     local directories=(
         "$HOME/.zsh/plugins"
         "$HOME/.zsh/cache"
@@ -23,8 +25,8 @@ setup_directories() {
 }
 
 install_or_restore_brew() {
-    info "步骤2/4: 正在安装/恢复 Homebrew 及依赖..."
-    local BREWFILE="./configs/mac/Brewfile"
+    info "步骤2/5: 正在安装/恢复 Homebrew 及依赖..."
+    local BREWFILE="$PROJECT_ROOT/configs/mac/Brewfile"
 
     # 检查并安装 Homebrew
     if ! command -v brew &> /dev/null; then
@@ -55,7 +57,7 @@ install_or_restore_brew() {
         }
 
         info "同步 Homebrew 配置文件..."
-        cp -v ./configs/mac/.zprofile ~/.zprofile
+        cp -v "$PROJECT_ROOT/configs/mac/.zprofile" ~/.zprofile
         source ~/.zprofile
         brew update || {
             error "Homebrew 更新失败！"
@@ -79,7 +81,7 @@ install_or_restore_brew() {
 }
 
 install_zsh_plugins() {
-    info "步骤3/4: 正在安装 zsh 插件..."
+    info "步骤3/5: 正在安装 zsh 插件..."
 
     # 使用兼容旧版 Bash 的数组代替关联数组
     local PLUGINS_REPOS=(
@@ -114,11 +116,23 @@ install_zsh_plugins() {
     done
 }
 
+install_vite_plus() {
+    info "步骤4/5: 正在安装 vite.plus..."
+
+    if ! command -v vp &> /dev/null; then
+        curl -fsSL https://vite.plus | bash || {
+            error "vite.plus 安装失败！"
+            return 1
+        }
+        info "vite.plus 安装成功"
+    fi
+}
+
 sync_configurations() {
-    info "步骤4/4: 正在同步配置..."
+    info "步骤5/5: 正在同步配置..."
     local CONFIG_SCRIPT="$SCRIPT_DIR/mac/config-sync.sh"
     local COMMON_SCRIPT="$SCRIPT_DIR/common/config-sync.sh"
-    local BASE_SCRIPT="$SCRIPT_DIR/common/base-setup.sh"
+    local BASE_SCRIPT="$SCRIPT_DIR/common/git-setup.sh"
 
     # 同步 zsh 配置
     if [ -f "$CONFIG_SCRIPT" ]; then
@@ -152,7 +166,8 @@ main() {
     setup_directories            # 步骤1: 创建目录结构
     install_or_restore_brew      # 步骤2: 安装/恢复 Homebrew 及依赖
     install_zsh_plugins          # 步骤3: 安装 zsh 插件
-    sync_configurations          # 步骤4: 同步配置
+    install_vite_plus            # 步骤4: 安装 vite.plus
+    sync_configurations          # 步骤5: 同步配置
 
     info "🎉 所有操作完成！系统已准备就绪。"
 }

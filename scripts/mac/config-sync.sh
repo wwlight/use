@@ -1,7 +1,9 @@
 #!/bin/bash
 
-# 引入公共函数库
-SCRIPT_DIR="./scripts"
+# 引入公共函数库（基于脚本绝对路径，支持在任意目录执行）
+SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
 
 # 检查是否在 macOS 环境运行
@@ -27,22 +29,22 @@ fi
 case $direction in
     1)
         # 本地目录 -> mac 目录
-        cp -v ~/.zprofile ./configs/mac/.zprofile
-        cp -v ~/.zshrc ./configs/mac/.zshrc
-        cp -v ~/.bashrc ./configs/mac/.bashrc
-        cp -v ~/.zsh/functions/utils.zsh ./configs/mac/utils.zsh
-        cp -v ~/.config/ghostty/config ./configs/mac/ghostty_config
+        cp -v ~/.zprofile "$PROJECT_ROOT/configs/mac/.zprofile"
+        cp -v ~/.zshrc "$PROJECT_ROOT/configs/mac/.zshrc"
+        cp -v ~/.bashrc "$PROJECT_ROOT/configs/mac/.bashrc"
+        cp -v ~/.zsh/functions/utils.zsh "$PROJECT_ROOT/configs/mac/utils.zsh"
+        cp -v ~/.config/ghostty/config "$PROJECT_ROOT/configs/mac/ghostty_config"
         ;;
     2)
         # 备份系统配置文件
         backup_file ~/.zshrc ~/.backup
 
         # mac 目录 -> 本地目录
-        cp -v ./configs/mac/.zprofile ~/.zprofile
-        cp -v ./configs/mac/.zshrc ~/.zshrc
-        cp -v ./configs/mac/.bashrc ~/.bashrc
-        mkdir -p ~/.zsh/functions && cp -v ./configs/mac/utils.zsh ~/.zsh/functions/utils.zsh
-        mkdir -p ~/.config/ghostty && cp -v ./configs/mac/ghostty_config ~/.config/ghostty/config
+        cp -v "$PROJECT_ROOT/configs/mac/.zprofile" ~/.zprofile
+        cp -v "$PROJECT_ROOT/configs/mac/.zshrc" ~/.zshrc
+        cp -v "$PROJECT_ROOT/configs/mac/.bashrc" ~/.bashrc
+        mkdir -p ~/.zsh/functions && cp -v "$PROJECT_ROOT/configs/mac/utils.zsh" ~/.zsh/functions/utils.zsh
+        mkdir -p ~/.config/ghostty && cp -v "$PROJECT_ROOT/configs/mac/ghostty_config" ~/.config/ghostty/config
         ;;
     *)
         echo "无效选择"

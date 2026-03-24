@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # 引入公共函数库
-SCRIPT_DIR="./scripts"
+SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
 
 # ==============================
@@ -13,12 +15,6 @@ setup_git() {
         error "Git 未安装，跳过 Git 配置"
         return
     fi
-
-    info "配置 Git..."
-
-    # 显示当前配置
-    info "当前 Git 全局配置:"
-    git config --global -l
 
     # 设置默认分支为 main
     git config --global init.defaultBranch main
@@ -43,22 +39,14 @@ setup_git() {
 
         read -p "请输入 Git 邮箱: " email
         git config --global user.email "$email"
-    else
-        info "已跳过 Git 用户名和邮箱配置"
     fi
-
-    # 显示更新后的配置
-    info "更新后的 Git 全局配置:"
-    git config --global -l
 }
-
 
 # ==============================
 # 主执行流程
 # ==============================
 main() {
     setup_git
-    info "\n=================================\n"
 }
 
 # 执行主函数

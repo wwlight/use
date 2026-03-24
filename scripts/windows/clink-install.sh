@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # 引入公共函数库
-SCRIPT_DIR="./scripts"
+SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
 
 # ==============================
@@ -62,7 +64,7 @@ install_clink_plugins() {
 
     # 复制 starship 启动插件，借助 clink 在 cmd 中使用
     info "复制 starship.lua 启动插件..."
-    cp -v "./configs/windows/starship.lua" "$scripts_path\\starship.lua"
+    cp -v "$PROJECT_ROOT/configs/windows/starship.lua" "$scripts_path\\starship.lua"
 
     # 注册插件
     info "注册插件: $scripts_path..."

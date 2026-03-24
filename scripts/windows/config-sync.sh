@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # 引入公共函数库
-SCRIPT_DIR="./scripts"
+SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
 
 # 检查是否在 Windows 环境运行
@@ -27,22 +29,22 @@ fi
 case $direction in
     1)
         # 本地目录 -> windows 目录
-        cp -v ~/.zshrc ./configs/windows/.zshrc
-        cp -v ~/.bashrc ./configs/windows/.bashrc
-        cp -v ~/.zsh/functions/utils.zsh ./configs/windows/utils.zsh
-        cp -v ~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1 ./configs/windows/pwsh5_profile.ps1
-        cp -v ~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 ./configs/windows/pwsh7_profile.ps1
+        cp -v ~/.zshrc "$PROJECT_ROOT/configs/windows/.zshrc"
+        cp -v ~/.bashrc "$PROJECT_ROOT/configs/windows/.bashrc"
+        cp -v ~/.zsh/functions/utils.zsh "$PROJECT_ROOT/configs/windows/utils.zsh"
+        cp -v ~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1 "$PROJECT_ROOT/configs/windows/pwsh5_profile.ps1"
+        cp -v ~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1 "$PROJECT_ROOT/configs/windows/pwsh7_profile.ps1"
         ;;
     2)
         # 备份系统配置文件
         backup_file ~/.zshrc ~/.backup
 
         # windows 目录 -> 本地目录
-        cp -v ./configs/windows/.zshrc ~/.zshrc
-        cp -v ./configs/windows/.bashrc ~/.bashrc
-        mkdir -p ~/.zsh/functions && cp -v ./configs/windows/utils.zsh ~/.zsh/functions/utils.zsh
-        mkdir -p ~/Documents/WindowsPowerShell && cp -v ./configs/windows/pwsh5_profile.ps1 ~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1
-        mkdir -p ~/Documents/PowerShell && cp -v ./configs/windows/pwsh7_profile.ps1 ~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1
+        cp -v "$PROJECT_ROOT/configs/windows/.zshrc" ~/.zshrc
+        cp -v "$PROJECT_ROOT/configs/windows/.bashrc" ~/.bashrc
+        mkdir -p ~/.zsh/functions && cp -v "$PROJECT_ROOT/configs/windows/utils.zsh" ~/.zsh/functions/utils.zsh
+        mkdir -p ~/Documents/WindowsPowerShell && cp -v "$PROJECT_ROOT/configs/windows/pwsh5_profile.ps1" ~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1
+        mkdir -p ~/Documents/PowerShell && cp -v "$PROJECT_ROOT/configs/windows/pwsh7_profile.ps1" ~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1
         ;;
     *)
         echo "无效选择"

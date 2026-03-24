@@ -1,7 +1,9 @@
 #!/bin/bash
 
 # 引入公共函数库
-SCRIPT_DIR="./scripts"
+SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
 
 # ==============================
@@ -16,7 +18,7 @@ setup_directories() {
 
 install_or_restore_scoop() {
     info "步骤2/4: 正在安装/恢复 Scoop 应用..."
-    local SCOOP_BACKUP="./configs/windows/scoop_backup.json"
+    local SCOOP_BACKUP="$PROJECT_ROOT/configs/windows/scoop_backup.json"
 
     if ! command -v scoop &> /dev/null; then
         error "Scoop 未安装！请先安装 Scoop。"
@@ -65,7 +67,7 @@ sync_configurations() {
     info "步骤4/4: 正在同步配置..."
     local CONFIG_SCRIPT="$SCRIPT_DIR/windows/config-sync.sh"
     local COMMON_SCRIPT="$SCRIPT_DIR/common/config-sync.sh"
-    local BASE_SCRIPT="$SCRIPT_DIR/common/base-setup.sh"
+    local BASE_SCRIPT="$SCRIPT_DIR/common/git-setup.sh"
 
     # 同步 zsh 配置
     if [ -f "$CONFIG_SCRIPT" ]; then
