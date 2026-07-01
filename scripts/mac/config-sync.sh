@@ -1,19 +1,13 @@
 #!/bin/bash
 
-# 引入公共函数库（基于脚本绝对路径，支持在任意目录执行）
 SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
 
-# 检查是否在 macOS 环境运行
+init_manifest mac
 check_target_system "macOS"
 
-# =========================
-# 主脚本开始
-# =========================
-
-# 默认不自动选择
 direction=$(prompt_sync_direction "$1" \
     "示例: npm run mac:sync -- 2 或 vpr mac:sync 2" \
     "1) 从本地目录拷贝到 mac 目录" \
@@ -21,21 +15,17 @@ direction=$(prompt_sync_direction "$1" \
 
 case $direction in
     1)
-        # 本地目录 -> mac 目录
-        cp -v ~/.zshrc "$PROJECT_ROOT/configs/mac/.zshrc"
-        cp -v ~/.bashrc "$PROJECT_ROOT/configs/mac/.bashrc"
-        cp -v ~/.zsh/functions/utils.zsh "$PROJECT_ROOT/configs/mac/utils.zsh"
-        cp -v ~/.config/ghostty/config "$PROJECT_ROOT/configs/mac/ghostty_config"
+        while IFS=$'\t' read -r local_path repo_path; do
+            mkdir -p "$(dirname "$repo_path")"
+            cp -v "$local_path" "$repo_path"
+        done < <(manifest_sync_pairs)
         ;;
     2)
-        # 备份系统配置文件
         backup_file ~/.zshrc ~/.backup
-
-        # mac 目录 -> 本地目录
-        cp -v "$PROJECT_ROOT/configs/mac/.zshrc" ~/.zshrc
-        cp -v "$PROJECT_ROOT/configs/mac/.bashrc" ~/.bashrc
-        mkdir -p ~/.zsh/functions && cp -v "$PROJECT_ROOT/configs/mac/utils.zsh" ~/.zsh/functions/utils.zsh
-        mkdir -p ~/.config/ghostty && cp -v "$PROJECT_ROOT/configs/mac/ghostty_config" ~/.config/ghostty/config
+        while IFS=$'\t' read -r local_path repo_path; do
+            mkdir -p "$(dirname "$local_path")"
+            cp -v "$repo_path" "$local_path"
+        done < <(manifest_sync_pairs)
         ;;
     *)
         echo "无效选择"

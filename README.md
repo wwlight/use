@@ -3,21 +3,19 @@
 ## mac
 
 > [!NOTE]
-> 首次安装 Homebrew（仅需一次）
+> 首次安装（仅需一次，不依赖 vpr）
 >
 > ```sh
-> $ vpr mac:brew                              # 官方源（默认）
-> $ vpr mac:brew ustc                         # 中科大镜像
+> bash ./scripts/mac/brew-install.sh              # 官方源（默认）
+> bash ./scripts/mac/brew-install.sh ustc         # 中科大镜像
+> bash ./scripts/mac/init.sh                      # 初始化（需先安装 brew）
 > ```
 >
-> 安装完成后会写入 `~/.zprofile`（brew shellenv 及镜像配置）。
+> `brew-install` / `init` 会自动检测并安装 [vite.plus](https://vite.plus/)（`vpr`）。安装完成后会写入 `~/.zprofile`（brew shellenv 及镜像配置）。
 
 #### 操作命令
 
 ```sh
-$ vpr mac:brew                                # 安装 Homebrew 本体
-$ vpr mac:brew ustc                           # 使用中科大镜像安装
-$ vpr mac:init                                # 初始化 mac 软件安装（需先安装 brew）
 $ vpr mac:backup                              # 备份 mac brew 安装软件
 $ vpr mac:setup                               # 安装 mac brew 软件
 $ vpr mac:sync 1                              # 同步 mac 本地配置文件到仓库
@@ -36,26 +34,28 @@ $ vpr mac:sync                                # 交互选择同步方向
 ## windows
 
 > [!NOTE]
-> 首次安装 Scoop（仅需一次）
+> 首次安装（仅需一次，不依赖 vpr）
 >
 > ```sh
-> $ vpr win:scoop
+> pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/scoop-install.ps1
+> pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/init.ps1
+> # Git Bash 备选：
+> # bash ./scripts/windows/scoop-install.sh
+> # bash ./scripts/windows/init.sh
 > ```
 >
-> Windows 脚本主逻辑为 PowerShell（`.ps1`），`vpr win:*` 会通过分发器按当前 shell 自动选择 `.ps1` 或 `.sh`（薄包装）；`win:zsh` 始终使用 bash 版。
-
-
+> `scoop-install` / `init` 会自动检测并安装 [vite.plus](https://vite.plus/)（`vpr`）。
+>
+> Windows 脚本主逻辑为 PowerShell（`.ps1`），`vpr win:*` 会通过分发器按当前 shell 自动选择 `.ps1` 或 `.sh`。
 
 #### 操作命令
 
 ```sh
-$ vpr win:scoop                               # 安装 Scoop 本体
-$ vpr win:init                                # 初始化 windows 软件安装（需先安装 scoop）
 $ vpr win:backup                              # 备份 windows scoop 安装软件（chcp 65001）
 $ vpr win:setup                               # 安装 windows scoop 软件
 $ vpr win:sync 1                              # 同步 windows 本地配置文件到仓库
 $ vpr win:sync 2                              # 同步仓库配置文件到本地
-$ vpr win:zsh                                 # 安装 zsh 到 git
+$ vpr win:zsh                                 # 安装 zsh 到 git（已装 zsh 时可选择跳过插件）
 $ vpr win:git-extras                          # 安装 git-extras 插件
 $ vpr win:clink                               # 安装 clink 插件（cmd 扩展）
 ```
@@ -100,12 +100,14 @@ A：在 cmd 目标路径后追加 -NoLogo /k 或者 -nologo /k
 
 ## common
 
+> `vpr common:*` 会通过分发器按当前 shell 自动选择 `.ps1` 或 `.sh`。
+
 #### 操作命令
 
 ```sh
 $ vpr common:sync 1                           # 同步本地配置文件到仓库
 $ vpr common:sync 2                           # 同步仓库配置文件到本地
-$ vpr common:setup                            # 关于 git 和 node 设置
+$ vpr common:setup                            # Git 全局配置
 ```
 
 文件说明

@@ -6,6 +6,8 @@ SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
 
+init_manifest mac
+
 usage() {
     cat <<EOF
 用法: $(basename "$0") [official|ustc|tuna]
@@ -22,42 +24,35 @@ EOF
 }
 
 mirror_exports() {
-    case "$1" in
-        ustc)
-            cat <<'EOF'
-# Homebrew 镜像配置 - 中科大镜像源
-export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.ustc.edu.cn/brew.git"
-export HOMEBREW_CORE_GIT_REMOTE="https://mirrors.ustc.edu.cn/homebrew-core.git"
-export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.ustc.edu.cn/homebrew-bottles"
-export HOMEBREW_API_DOMAIN="https://mirrors.ustc.edu.cn/homebrew-bottles/api"
-EOF
-            ;;
-        tuna)
-            cat <<'EOF'
-# Homebrew 镜像配置 - 清华大学镜像源
-export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git"
-export HOMEBREW_CORE_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git"
-export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles"
-export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"
-EOF
-            ;;
-        official)
-            cat <<'EOF'
-# Homebrew 镜像配置（官方源，未启用镜像）
-EOF
-            ;;
-    esac
+    local mirror="$1"
+    node -e "
+        const m = require(process.argv[1]);
+        const mirror = process.argv[2];
+        const cfg = m.brewMirrors[mirror] || {};
+        const lines = [];
+        if (mirror === 'official') {
+            lines.push('# Homebrew 镜像配置（官方源，未启用镜像）');
+        } else if (mirror === 'ustc') {
+            lines.push('# Homebrew 镜像配置 - 中科大镜像源');
+        } else if (mirror === 'tuna') {
+            lines.push('# Homebrew 镜像配置 - 清华大学镜像源');
+        }
+        if (cfg.brewGitRemote) lines.push('export HOMEBREW_BREW_GIT_REMOTE=\"' + cfg.brewGitRemote + '\"');
+        if (cfg.coreGitRemote) lines.push('export HOMEBREW_CORE_GIT_REMOTE=\"' + cfg.coreGitRemote + '\"');
+        if (cfg.bottleDomain) lines.push('export HOMEBREW_BOTTLE_DOMAIN=\"' + cfg.bottleDomain + '\"');
+        if (cfg.apiDomain) lines.push('export HOMEBREW_API_DOMAIN=\"' + cfg.apiDomain + '\"');
+        process.stdout.write(lines.join('\n'));
+    " "$MANIFEST_PATH" "$mirror"
 }
 
-# 从 mirror_exports 加载镜像变量，仅用于本次安装进程
 load_mirror_env() {
     eval "$(mirror_exports "$1" | grep '^export HOMEBREW_' || true)"
 }
 
-# 安装完成后写入 ~/.zprofile（brew shellenv + 镜像配置）
 persist_zprofile() {
     local mirror="$1"
-    local file="$HOME/.zprofile"
+    local file
+    file=$(expand_path "$(manifest_get "zprofile")")
     local brew_path
 
     brew_path=$(command -v brew) || error "brew 未找到，无法写入 $file"
@@ -74,23 +69,30 @@ persist_zprofile() {
 run_install_script() {
     local mirror="$1"
 
-    case "$mirror" in
-        tuna)
-            git clone --depth=1 https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/install.git brew-install || {
-                error "Homebrew 安装脚本下载失败！"
-            }
-            /bin/bash brew-install/install.sh || {
-                rm -rf brew-install
-                error "Homebrew 安装失败！"
-            }
+    if [[ "$mirror" == "tuna" ]]; then
+        local install_git_repo
+        install_git_repo=$(node -e "
+            const m = require(process.argv[1]);
+            process.stdout.write(m.brewMirrors.tuna.installGitRepo);
+        " "$MANIFEST_PATH")
+        git clone --depth=1 "$install_git_repo" brew-install || {
+            error "Homebrew 安装脚本下载失败！"
+        }
+        /bin/bash brew-install/install.sh || {
             rm -rf brew-install
-            ;;
-        *)
-            /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || {
-                error "Homebrew 安装失败！"
-            }
-            ;;
-    esac
+            error "Homebrew 安装失败！"
+        }
+        rm -rf brew-install
+    else
+        local install_script
+        install_script=$(node -e "
+            const m = require(process.argv[1]);
+            process.stdout.write(m.brewMirrors.official.installScript);
+        " "$MANIFEST_PATH")
+        /bin/bash -c "$(curl -fsSL "$install_script")" || {
+            error "Homebrew 安装失败！"
+        }
+    fi
 }
 
 install_homebrew() {
@@ -111,7 +113,7 @@ install_homebrew() {
     run_install_script "$mirror"
     persist_zprofile "$mirror"
 
-    source ~/.zprofile
+    source "$(expand_path "$(manifest_get "zprofile")")"
     brew update || {
         error "Homebrew 更新失败！"
     }
@@ -129,6 +131,7 @@ main() {
 
     check_target_system "macOS"
     install_homebrew "$mirror"
+    bash "$SCRIPT_DIR/common/vite-plus-install.sh" || error "vite.plus 安装失败！"
 }
 
 main "$@"

@@ -1,0 +1,23 @@
+{
+  "git": {
+    "credentialHelper": "store",
+    "defaultBranch": "main",
+    "ignorecase": false,
+    "safeDirectory": "*"
+  },
+  "sync": {
+    "toRepo": [
+      { "local": "~/.zsh/zfunc/_eza", "repo": "configs/common/_eza" },
+      { "local": "~/.config/starship/starship.toml", "repo": "configs/common/starship.toml" }
+    ]
+  },
+  "vitePlus": {
+    "installUrlPs1": "https://vite.plus/ps1",
+    "installUrlSh": "https://vite.plus"
+  },
+  "zshPlugins": [
+    { "name": "fast-syntax-highlighting", "repo": "https://github.com/zdharma-continuum/fast-syntax-highlighting.git" },
+    { "name": "zsh-autosuggestions", "repo": "https://github.com/zsh-users/zsh-autosuggestions.git" },
+    { "name": "zsh-completions", "repo": "https://github.com/zsh-users/zsh-completions.git" }
+  ]
+}

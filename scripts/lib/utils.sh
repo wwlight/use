@@ -51,23 +51,6 @@ check_target_system() {
 }
 
 # ==============================
-# 清理函数
-# ==============================
-smart_clean() {
-    local target="$1"
-    if command -v rm &>/dev/null; then
-        rm -rf "$target" 2>/dev/null || {
-            warn "使用 rm 清理失败，尝试 Windows 方式..."
-            target="${target//\//\\}"
-            cmd /c "rmdir /S /Q \"$target\"" >nul 2>&1
-        }
-    else
-        target="${target//\//\\}"
-        cmd /c "rmdir /S /Q \"$target\"" >nul 2>&1
-    fi
-}
-
-# ==============================
 # 备份（支持自定义路径+日期序号+错误不中断）
 # 使用方法: backup_file <目标文件> [备份目录]
 # ==============================
@@ -154,4 +137,74 @@ $example" >&2
     fi
 
     echo "$choice"
+}
+
+# ==============================
+# manifest.json 读取
+# ==============================
+expand_path() {
+    local path="$1"
+    case "$path" in
+        "~/"*) echo "$HOME/${path#~/}" ;;
+        "~")    echo "$HOME" ;;
+        *)      echo "$path" ;;
+    esac
+}
+
+init_manifest() {
+    local scope="$1"
+    if [[ -z "$scope" ]]; then
+        error "init_manifest 需要指定 scope: mac|windows|common"
+    fi
+    local manifest_path="${PROJECT_ROOT}/scripts/${scope}/manifest.json"
+    if [[ ! -f "$manifest_path" ]]; then
+        error "找不到 manifest: $manifest_path"
+    fi
+    MANIFEST_SCOPE="$scope"
+    MANIFEST_PATH="$manifest_path"
+}
+
+manifest_get() {
+    local key="$1"
+    local scope="${2:-}"
+    local manifest_path="$MANIFEST_PATH"
+
+    if [[ -n "$scope" ]]; then
+        manifest_path="${PROJECT_ROOT}/scripts/${scope}/manifest.json"
+        if [[ ! -f "$manifest_path" ]]; then
+            error "找不到 manifest: $manifest_path"
+        fi
+    elif [[ -z "$manifest_path" ]]; then
+        error "请先调用 init_manifest"
+    fi
+
+    node -e "
+        const m = require(process.argv[1]);
+        let v = m;
+        for (const k of process.argv[2].split('.')) {
+            v = v?.[k];
+        }
+        if (v === undefined || v === null) {
+            process.stderr.write('manifest 缺少配置: ' + process.argv[2] + '\n');
+            process.exit(1);
+        }
+        if (typeof v === 'object') console.log(JSON.stringify(v));
+        else console.log(String(v));
+    " "$manifest_path" "$key"
+}
+
+manifest_sync_pairs() {
+    if [[ -z "$MANIFEST_PATH" ]]; then
+        error "请先调用 init_manifest"
+    fi
+    node -e "
+        const path = require('path');
+        const os = require('os');
+        const m = require(process.argv[1]);
+        const projectRoot = process.argv[2];
+        const expand = (p) => p.replace(/^~(?=\/|$)/, os.homedir());
+        for (const item of m.sync.toRepo) {
+            process.stdout.write(expand(item.local) + '\t' + path.join(projectRoot, item.repo) + '\n');
+        }
+    " "$MANIFEST_PATH" "$PROJECT_ROOT"
 }

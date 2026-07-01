@@ -1,39 +1,43 @@
 #!/bin/bash
 
-# 引入公共函数库
 SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
 
-# ==============================
-# 设置 Git 配置
-# ==============================
+init_manifest common
+
 setup_git() {
-    # 检查是否安装 git
     if ! command -v git &> /dev/null; then
-        error "Git 未安装，跳过 Git 配置"
+        warn 'Git 未安装，跳过 Git 配置'
         return
     fi
 
-    # 设置默认分支为 main
-    git config --global init.defaultBranch main
+    local default_branch ignorecase safe_directory credential_helper
+    default_branch=$(manifest_get "git.defaultBranch")
+    ignorecase=$(manifest_get "git.ignorecase")
+    safe_directory=$(manifest_get "git.safeDirectory")
+    credential_helper=$(manifest_get "git.credentialHelper")
 
-    # 设置文件大小写敏感
-    git config --global core.ignorecase false
+    git config --global init.defaultBranch "$default_branch"
+    git config --global core.ignorecase "$ignorecase"
+    git config --global safe.directory "$safe_directory"
+    git config --global credential.helper "$credential_helper"
 
-    # 忽略目录安全限制
-    git config --global safe.directory "*"
+    if git config --global --get user.name &>/dev/null && git config --global --get user.email &>/dev/null; then
+        info 'Git 用户名和邮箱已配置，跳过'
+        return
+    fi
 
-    # 记住提交账号密码
-    git config --global credential.helper store
+    if [ ! -t 0 ]; then
+        info '非交互环境，跳过 Git 用户名和邮箱配置'
+        return
+    fi
 
-    # 询问是否跳过用户名和邮箱配置
     read -p "是否跳过 Git 用户名和邮箱配置？(y/n) [默认 n]: " skip_config
-    skip_config=${skip_config:-n}  # 默认值为 'n'
+    skip_config=${skip_config:-n}
 
     if [[ "$skip_config" != "y" && "$skip_config" != "Y" ]]; then
-        # 提示输入用户名和邮箱
         read -p "请输入 Git 用户名: " username
         git config --global user.name "$username"
 
@@ -42,12 +46,4 @@ setup_git() {
     fi
 }
 
-# ==============================
-# 主执行流程
-# ==============================
-main() {
-    setup_git
-}
-
-# 执行主函数
-main
+setup_git

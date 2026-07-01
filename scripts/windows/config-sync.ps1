@@ -9,34 +9,6 @@ $direction = Get-SyncDirection $Direction `
     '1) 从本地目录拷贝到 windows 目录' `
     '2) 从 windows 目录拷贝到本地目录'
 
-switch ($direction) {
-    '1' {
-        foreach ($item in $manifest.sync.toRepo) {
-            $local = Get-ExpandedPath $item.local
-            $repo = Join-Path $Script:ProjectRoot $item.repo
-            $repoDir = Split-Path $repo -Parent
-            if (-not (Test-Path $repoDir)) {
-                New-Item -ItemType Directory -Path $repoDir -Force | Out-Null
-            }
-            Copy-Item $local $repo -Force -Verbose
-        }
-    }
-    '2' {
-        Backup-File '~/.zshrc' '~/.backup'
-        foreach ($item in $manifest.sync.toRepo) {
-            $local = Get-ExpandedPath $item.local
-            $repo = Join-Path $Script:ProjectRoot $item.repo
-            $localDir = Split-Path $local -Parent
-            if (-not (Test-Path $localDir)) {
-                New-Item -ItemType Directory -Path $localDir -Force | Out-Null
-            }
-            Copy-Item $repo $local -Force -Verbose
-        }
-    }
-    default {
-        Write-Host '无效选择'
-        exit 1
-    }
-}
+Invoke-ManifestSync -Manifest $manifest -Direction $direction -BackupLocal '~/.zshrc'
 
 Write-Host '操作完成！'

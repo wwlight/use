@@ -1,22 +1,36 @@
 $ScriptDir = Split-Path $PSScriptRoot -Parent
 . (Join-Path $ScriptDir 'lib/utils.ps1')
 
+$manifest = Read-Manifest -Scope common
+
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-    Write-ErrorAndExit 'Git 未安装，跳过 Git 配置'
+    Write-Warn 'Git 未安装，跳过 Git 配置'
+    return
 }
 
-git config --global init.defaultBranch main
-git config --global core.ignorecase false
-git config --global safe.directory '*'
-git config --global credential.helper store
+git config --global init.defaultBranch $manifest.git.defaultBranch
+git config --global core.ignorecase $($manifest.git.ignorecase.ToString().ToLower())
+git config --global safe.directory $manifest.git.safeDirectory
+git config --global credential.helper $manifest.git.credentialHelper
 
-$skipConfig = Read-Host '是否跳过 Git 用户名和邮箱配置？(y/n) [默认 n]'
-if ([string]::IsNullOrWhiteSpace($skipConfig)) { $skipConfig = 'n' }
+$userName = git config --global --get user.name 2>$null
+$userEmail = git config --global --get user.email 2>$null
 
-if ($skipConfig -ne 'y' -and $skipConfig -ne 'Y') {
-    $username = Read-Host '请输入 Git 用户名'
-    git config --global user.name $username
+if ($userName -and $userEmail) {
+    Write-Info 'Git 用户名和邮箱已配置，跳过'
+}
+elseif (-not (Test-InteractivePrompt)) {
+    Write-Info '非交互环境，跳过 Git 用户名和邮箱配置'
+}
+else {
+    $skipConfig = Read-Host '是否跳过 Git 用户名和邮箱配置？(y/n) [默认 n]'
+    if ([string]::IsNullOrWhiteSpace($skipConfig)) { $skipConfig = 'n' }
 
-    $email = Read-Host '请输入 Git 邮箱'
-    git config --global user.email $email
+    if ($skipConfig -ne 'y' -and $skipConfig -ne 'Y') {
+        $username = Read-Host '请输入 Git 用户名'
+        git config --global user.name $username
+
+        $email = Read-Host '请输入 Git 邮箱'
+        git config --global user.email $email
+    }
 }

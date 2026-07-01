@@ -1,10 +1,12 @@
 $ScriptDir = Split-Path $PSScriptRoot -Parent
 . (Join-Path $ScriptDir 'lib/utils.ps1')
 
+$manifest = Read-Manifest
+
 $workDir = Join-Path $env:USERPROFILE 'Desktop/git-extras'
 
 Write-Info '步骤1/5: 克隆 git-extras 仓库到桌面...'
-git clone https://github.com/tj/git-extras.git $workDir
+git clone $manifest.gitExtras.repo $workDir
 if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '克隆 git-extras 仓库失败' }
 
 Write-Info '步骤2/5: 进入 git-extras 目录...'

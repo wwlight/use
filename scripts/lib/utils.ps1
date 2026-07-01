@@ -25,7 +25,9 @@ function Get-ExpandedPath {
 }
 
 function Read-Manifest {
-    $manifestPath = Join-Path $Script:ProjectRoot 'scripts/windows/manifest.json'
+    param([string]$Scope = 'windows')
+
+    $manifestPath = Join-Path $Script:ProjectRoot "scripts/$Scope/manifest.json"
     if (-not (Test-Path $manifestPath)) {
         Write-ErrorAndExit "找不到 manifest: $manifestPath"
     }
@@ -65,6 +67,59 @@ function Backup-File {
     }
 }
 
+function Test-InteractivePrompt {
+    if (-not [Environment]::UserInteractive) {
+        return $false
+    }
+
+    try {
+        return -not [Console]::IsInputRedirected
+    }
+    catch {
+        return $false
+    }
+}
+
+function Invoke-ManifestSync {
+    param(
+        $Manifest,
+        [string]$Direction,
+        [string]$BackupLocal = ''
+    )
+
+    switch ($Direction) {
+        '1' {
+            foreach ($item in $Manifest.sync.toRepo) {
+                $local = Get-ExpandedPath $item.local
+                $repo = Join-Path $Script:ProjectRoot $item.repo
+                $repoDir = Split-Path $repo -Parent
+                if (-not (Test-Path $repoDir)) {
+                    New-Item -ItemType Directory -Path $repoDir -Force | Out-Null
+                }
+                Copy-Item $local $repo -Force -Verbose
+            }
+        }
+        '2' {
+            if ($BackupLocal) {
+                Backup-File $BackupLocal '~/.backup'
+            }
+            foreach ($item in $Manifest.sync.toRepo) {
+                $local = Get-ExpandedPath $item.local
+                $repo = Join-Path $Script:ProjectRoot $item.repo
+                $localDir = Split-Path $local -Parent
+                if (-not (Test-Path $localDir)) {
+                    New-Item -ItemType Directory -Path $localDir -Force | Out-Null
+                }
+                Copy-Item $repo $local -Force -Verbose
+            }
+        }
+        default {
+            Write-Host '无效选择'
+            exit 1
+        }
+    }
+}
+
 function Get-SyncDirection {
     param(
         [string]$Arg,
@@ -86,20 +141,4 @@ function Get-SyncDirection {
         exit 1
     }
     return $choice
-}
-
-function Invoke-PwshScript {
-    param(
-        [string]$ScriptPath,
-        [string[]]$Arguments = @()
-    )
-
-    $psArgs = @('-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', $ScriptPath) + $Arguments
-    if (Get-Command pwsh -ErrorAction SilentlyContinue) {
-        & pwsh @psArgs
-    }
-    else {
-        & powershell.exe @psArgs
-    }
-    if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
 }

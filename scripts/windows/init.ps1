@@ -21,7 +21,7 @@ function Install-OrRestoreScoop {
     $scoopBackup = Join-Path $Script:ProjectRoot $manifest.scoopBackup
 
     if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
-        Write-ErrorAndExit 'Scoop 未安装！请先运行: npm run win:scoop / vpr win:scoop'
+        Write-ErrorAndExit 'Scoop 未安装！请先运行: bash ./scripts/windows/scoop-install.sh 或 pwsh -File ./scripts/windows/scoop-install.ps1'
     }
 
     if (Test-Path $scoopBackup) {
@@ -33,36 +33,18 @@ function Install-OrRestoreScoop {
     }
 }
 
-function Install-ZshPlugins {
-    Write-Info '步骤3/5: 正在安装 zsh 插件...'
-    $pluginsDir = Get-ExpandedPath '~/.zsh/plugins'
-
-    foreach ($plugin in $manifest.zshPlugins) {
-        $targetPath = Join-Path $pluginsDir $plugin.name
-        if (-not (Test-Path $targetPath)) {
-            Write-Info "正在下载插件: $($plugin.name)..."
-            try {
-                git clone $plugin.repo $targetPath
-                Write-Info "$($plugin.name) 下载完成"
-            }
-            catch {
-                Write-Warn "$($plugin.name) 下载失败，跳过此插件"
-            }
-        }
-        else {
-            Write-Info "插件 $($plugin.name) 已存在，跳过下载"
-        }
-    }
+function Install-Zsh {
+    Write-Info '步骤3/5: 正在安装 zsh 及插件...'
+    $zshScript = Join-Path $PSScriptRoot 'zsh-install.ps1'
+    & $zshScript
+    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'zsh 安装失败' }
 }
 
 function Install-VitePlus {
     Write-Info '步骤4/5: 正在安装 vite.plus...'
-
-    if (-not (Get-Command vp -ErrorAction SilentlyContinue)) {
-        $ErrorActionPreference = 'Stop'
-        irm https://vite.plus/ps1 | iex
-        Write-Info 'vite.plus 安装成功'
-    }
+    $vitePlusScript = Join-Path $ScriptDir 'common/vite-plus-install.ps1'
+    & $vitePlusScript
+    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'vite.plus 安装失败' }
 }
 
 function Sync-Configurations {
@@ -101,7 +83,7 @@ Write-Info '===== Windows 系统配置脚本 ====='
 
 Setup-Directories
 Install-OrRestoreScoop
-Install-ZshPlugins
+Install-Zsh
 Install-VitePlus
 Sync-Configurations
 

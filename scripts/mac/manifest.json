@@ -1,0 +1,37 @@
+{
+  "brewfile": "configs/mac/Brewfile",
+  "brewMirrors": {
+    "official": {
+      "installScript": "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
+    },
+    "tuna": {
+      "apiDomain": "https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api",
+      "bottleDomain": "https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles",
+      "brewGitRemote": "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git",
+      "coreGitRemote": "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git",
+      "installGitRepo": "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/install.git"
+    },
+    "ustc": {
+      "apiDomain": "https://mirrors.ustc.edu.cn/homebrew-bottles/api",
+      "bottleDomain": "https://mirrors.ustc.edu.cn/homebrew-bottles",
+      "brewGitRemote": "https://mirrors.ustc.edu.cn/brew.git",
+      "coreGitRemote": "https://mirrors.ustc.edu.cn/homebrew-core.git"
+    }
+  },
+  "directories": [
+    "~/.zsh/plugins",
+    "~/.zsh/cache",
+    "~/.zsh/functions",
+    "~/.zsh/zfunc",
+    "~/.config/starship"
+  ],
+  "sync": {
+    "toRepo": [
+      { "local": "~/.zshrc", "repo": "configs/mac/.zshrc" },
+      { "local": "~/.bashrc", "repo": "configs/mac/.bashrc" },
+      { "local": "~/.zsh/functions/utils.zsh", "repo": "configs/mac/utils.zsh" },
+      { "local": "~/.config/ghostty/config", "repo": "configs/mac/ghostty_config" }
+    ]
+  },
+  "zprofile": "~/.zprofile"
+}
