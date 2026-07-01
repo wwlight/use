@@ -9,10 +9,12 @@ export ZSH_COMPDUMP=$ZSH/cache/.zcompdump-$HOST
 export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml
 export SDKMAN_DIR=$(brew --prefix sdkman-cli)/libexec
 export EZA_CONFIG_DIR=$HOME/.config/eza
+export COMPOSE_FILE=$HOME/.docker/compose.yml
 
 # PATH 设置 (N == Null Glob)
 typeset -U path PATH
 path=(
+    $HOME/.local/bin(N)
     $HOME/.vite-plus/bin(N)
     $HOME/.opencode/bin(N)
     $HOME/.cargo/bin(N)
@@ -93,7 +95,6 @@ ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#53555c"
 # ======================
 # 工具初始化
 # ======================
-
 # 模糊搜索 (fzf)
 source <(fzf --zsh)
 
@@ -118,8 +119,7 @@ precmd_functions+=(set_win_title)
 # ======================
 # 别名设置
 # ======================
-alias cls="clear"
-alias reload="source ~/.zshrc"
+# eza 别名
 alias ls='eza --icons'
 alias l='eza -l --icons'
 alias la='eza -la --icons'
@@ -137,6 +137,8 @@ alias gl='git pull'
 alias grt='cd "$(git rev-parse --show-toplevel)"'
 alias gc='git branch | fzf | xargs git checkout' # 搜索 git 分支并切换
 # 其它
+alias cls="clear"
+alias reload="source ~/.zshrc"
 alias ping="gping"
 alias of="onefetch"
 alias oc="opencode"

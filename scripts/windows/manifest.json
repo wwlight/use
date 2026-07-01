@@ -1,0 +1,32 @@
+{
+  "scoopDir": "D:\\SoftwareApps\\Scoop",
+  "softwareAppsDir": "D:/SoftwareApps",
+  "scoopBackup": "configs/windows/scoop_backup.json",
+  "sync": {
+    "toRepo": [
+      { "local": "~/.zshrc", "repo": "configs/windows/.zshrc" },
+      { "local": "~/.bashrc", "repo": "configs/windows/.bashrc" },
+      { "local": "~/.zsh/functions/utils.zsh", "repo": "configs/windows/utils.zsh" },
+      { "local": "~/.zsh/functions/scoop_services.zsh", "repo": "configs/windows/scoop_services.zsh" },
+      { "local": "~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1", "repo": "configs/windows/pwsh5_profile.ps1" },
+      { "local": "~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1", "repo": "configs/windows/pwsh7_profile.ps1" }
+    ]
+  },
+  "zshPlugins": [
+    { "repo": "https://github.com/zdharma-continuum/fast-syntax-highlighting.git", "name": "fast-syntax-highlighting" },
+    { "repo": "https://github.com/zsh-users/zsh-autosuggestions.git", "name": "zsh-autosuggestions" },
+    { "repo": "https://github.com/zsh-users/zsh-completions.git", "name": "zsh-completions" }
+  ],
+  "clinkPlugins": [
+    { "repo": "https://github.com/vladimir-kotikov/clink-completions", "name": "clink-completions" },
+    { "repo": "https://github.com/chrisant996/clink-gizmos", "name": "clink-gizmos" }
+  ],
+  "directories": [
+    "D:/SoftwareApps",
+    "~/.zsh/plugins",
+    "~/.zsh/cache",
+    "~/.zsh/functions",
+    "~/.zsh/zfunc",
+    "~/.config/starship"
+  ]
+}

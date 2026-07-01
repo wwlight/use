@@ -25,58 +25,21 @@ setup_directories() {
 }
 
 install_or_restore_brew() {
-    info "步骤2/5: 正在安装/恢复 Homebrew 及依赖..."
+    info "步骤2/5: 正在恢复 Homebrew 依赖..."
     local BREWFILE="$PROJECT_ROOT/configs/mac/Brewfile"
 
-    # 检查并安装 Homebrew
     if ! command -v brew &> /dev/null; then
-        info "Homebrew 未安装，正在自动安装..."
-
-        # # Homebrew 镜像配置 - 清华大学镜像源
-        # export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git"
-        # export HOMEBREW_CORE_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git"
-        # export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles"
-        # export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"
-        # # 从镜像下载安装脚本并安装 Homebrew
-        # git clone --depth=1 https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/install.git brew-install
-        # /bin/bash brew-install/install.sh
-        # rm -rf brew-install
-
-        # Homebrew 镜像配置 - ‌中科大镜像源 https://mirrors.ustc.edu.cn/help/brew.git.html
-        # export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.ustc.edu.cn/brew.git"
-        # export HOMEBREW_CORE_GIT_REMOTE="https://mirrors.ustc.edu.cn/homebrew-core.git"
-        # export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.ustc.edu.cn/homebrew-bottles"
-        # export HOMEBREW_API_DOMAIN="https://mirrors.ustc.edu.cn/homebrew-bottles/api"
-        # # 从镜像下载安装脚本并安装 Homebrew
-        # /bin/bash -c "$(curl -fsSL https://github.com/Homebrew/install/raw/HEAD/install.sh)"
-
-        # 使用官方安装脚本
-        /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)" || {
-            error "Homebrew 安装失败！"
-            return 1
-        }
-
-        info "同步 Homebrew 配置文件..."
-        cp -v "$PROJECT_ROOT/configs/mac/.zprofile" ~/.zprofile
-        source ~/.zprofile
-        brew update || {
-            error "Homebrew 更新失败！"
-            return 1
-        }
-        info "Homebrew 安装成功"
+        error "Homebrew 未安装！请先运行: bash ./scripts/mac/brew-install.sh 或 npm run mac:brew / vpr mac:brew"
     fi
 
-    # 安装 Brewfile 依赖
     if [ -f "$BREWFILE" ]; then
         info "正在从 Brewfile 安装依赖..."
         brew bundle install --file="$BREWFILE" || {
             error "Brewfile 依赖安装失败！"
-            return 1
         }
         info "Brewfile 依赖安装完成"
     else
         error "找不到 Brewfile: $BREWFILE"
-        return 1
     fi
 }
 

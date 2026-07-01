@@ -9,9 +9,14 @@ export ZSH_COMPDUMP=$ZSH/cache/.zcompdump-$HOST
 export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml
 export EZA_CONFIG_DIR=$HOME/.config/eza
 
+# vp (vite+) 环境初始化
+. "$HOME/.vite-plus/env"
+
 # PATH 设置 (N == Null Glob)
 typeset -U path PATH
 path=(
+    $HOME/.opencode/bin(N)
+    $HOME/.npm_global/bin(N)
     $path
 )
 
@@ -107,8 +112,7 @@ precmd_functions+=(set_win_title)
 # ======================
 # 别名设置
 # ======================
-alias cls="clear"
-alias reload="source ~/.zshrc"
+# eza 别名
 alias ls='eza --icons'
 alias l='eza -l --icons'
 alias la='eza -la --icons'
@@ -129,6 +133,8 @@ alias gc='git branch | fzf | xargs git checkout' # 搜索 git 分支并切换
 alias ping="gping"
 alias of="onefetch"
 alias oc="opencode"
+alias cls="clear"
+alias reload="source $HOME/.zshrc"
 
 # ======================
 # 自定义函数加载

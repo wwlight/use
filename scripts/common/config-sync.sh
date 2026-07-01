@@ -6,18 +6,10 @@ SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
 
-# 默认不自动选择
-direction=""
-
-# 检查是否有参数
-if [ "$1" = "1" ] || [ "$1" = "2" ]; then
-    direction=$1
-else
-    echo "请选择拷贝方向:"
-    echo "1) 从本地目录拷贝到 common 目录"
-    echo "2) 从 common 目录拷贝到本地目录"
-    read -r direction
-fi
+direction=$(prompt_sync_direction "$1" \
+    "示例: npm run common:sync -- 2 或 vpr common:sync 2" \
+    "1) 从本地目录拷贝到 common 目录" \
+    "2) 从 common 目录拷贝到本地目录") || exit 1
 
 case $direction in
     1)

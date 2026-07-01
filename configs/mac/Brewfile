@@ -1,56 +1,106 @@
-tap "anomalyco/tap"
-tap "oven-sh/bun"
-tap "sdkman/tap"
+tap "anomalyco/tap", trusted: true
+tap "oven-sh/bun", trusted: true
+tap "sdkman/tap", trusted: true
+# Resource monitor. C++ version and continuation of bashtop and bpytop
 brew "btop"
-brew "code-server", restart_service: :changed
-brew "deno"
+# Container runtimes on MacOS (and Linux) with minimal setup
+brew "colima", restart_service: :changed
+# Pack, ship and run any application as a lightweight container
 brew "docker"
+# Isolated development environments using Docker
+brew "docker-compose"
+# Modern, maintained replacement for ls
 brew "eza"
+# Play, record, convert, and stream select audio and video codecs
+brew "ffmpeg"
+# Command-line fuzzy finder written in Go
 brew "fzf"
+# GNU internationalization (i18n) and localization (l10n) library
 brew "gettext"
+# GitHub command-line tool
 brew "gh"
+# Distributed revision control system
 brew "git"
+# Small git utilities
 brew "git-extras"
-brew "gping"
+# Common error values for all GnuPG components
 brew "libgpg-error"
-brew "mysql", restart_service: :changed
+# Open source relational database management system
+brew "mysql"
+# Incremental parsing library
+brew "tree-sitter"
+# Ambitious Vim-fork focused on extensibility and agility
 brew "neovim"
+# HTTP(S) server and reverse proxy, and IMAP/POP3 proxy server
 brew "nginx", restart_service: :changed
+# Command-line Git information tool
 brew "onefetch"
+# Pinentry for GPG on Mac
 brew "pinentry-mac"
-brew "redis"
+# CLI proxy to minimize LLM token consumption
+brew "rtk"
+# Rust toolchain installer
 brew "rustup"
+# Command-line interface for SQLite
+brew "sqlite"
+# Cross-shell prompt for astronauts
 brew "starship"
+# Extremely fast Python package installer and resolver, written in Rust
 brew "uv"
+# High-performance data structure server that primarily serves key/value workloads
+brew "valkey"
+# Shell extension to navigate your filesystem faster
 brew "zoxide"
-brew "anomalyco/tap/opencode"
-brew "oven-sh/bun/bun"
+# The AI coding agent built for the terminal.
+brew "anomalyco/tap/opencode", trusted: true
+# SDKMAN! the Software Development Kit Manager
 brew "sdkman/tap/sdkman-cli"
+# Android SDK component
 cask "android-platform-tools"
+# Another Mihomo GUI
 cask "clash-party"
+# Write, edit, and chat about your code with AI
 cask "cursor"
 cask "font-fira-code-nerd-font"
 cask "font-fira-mono-nerd-font"
 cask "font-lxgw-wenkai"
 cask "font-monaspace"
 cask "font-symbols-only-nerd-font"
+# Terminal emulator that uses platform-native UI and GPU acceleration
 cask "ghostty"
+# Web browser
 cask "google-chrome"
+# Free and open-source media player
 cask "iina"
+# Java IDE by JetBrains
 cask "intellij-idea"
+# Open-source screen recorder built with web technology
 cask "kap"
+# Open-source keystroke visualiser
 cask "keycastr"
+# Open-source cross-platform alternative to AirDrop
+cask "localsend"
+# Window manager
 cask "loop"
+# Open-source download manager
 cask "motrix"
+# Reverse proxy, secure introspectable tunnels to localhost
 cask "ngrok"
+# Knowledge base that works on top of a local folder of plain text Markdown files
 cask "obsidian"
+# Control your tools with a few keystrokes
 cask "raycast"
+# Screen recorder and editor
 cask "screen-studio"
+# Rime input method engine
 cask "squirrel-app"
-cask "superset"
+# App to switch hosts
 cask "switchhosts"
+# Unpacks archive files
 cask "the-unarchiver"
+# Open-source code editor
 cask "visual-studio-code"
+# Free messaging and calling application
 cask "wechat"
-cask "zed"
-cargo "wasm-pack"
+uv "headroom-ai[all]"
+uv "serena-agent"

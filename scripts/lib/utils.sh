@@ -109,3 +109,49 @@ backup_file() {
 
     return 0
 }
+
+# ==============================
+# 解析 config-sync 方向参数
+# 兼容 npm/pnpm/vpr：这些 runner 常关闭 stdin，但 /dev/tty 仍可用
+# 用法: direction=$(prompt_sync_direction "$1" "示例: npm run mac:sync -- 2 或 vpr mac:sync 2" "1) ..." "2) ...")
+# ==============================
+prompt_sync_direction() {
+    local arg="$1"
+    local example="$2"
+    local line1="$3"
+    local line2="$4"
+
+    if [ "$arg" = "1" ] || [ "$arg" = "2" ]; then
+        echo "$arg"
+        return 0
+    fi
+
+    local choice=""
+    local tty_path=""
+
+    tty_path=$(tty 2>/dev/null) || tty_path=""
+
+    if [ -n "$tty_path" ]; then
+        {
+            echo "请选择拷贝方向:"
+            echo "$line1"
+            echo "$line2"
+        } > "$tty_path"
+        read -r choice < "$tty_path" || choice=""
+    fi
+
+    if [ -z "$choice" ] && [ -t 0 ]; then
+        echo "请选择拷贝方向:"
+        echo "$line1"
+        echo "$line2"
+        read -r choice
+    fi
+
+    if [ -z "$choice" ]; then
+        safe_echo "${RED}[ERROR]${NC} 非交互环境请传入方向参数: 1=备份到仓库, 2=应用到本地
+$example" >&2
+        return 1
+    fi
+
+    echo "$choice"
+}

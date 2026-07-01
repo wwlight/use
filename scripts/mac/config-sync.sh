@@ -14,22 +14,14 @@ check_target_system "macOS"
 # =========================
 
 # 默认不自动选择
-direction=""
-
-# 检查是否有参数
-if [ "$1" = "1" ] || [ "$1" = "2" ]; then
-    direction=$1
-else
-    echo "请选择拷贝方向:"
-    echo "1) 从本地目录拷贝到 mac 目录"
-    echo "2) 从 mac 目录拷贝到本地目录"
-    read -r direction
-fi
+direction=$(prompt_sync_direction "$1" \
+    "示例: npm run mac:sync -- 2 或 vpr mac:sync 2" \
+    "1) 从本地目录拷贝到 mac 目录" \
+    "2) 从 mac 目录拷贝到本地目录") || exit 1
 
 case $direction in
     1)
         # 本地目录 -> mac 目录
-        cp -v ~/.zprofile "$PROJECT_ROOT/configs/mac/.zprofile"
         cp -v ~/.zshrc "$PROJECT_ROOT/configs/mac/.zshrc"
         cp -v ~/.bashrc "$PROJECT_ROOT/configs/mac/.bashrc"
         cp -v ~/.zsh/functions/utils.zsh "$PROJECT_ROOT/configs/mac/utils.zsh"
@@ -40,7 +32,6 @@ case $direction in
         backup_file ~/.zshrc ~/.backup
 
         # mac 目录 -> 本地目录
-        cp -v "$PROJECT_ROOT/configs/mac/.zprofile" ~/.zprofile
         cp -v "$PROJECT_ROOT/configs/mac/.zshrc" ~/.zshrc
         cp -v "$PROJECT_ROOT/configs/mac/.bashrc" ~/.bashrc
         mkdir -p ~/.zsh/functions && cp -v "$PROJECT_ROOT/configs/mac/utils.zsh" ~/.zsh/functions/utils.zsh
