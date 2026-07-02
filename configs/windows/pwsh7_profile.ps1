@@ -4,9 +4,6 @@
 Invoke-Expression (&starship init powershell)
 $ENV:STARSHIP_CONFIG = "$HOME\\.config\\starship\\starship.toml"
 
-# vp (vite+) 环境初始化
-. "$HOME/.vite-plus/env"
-
 # ls (eza)
 function ls { eza --icons @args }
 function l { eza -l --icons @args }
@@ -14,6 +11,7 @@ function la { eza -la --icons @args }
 function lt { eza --tree --icons @args }
 
 # vp (vite+)
+. "$HOME/.vite-plus/env.ps1" # 环境初始化
 function v { vp @args }
 function vc { v create @args }
 function vr { v run @args }
@@ -21,7 +19,7 @@ function s { vr start @args }
 function d { vr dev @args }
 function b { vr build @args }
 
-# Git
+# git
 function gp { git push @args }
 function gl { git pull @args }
 function grt { cd "$(git rev-parse --show-toplevel)" }
@@ -31,10 +29,10 @@ function gc {
 }
 
 # other
-function oc { opencode @args }
 function reload { . $PROFILE }
+function oc { opencode @args }
 
-# winsw + scoop services (like brew services)
+# scoop services（winsw）
 $__scoop = "$env:SCOOP\shims\scoop.ps1"
 
 function winsw {
@@ -52,6 +50,9 @@ function winsw {
       & $winswExe @splat
       return
     }
+    if ($args[0] -eq 'status') { return 'NonExistent' }
+    if ($args[0] -eq 'stop') { & sc.exe stop $args[1]; return }
+    if ($args[0] -eq 'uninstall') { & sc.exe delete $args[1]; return }
   }
   & "winsw.exe" $args
 }
@@ -59,29 +60,22 @@ function winsw {
 function scoop {
   if (-not $env:SCOOP) { $host.ui.WriteErrorLine("scoop: `$env:SCOOP is not set"); return 1 }
   if ($args.Count -ge 1) {
-    if ($args[0] -eq 'install' -and $args -contains '--services') {
-      $filtered = $args | Where-Object { $_ -ne '--services' }
-      & $__scoop @filtered
-      if ($LASTEXITCODE -ne 0) { return }
-      foreach ($app in (_scoop_apps @args)) {
-        _scoop_ensure_xml $app
-        if ((winsw status $app).Trim() -eq 'NonExistent') { winsw install $app; winsw start $app } else { Write-Host "Service '$app ($app)' already registered" }
-      }
-      return
-    }
     if ($args[0] -eq 'uninstall') {
-      $filtered = $args | Where-Object { $_ -ne '--services' }
+      $manifest = _scoop_load_manifest
       foreach ($app in (_scoop_apps @args)) {
-        $xml = "$env:SCOOP\persist\$app\$app-winsw-service.xml"
-        if (Test-Path $xml) {
-          if ((winsw status $app).Trim() -ne 'NonExistent') {
-            winsw uninstall $app
-          } else {
-            Write-Host "Service '$app ($app)' not registered, skipping"
+        if ($manifest.ContainsKey($app)) {
+          $xml = "$env:SCOOP\persist\$app\$app-winsw-service.xml"
+          if (Test-Path $xml) {
+            $status = (winsw status $app).Trim()
+            if ($status -ne 'NonExistent') {
+              winsw stop $app
+              winsw uninstall $app
+              Remove-Item "$env:SCOOP\persist\$app\$app-winsw-service.xml" -Force -ErrorAction SilentlyContinue
+            }
           }
         }
       }
-      & $__scoop @filtered
+      & $__scoop @args
       return
     }
     if ($args[0] -eq 'services') {
@@ -97,43 +91,45 @@ function _scoop_apps {
   $args | Where-Object { $_ -notlike '-*' } | Select-Object -Skip 1
 }
 
+function _scoop_load_manifest {
+  $path = "$env:SCOOP\config\services-manifest.json"
+  if (Test-Path $path) {
+    return Get-Content $path -Raw | ConvertFrom-Json -AsHashtable
+  }
+  Write-Host "Service manifest not found at $path"
+  return @{}
+}
+
 function _scoop_ensure_xml {
   param($name)
+  $cfg = (_scoop_load_manifest).$name
+  if (-not $cfg) { return $false }
+
   $xml = "$env:SCOOP\persist\$name\$name-winsw-service.xml"
-  if (!(Test-Path $xml)) {
-    New-Item -ItemType Directory -Force -Path "$env:SCOOP\persist\$name" | Out-Null
-    $exe = "$name.exe"
-    $exeDir = "$env:SCOOP\apps\$name\current"
-    $files = @()
-    if (Test-Path $exeDir) { $files += Get-ChildItem "$exeDir\*.exe" -ErrorAction SilentlyContinue }
-    if (-not $files -and (Test-Path "$exeDir\bin")) { $files = Get-ChildItem "$exeDir\bin\*.exe" -ErrorAction SilentlyContinue }
-    if ($files) {
-      $matched = $files | Where-Object { $_.Name -eq "$name.exe" }
-      if ($matched) {
-        $rel = $matched[0].DirectoryName.Substring($exeDir.Length).TrimStart('\')
-        $exe = if ($rel) { "$rel\$($matched[0].Name)" } else { $matched[0].Name }
-      } else {
-        $rel = $files[0].DirectoryName.Substring($exeDir.Length).TrimStart('\')
-        $exe = if ($rel) { "$rel\$($files[0].Name)" } else { $files[0].Name }
-        $host.ui.WriteErrorLine("  (auto-detected executable: $exe)")
-      }
-    }
-    $template = @"
+  if (Test-Path $xml) { return $true }
+
+  New-Item -ItemType Directory -Force -Path "$env:SCOOP\persist\$name" | Out-Null
+
+  $exe = "%BASE%/../../apps/$name/current/$($cfg.executable)"
+  $stopExe = $cfg.stopexecutable ? "%BASE%/../../apps/$name/current/$($cfg.stopexecutable)" : $exe
+  $argsEl = $cfg.arguments ? "`n  <arguments>$($cfg.arguments)</arguments>" : ""
+  $stopArgsEl = $cfg.stoparguments ? "`n  <stoparguments>$($cfg.stoparguments)</stoparguments>" : ""
+
+  $template = @"
 <service>
   <id>$name</id>
   <name>$name</name>
   <description>$name server (managed by WinSW)</description>
-  <executable>%BASE%\..\..\apps\$name\current\$exe</executable>
-  <stopexecutable>%BASE%\..\..\apps\$name\current\$exe</stopexecutable>
+  <executable>$exe</executable>$argsEl
+  <stopexecutable>$stopExe</stopexecutable>$stopArgsEl
   <log mode="roll" />
   <onfailure action="restart" delay="10 sec" />
   <onfailure action="restart" delay="20 sec" />
 </service>
 "@
-    Set-Content -Path $xml -Value $template.Trim() -Encoding UTF8
-    Write-Host "Generated: $xml"
-    Write-Host "Tip: edit the XML to add <arguments>/<stoparguments> if needed"
-  }
+  Set-Content -Path $xml -Value $template.Trim() -Encoding UTF8
+  Write-Host "Generated: $xml"
+  return $true
 }
 
 function _scoop_services_list {
@@ -172,17 +168,22 @@ Commands:
 }
 
 function _scoop_services {
-  $action = if ($args.Count -gt 0) { $args[0] } else { 'ls' }
-  $svc = if ($args.Count -gt 1) { $args[1] } else { $null }
+  $action = $args[0] ?? 'ls'
+  $svc = $args[1]
   switch ($action) {
     'ls' { _scoop_services_list }
     'list' { _scoop_services_list }
     'install' {
       if (-not $svc) { Write-Host "Usage: scoop services install <name>"; return }
-      _scoop_ensure_xml $svc
-      if ((winsw status $svc).Trim() -eq 'NonExistent') { winsw install $svc; winsw start $svc } else { Write-Host "Service '$svc ($svc)' already registered" }
+      $manifest = _scoop_load_manifest
+      if (-not $manifest.ContainsKey($svc)) { Write-Host "'$svc' is not in service manifest"; return }
+      if (_scoop_ensure_xml $svc) {
+        $status = (winsw status $svc).Trim()
+        if ($status -eq 'NonExistent') { winsw install $svc; winsw start $svc }
+        else { Write-Host "Service '$svc ($svc)' already registered ($status)" }
+      }
     }
-    'uninstall' { if ($svc) { winsw uninstall $svc } else { Write-Host "Usage: scoop services uninstall <name>" } }
+    'uninstall' { if ($svc) { $s = (winsw status $svc).Trim(); if ($s -ne 'NonExistent') { winsw stop $svc; winsw uninstall $svc; Remove-Item "$env:SCOOP\persist\$svc\$svc-winsw-service.xml" -Force -ErrorAction SilentlyContinue } else { Write-Host "Service '$svc ($svc)' not registered" } } else { Write-Host "Usage: scoop services uninstall <name>" } }
     'start' { if ($svc) { winsw start $svc } else { Write-Host "Usage: scoop services start <name>" } }
     'stop' { if ($svc) { winsw stop $svc } else { Write-Host "Usage: scoop services stop <name>" } }
     'restart' { if ($svc) { winsw restart $svc } else { Write-Host "Usage: scoop services restart <name>" } }

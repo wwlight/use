@@ -24,6 +24,7 @@
       { "local": "~/.bashrc", "repo": "configs/windows/.bashrc" },
       { "local": "~/.zsh/functions/utils.zsh", "repo": "configs/windows/utils.zsh" },
       { "local": "~/.zsh/functions/scoop_services.zsh", "repo": "configs/windows/scoop_services.zsh" },
+      { "local": "D:/SoftwareApps/Scoop/config/services-manifest.json", "repo": "configs/windows/services-manifest.json" },
       { "local": "~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1", "repo": "configs/windows/pwsh5_profile.ps1" },
       { "local": "~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1", "repo": "configs/windows/pwsh7_profile.ps1" }
     ]

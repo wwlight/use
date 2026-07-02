@@ -1,3 +1,4 @@
+# scoop services（winsw）
 winsw() {
   if (( $# >= 2 )); then
     [[ -n "$SCOOP" ]] || { echo "winsw: \$SCOOP is not set" >&2; return 1 }
@@ -11,44 +12,32 @@ winsw() {
       "$winsw_exe" "$1" "$xml" "${@:3}"
       return
     fi
+    if [[ "$1" == "status" ]]; then print -r -- "NonExistent"; return; fi
+    if [[ "$1" == "stop" ]]; then sc.exe stop "$2"; return $?; fi
+    if [[ "$1" == "uninstall" ]]; then sc.exe delete "$2"; return $?; fi
   fi
   winsw.exe "$@"
 }
 
 scoop() {
   [[ -n "$SCOOP" ]] || { echo "scoop: \$SCOOP is not set" >&2; return 1 }
-  if [[ "$1" == "install" && " $* " == *" --services "* ]]; then
-    local filtered=()
-    for arg in "$@"; do
-      [[ "$arg" != "--services" ]] && filtered+=("$arg")
-    done
-    command scoop "${filtered[@]}" || return
+
+  if [[ "$1" == "uninstall" ]]; then
     for app in $(_scoop_apps_from "${@:2}"); do
-      _ensure_winsw_xml "$app"
-      local _s=$(winsw status "$app"); _s="${_s%"${_s##*[![:space:]]}"}"
-      if [[ "$_s" == "NonExistent" ]]; then
-        winsw install "$app" && winsw start "$app"
-      else
-        echo "Service '$app ($app)' already registered"
-      fi
-    done
-  elif [[ "$1" == "uninstall" ]]; then
-    local filtered=()
-    for arg in "$@"; do
-      [[ "$arg" != "--services" ]] && filtered+=("$arg")
-    done
-    for app in $(_scoop_apps_from "${@:2}"); do
-      local xml="${SCOOP}/persist/${app}/${app}-winsw-service.xml"
-      if [[ -f "$xml" ]]; then
-        local _s=$(winsw status "$app"); _s="${_s%"${_s##*[![:space:]]}"}"
-        if [[ "$_s" != "NonExistent" ]]; then
-          winsw uninstall "$app"
-        else
-          echo "Service '$app ($app)' not registered, skipping"
+      if _scoop_manifest_has "$app" 2>/dev/null; then
+        local xml="${SCOOP}/persist/${app}/${app}-winsw-service.xml"
+        if [[ -f "$xml" ]]; then
+          local _s=$(winsw status "$app")
+          _s="${_s%"${_s##*[![:space:]]}"}"
+          if [[ "$_s" != *NonExistent* ]]; then
+            winsw stop "$app"
+            winsw uninstall "$app"
+            rm -f "${SCOOP}/persist/${app}/${app}-winsw-service.xml"
+          fi
         fi
       fi
     done
-    command scoop "${filtered[@]}"
+    command scoop "$@"
   elif [[ "$1" == "services" ]]; then
     shift
     _scoop_services "$@"
@@ -63,63 +52,74 @@ _scoop_apps_from() {
   done
 }
 
+_scoop_load_manifest_raw() {
+  local path="${SCOOP}/config/services-manifest.json"
+  if [[ ! -f "$path" ]]; then
+    echo "Service manifest not found at $path" >&2
+    return 1
+  fi
+  local data="" line
+  while IFS= read -r line; do
+    data+="$line"$'\n'
+  done < "$path"
+  print -r -- "$data"
+}
+
+_scoop_manifest_has() {
+  local manifest="$(_scoop_load_manifest_raw)" || return 1
+  [[ "$manifest" == *"\"$1\": {"* ]]
+}
+
+_scoop_manifest_val() {
+  local app="$1" key="$2"
+  local manifest="$(_scoop_load_manifest_raw)" || return 1
+  local rest="${manifest#*\"${app}\": {}"
+  [[ "$rest" != "$manifest" ]] || return 1
+  local line="${rest#*\"${key}\": \"}"
+  [[ "$line" != "$rest" ]] || return 1
+  local val="${line%%\",*}"
+  val="${val//\\\"/\"}"
+  print -r -- "$val"
+}
+
 _ensure_winsw_xml() {
   local app="$1"
+  _scoop_manifest_has "$app" || { echo "'$app' is not in service manifest" >&2; return 1 }
+
   local xml="${SCOOP}/persist/${app}/${app}-winsw-service.xml"
-  if [[ ! -f "$xml" ]]; then
-    mkdir -p "${SCOOP}/persist/${app}"
-    local basename="${app}.exe"
-    local exe_dir="${SCOOP}/apps/${app}/current"
-    local matches=()
-    if [[ -d "$exe_dir" ]]; then
-      matches=("$exe_dir"/*.exe(N))
-      if (( ${#matches} == 0 )) && [[ -d "$exe_dir/bin" ]]; then
-        matches=("$exe_dir/bin"/*.exe(N))
-      fi
-    fi
-    local subdir=""
-    if (( ${#matches} > 0 )); then
-      local found=0
-      for f in $matches; do
-        local base="${f:t}"
-        if [[ "${base:l}" == "${app}.exe" ]]; then
-          local d="${f%"$base"}"
-          d="${d#$exe_dir/}"
-          subdir="${${d#/}%/}"
-          basename="$base"
-          found=1
-          break
-        fi
-      done
-      if (( ! found )); then
-        local base="${matches[1]:t}"
-        local d="${matches[1]%"$base"}"
-        d="${d#$exe_dir/}"
-        subdir="${${d#/}%/}"
-        basename="$base"
-        echo "  (auto-detected executable: ${subdir:+"$subdir/"}$basename)" >&2
-      fi
-    fi
-    local winpath="apps\\${app}\\current"
-    [[ -n "$subdir" ]] && winpath="${winpath}\\${subdir}"
-    winpath="${winpath}\\${basename}"
-    cat > "$xml" <<EOF
+  [[ -f "$xml" ]] && return 0
+
+  mkdir -p "${SCOOP}/persist/${app}"
+
+  local exe args stop_exe stop_args
+  exe=$(_scoop_manifest_val "$app" "executable") || return 1
+  args=$(_scoop_manifest_val "$app" "arguments")
+  stop_exe=$(_scoop_manifest_val "$app" "stopexecutable")
+  stop_args=$(_scoop_manifest_val "$app" "stoparguments")
+
+  [[ -z "$stop_exe" ]] && stop_exe="$exe"
+
+  local exe_path="%BASE%/../../apps/${app}/current/${exe}"
+  local stop_path="%BASE%/../../apps/${app}/current/${stop_exe}"
+  local args_xml=""
+  [[ -n "$args" ]] && args_xml=$'\n'"  <arguments>${args}</arguments>"
+  local stop_args_xml=""
+  [[ -n "$stop_args" ]] && stop_args_xml=$'\n'"  <stoparguments>${stop_args}</stoparguments>"
+
+  cat > "$xml" <<EOF
 <service>
   <id>${app}</id>
   <name>${app}</name>
   <description>${app} server (managed by WinSW)</description>
-  <executable>%BASE%\..\..\\${winpath}</executable>
-  <stopexecutable>%BASE%\..\..\\${winpath}</stopexecutable>
+  <executable>${exe_path}</executable>${args_xml}
+  <stopexecutable>${stop_path}</stopexecutable>${stop_args_xml}
   <log mode="roll" />
   <onfailure action="restart" delay="10 sec" />
   <onfailure action="restart" delay="20 sec" />
 </service>
 EOF
-    local msgpath="${SCOOP}\\persist\\${app}\\${app}-winsw-service.xml"
-    echo "Generated: $msgpath"
-    echo "Tip: edit the XML to add <arguments>/<stoparguments> if needed"
-  fi
-  [[ -f "$xml" ]]
+  echo "Generated: ${SCOOP}\\persist\\${app}\\${app}-winsw-service.xml"
+  return 0
 }
 
 _scoop_services_list() {
@@ -141,8 +141,7 @@ _scoop_services_list() {
       "NonExistent") state="not installed" ;;
       *) state="unknown" ;;
     esac
-    local winpath="${SCOOP}\\persist\\${name}\\${name}-winsw-service.xml"
-    printf "%-15s %-15s %s\n" "$name" "$state" "$winpath"
+    printf "%-15s %-15s %s\n" "$name" "$state" "$xml"
   done
 }
 
@@ -154,8 +153,8 @@ _scoop_services_help() {
   echo "  install     <name>     Register and start a service"
   echo "  uninstall   <name>     Unregister a service"
   echo "  start       <name>     Start a service"
-  echo "  stop        <name>     Stop a service"
   echo "  restart     <name>     Restart a service"
+  echo "  stop        <name>     Stop a service"
 }
 
 _scoop_services() {
@@ -165,12 +164,14 @@ _scoop_services() {
     ls|list) _scoop_services_list ;;
     install)
       if [[ -n "$svc" ]]; then
-        _ensure_winsw_xml "$svc"
-        local _s=$(winsw status "$svc"); _s="${_s%"${_s##*[![:space:]]}"}"
-        if [[ "$_s" == "NonExistent" ]]; then
+        _scoop_manifest_has "$svc" || { echo "'$svc' is not in service manifest"; return 1 }
+        _ensure_winsw_xml "$svc" || return
+        local _s=$(winsw status "$svc")
+        _s="${_s%"${_s##*[![:space:]]}"}"
+        if [[ "$_s" == *NonExistent* ]]; then
           winsw install "$svc" && winsw start "$svc"
         else
-          echo "Service '$svc ($svc)' already registered"
+          echo "Service '$svc ($svc)' already registered ($_s)"
         fi
       else
         echo "Usage: scoop services install <name>"
@@ -178,7 +179,15 @@ _scoop_services() {
       ;;
     uninstall)
       if [[ -n "$svc" ]]; then
-        winsw uninstall "$svc"
+        local _s=$(winsw status "$svc")
+        _s="${_s%"${_s##*[![:space:]]}"}"
+        if [[ "$_s" != *NonExistent* ]]; then
+          winsw stop "$svc"
+          winsw uninstall "$svc"
+          rm -f "${SCOOP}/persist/${svc}/${svc}-winsw-service.xml"
+        else
+          echo "Service '$svc ($svc)' not registered"
+        fi
       else
         echo "Usage: scoop services uninstall <name>"
       fi
