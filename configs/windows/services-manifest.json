@@ -1,0 +1,14 @@
+{
+  "nginx": {
+    "executable": "nginx.exe",
+    "arguments": "-p \"%BASE%/../../apps/nginx/current\"",
+    "stopexecutable": "nginx.exe",
+    "stoparguments": "-p \"%BASE%/../../apps/nginx/current\" -s stop"
+  },
+  "mysql": {
+    "executable": "bin/mysqld.exe",
+    "arguments": "--defaults-file=\"%BASE%/my.ini\" --standalone",
+    "stopexecutable": "bin/mysqladmin.exe",
+    "stoparguments": "-u root shutdown"
+  }
+}
