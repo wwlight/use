@@ -138,7 +138,7 @@ alias grt='cd "$(git rev-parse --show-toplevel)"'
 alias gc='git branch | fzf | xargs git checkout' # 搜索 git 分支并切换
 # 其它
 alias cls="clear"
-alias reload="source ~/.zshrc"
+alias reload="source $HOME/.zshrc"
 alias ping="gping"
 alias of="onefetch"
 alias oc="opencode"

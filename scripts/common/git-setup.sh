@@ -9,7 +9,7 @@ init_manifest common
 
 setup_git() {
     if ! command -v git &> /dev/null; then
-        warn 'Git 未安装，跳过 Git 配置'
+        warn 'git 未安装，跳过 git 配置'
         return
     fi
 
@@ -25,16 +25,16 @@ setup_git() {
     git config --global credential.helper "$credential_helper"
 
     if git config --global --get user.name &>/dev/null && git config --global --get user.email &>/dev/null; then
-        info 'Git 用户名和邮箱已配置，跳过'
+        info 'git 用户名和邮箱已配置，跳过'
         return
     fi
 
     if [ ! -t 0 ]; then
-        info '非交互环境，跳过 Git 用户名和邮箱配置'
+        info '非交互环境，跳过 git 用户名和邮箱配置'
         return
     fi
 
-    read -p "是否跳过 Git 用户名和邮箱配置？(y/n) [默认 n]: " skip_config
+    read -p "是否跳过 git 用户名和邮箱配置？(y/n) [默认 n]: " skip_config
     skip_config=${skip_config:-n}
 
     if [[ "$skip_config" != "y" && "$skip_config" != "Y" ]]; then

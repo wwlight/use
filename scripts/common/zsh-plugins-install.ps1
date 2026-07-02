@@ -1,4 +1,4 @@
-$ScriptDir = Split-Path $PSScriptRoot -Parent
+﻿$ScriptDir = Split-Path $PSScriptRoot -Parent
 . (Join-Path $ScriptDir 'lib/utils.ps1')
 
 $manifest = Read-Manifest -Scope common
