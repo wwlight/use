@@ -35,6 +35,7 @@ $ vpr mac:sync                                # 交互选择同步方向
 
 > [!NOTE]
 > 首次安装（仅需一次，不依赖 vpr）
+> 为了在安装 Scoop 前自动更新 GitHub hosts，建议使用管理员 PowerShell 运行。
 >
 > ```sh
 > pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/scoop-install.ps1

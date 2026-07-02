@@ -14,6 +14,7 @@
   "gitExtras": {
     "repo": "https://github.com/tj/git-extras.git"
   },
+  "githubHostsUrl": "https://raw.hellogithub.com/hosts",
   "scoopBackup": "configs/windows/scoop_backup.json",
   "scoopDir": "D:\\SoftwareApps\\Scoop",
   "softwareAppsDir": "D:/SoftwareApps",
