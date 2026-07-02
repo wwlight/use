@@ -1,4 +1,4 @@
-# powershell 5 profile
+﻿# powershell 5 profile
 
 # starship
 Invoke-Expression (&starship init powershell)

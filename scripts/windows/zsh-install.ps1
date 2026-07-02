@@ -1,4 +1,4 @@
-param(
+﻿param(
     [switch]$SkipPlugins,
     [switch]$InstallPlugins
 )
@@ -15,7 +15,7 @@ function Get-GitPath {
 
     $gitPath = (scoop prefix git).Trim()
     if ([string]::IsNullOrWhiteSpace($gitPath) -or -not (Test-Path $gitPath)) {
-        Write-ErrorAndExit '无法获取 Git 路径'
+        Write-ErrorAndExit '无法获取 git 路径'
     }
 
     return $gitPath
@@ -62,8 +62,8 @@ function Install-ZshForGit {
     }
     Write-Info "下载完成: $zipFile"
 
-    Write-Info '步骤2/6: 查找 Git 安装路径...'
-    Write-Info "Git 路径: $GitPath"
+    Write-Info '步骤2/6: 查找 git 安装路径...'
+    Write-Info "git 路径: $GitPath"
     Write-Host ''
 
     Write-Info '步骤3/6: 检查 7z 工具...'

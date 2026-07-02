@@ -1,5 +1,41 @@
-$Script:ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
+﻿$Script:ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 
+$policy = Get-ExecutionPolicy -Scope CurrentUser
+if ($policy -eq 'Restricted' -or $policy -eq 'Undefined') {
+    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+}
+
+# ==============================
+# 平台特有（Windows）
+# ==============================
+function Test-Administrator {
+    try {
+        $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
+        if ($null -eq $currentIdentity) { return $false }
+        $principal = [Security.Principal.WindowsPrincipal]::new($currentIdentity)
+        return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+    }
+    catch {
+        return $false
+    }
+}
+
+function Test-InteractivePrompt {
+    if (-not [Environment]::UserInteractive) {
+        return $false
+    }
+
+    try {
+        return -not [Console]::IsInputRedirected
+    }
+    catch {
+        return $false
+    }
+}
+
+# ==============================
+# 打印方法
+# ==============================
 function Write-Info {
     param([string]$Message)
     Write-Host "[INFO] $Message" -ForegroundColor Green
@@ -16,6 +52,22 @@ function Write-ErrorAndExit {
     exit 1
 }
 
+# ==============================
+# manifest 读取
+# ==============================
+function Read-Manifest {
+    param([string]$Scope = 'windows')
+
+    $manifestPath = Join-Path $Script:ProjectRoot "scripts/$Scope/_manifest.json"
+    if (-not (Test-Path $manifestPath)) {
+        Write-ErrorAndExit "找不到 manifest: $manifestPath"
+    }
+    Get-Content $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
+}
+
+# ==============================
+# 路径展开（~ -> $HOME）
+# ==============================
 function Get-ExpandedPath {
     param([string]$Path)
     if ($Path -match '^~(/|\\|$)') {
@@ -24,16 +76,9 @@ function Get-ExpandedPath {
     return $Path
 }
 
-function Read-Manifest {
-    param([string]$Scope = 'windows')
-
-    $manifestPath = Join-Path $Script:ProjectRoot "scripts/$Scope/manifest.json"
-    if (-not (Test-Path $manifestPath)) {
-        Write-ErrorAndExit "找不到 manifest: $manifestPath"
-    }
-    Get-Content $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
-}
-
+# ==============================
+# 备份（支持自定义路径+日期序号+错误不中断）
+# ==============================
 function Backup-File {
     param(
         [string]$TargetFile,
@@ -67,59 +112,9 @@ function Backup-File {
     }
 }
 
-function Test-InteractivePrompt {
-    if (-not [Environment]::UserInteractive) {
-        return $false
-    }
-
-    try {
-        return -not [Console]::IsInputRedirected
-    }
-    catch {
-        return $false
-    }
-}
-
-function Invoke-ManifestSync {
-    param(
-        $Manifest,
-        [string]$Direction,
-        [string]$BackupLocal = ''
-    )
-
-    switch ($Direction) {
-        '1' {
-            foreach ($item in $Manifest.sync.toRepo) {
-                $local = Get-ExpandedPath $item.local
-                $repo = Join-Path $Script:ProjectRoot $item.repo
-                $repoDir = Split-Path $repo -Parent
-                if (-not (Test-Path $repoDir)) {
-                    New-Item -ItemType Directory -Path $repoDir -Force | Out-Null
-                }
-                Copy-Item $local $repo -Force -Verbose
-            }
-        }
-        '2' {
-            if ($BackupLocal) {
-                Backup-File $BackupLocal '~/.backup'
-            }
-            foreach ($item in $Manifest.sync.toRepo) {
-                $local = Get-ExpandedPath $item.local
-                $repo = Join-Path $Script:ProjectRoot $item.repo
-                $localDir = Split-Path $local -Parent
-                if (-not (Test-Path $localDir)) {
-                    New-Item -ItemType Directory -Path $localDir -Force | Out-Null
-                }
-                Copy-Item $repo $local -Force -Verbose
-            }
-        }
-        default {
-            Write-Host '无效选择'
-            exit 1
-        }
-    }
-}
-
+# ==============================
+# 解析 config-sync 方向参数
+# ==============================
 function Get-SyncDirection {
     param(
         [string]$Arg,
@@ -132,13 +127,74 @@ function Get-SyncDirection {
         return $Arg
     }
 
-    Write-Host '请选择拷贝方向:'
+    Write-Host "请选择拷贝方向:"
     Write-Host $Line1
     Write-Host $Line2
     $choice = Read-Host
     if ([string]::IsNullOrWhiteSpace($choice)) {
-        Write-Host "[ERROR] 非交互环境请传入方向参数: 1=备份到仓库, 2=应用到本地`n$Example" -ForegroundColor Red
-        exit 1
+        Write-ErrorAndExit "非交互环境请传入方向参数: 1=备份到仓库, 2=应用到本地`n$Example"
     }
     return $choice
+}
+
+# ==============================
+# 配置同步入口
+# ==============================
+function Invoke-ManifestSync {
+    param(
+        [string]$Scope,
+        [string]$Arg,
+        [string[]]$BackupLocal
+    )
+
+    $manifest = Read-Manifest -Scope $Scope
+    $example = "示例: npm run ${Scope}:sync -- 2 或 vpr ${Scope}:sync 2"
+    $line1 = "1) 备份本地配置 -> 仓库 configs/$Scope/"
+    $line2 = "2) 从仓库恢复配置 -> 本地"
+
+    $direction = Get-SyncDirection $Arg $example $line1 $line2
+
+    $total = $manifest.sync.toRepo.Count
+
+    switch ($direction) {
+        '1' {
+            $i = 0
+            foreach ($item in $manifest.sync.toRepo) {
+                $i++
+                $local = Get-ExpandedPath $item.local
+                $repo = Join-Path $Script:ProjectRoot $item.repo
+                $repoDir = Split-Path $repo -Parent
+                if (-not (Test-Path $repoDir)) {
+                    New-Item -ItemType Directory -Path $repoDir -Force | Out-Null
+                }
+                Copy-Item $local $repo -Force
+                Write-Info "[$i/$total] 已备份 $($item.repo)"
+            }
+            Write-Info "配置已备份到仓库"
+        }
+        '2' {
+            foreach ($f in $BackupLocal) {
+                Backup-File $f '~/.backup'
+            }
+            $i = 0
+            foreach ($item in $manifest.sync.toRepo) {
+                $i++
+                $local = Get-ExpandedPath $item.local
+                $repo = Join-Path $Script:ProjectRoot $item.repo
+                $localDir = Split-Path $local -Parent
+                if (-not (Test-Path $localDir)) {
+                    New-Item -ItemType Directory -Path $localDir -Force | Out-Null
+                }
+                Copy-Item $repo $local -Force
+                Write-Info "[$i/$total] 已恢复 $($item.local)"
+            }
+            Write-Info "配置已恢复到本地"
+        }
+        default {
+            Write-Host '无效选择'
+            exit 1
+        }
+    }
+
+    Write-Info "下次可直接运行：npm run ${Scope}:sync -- ${Direction} 跳过交互选择"
 }

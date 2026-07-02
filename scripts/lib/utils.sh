@@ -156,7 +156,7 @@ init_manifest() {
     if [[ -z "$scope" ]]; then
         error "init_manifest 需要指定 scope: mac|windows|common"
     fi
-    local manifest_path="${PROJECT_ROOT}/scripts/${scope}/manifest.json"
+    local manifest_path="${PROJECT_ROOT}/scripts/${scope}/_manifest.json"
     if [[ ! -f "$manifest_path" ]]; then
         error "找不到 manifest: $manifest_path"
     fi
@@ -170,7 +170,7 @@ manifest_get() {
     local manifest_path="$MANIFEST_PATH"
 
     if [[ -n "$scope" ]]; then
-        manifest_path="${PROJECT_ROOT}/scripts/${scope}/manifest.json"
+        manifest_path="${PROJECT_ROOT}/scripts/${scope}/_manifest.json"
         if [[ ! -f "$manifest_path" ]]; then
             error "找不到 manifest: $manifest_path"
         fi
@@ -207,4 +207,51 @@ manifest_sync_pairs() {
             process.stdout.write(expand(item.local) + '\t' + path.join(projectRoot, item.repo) + '\n');
         }
     " "$MANIFEST_PATH" "$PROJECT_ROOT"
+}
+
+run_config_sync() {
+    local scope="$1"
+    shift
+    local pre_backup_files=("$@")
+    local example="示例: npm run ${scope}:sync -- 2 或 vpr ${scope}:sync 2"
+
+    direction=$(prompt_sync_direction "$scope" \
+        "$example" \
+        "1) 备份本地配置 -> 仓库 configs/$scope/" \
+        "2) 从仓库恢复配置 -> 本地") || exit 1
+
+    total=$(manifest_sync_pairs | wc -l)
+    i=0
+
+    case $direction in
+        1)
+            while IFS=$'\t' read -r local_path repo_path; do
+                mkdir -p "$(dirname "$repo_path")"
+                cp "$local_path" "$repo_path"
+                i=$((i + 1))
+                info "[$i/$total] 已备份 $repo_path"
+            done < <(manifest_sync_pairs)
+
+            info "配置已备份到仓库"
+            ;;
+        2)
+            for f in "${pre_backup_files[@]}"; do
+                backup_file "$f" ~/.backup
+            done
+
+            while IFS=$'\t' read -r local_path repo_path; do
+                mkdir -p "$(dirname "$local_path")"
+                cp "$repo_path" "$local_path"
+                i=$((i + 1))
+                info "[$i/$total] 已恢复 $local_path"
+            done < <(manifest_sync_pairs)
+
+            info "配置已恢复到本地"
+            ;;
+        *)
+            error "无效选择"
+            ;;
+    esac
+
+    info "下次可直接运行：npm run ${scope}:sync -- $direction 跳过交互选择"
 }

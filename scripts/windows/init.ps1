@@ -1,4 +1,4 @@
-$ScriptDir = Split-Path $PSScriptRoot -Parent
+﻿$ScriptDir = Split-Path $PSScriptRoot -Parent
 . (Join-Path $ScriptDir 'lib/utils.ps1')
 
 $manifest = Read-Manifest
@@ -17,19 +17,19 @@ function Setup-Directories {
 }
 
 function Install-OrRestoreScoop {
-    Write-Info '步骤2/5: 正在安装/恢复 Scoop 应用...'
+    Write-Info '步骤2/5: 正在安装/恢复 scoop 应用...'
     $scoopBackup = Join-Path $Script:ProjectRoot $manifest.scoopBackup
 
     if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
-        Write-ErrorAndExit 'Scoop 未安装！请先运行: bash ./scripts/windows/scoop-install.sh 或 pwsh -File ./scripts/windows/scoop-install.ps1'
+        Write-ErrorAndExit 'scoop 未安装！请先运行: bash ./scripts/windows/scoop-install.sh 或 pwsh -File ./scripts/windows/scoop-install.ps1'
     }
 
     if (Test-Path $scoopBackup) {
         scoop import $scoopBackup
-        if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Scoop 应用恢复失败！' }
+        if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'scoop 应用恢复失败！' }
     }
     else {
-        Write-ErrorAndExit "找不到 Scoop 备份文件: $scoopBackup"
+        Write-ErrorAndExit "找不到 scoop 备份文件: $scoopBackup"
     }
 }
 

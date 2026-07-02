@@ -8,29 +8,4 @@ source "$SCRIPT_DIR/lib/utils.sh"
 init_manifest mac
 check_target_system "macOS"
 
-direction=$(prompt_sync_direction "$1" \
-    "示例: npm run mac:sync -- 2 或 vpr mac:sync 2" \
-    "1) 从本地目录拷贝到 mac 目录" \
-    "2) 从 mac 目录拷贝到本地目录") || exit 1
-
-case $direction in
-    1)
-        while IFS=$'\t' read -r local_path repo_path; do
-            mkdir -p "$(dirname "$repo_path")"
-            cp -v "$local_path" "$repo_path"
-        done < <(manifest_sync_pairs)
-        ;;
-    2)
-        backup_file ~/.zshrc ~/.backup
-        while IFS=$'\t' read -r local_path repo_path; do
-            mkdir -p "$(dirname "$local_path")"
-            cp -v "$repo_path" "$local_path"
-        done < <(manifest_sync_pairs)
-        ;;
-    *)
-        echo "无效选择"
-        exit 1
-        ;;
-esac
-
-echo "操作完成！"
+run_config_sync mac ~/.zshrc
