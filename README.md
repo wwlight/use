@@ -3,7 +3,7 @@
 ## mac
 
 > [!NOTE]
-> 首次安装（仅需一次，不依赖 vpr）
+> 首次安装
 >
 > ```sh
 > bash ./scripts/mac/brew-install.sh              # 官方源（默认）
@@ -34,7 +34,7 @@ $ vpr mac:sync                                # 交互选择同步方向
 ## windows
 
 > [!NOTE]
-> 首次安装（仅需一次，不依赖 vpr）
+> 首次安装
 > 为了在安装 Scoop 前自动更新 GitHub hosts，建议使用管理员 PowerShell 运行。
 >
 > ```sh
