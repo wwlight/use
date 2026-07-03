@@ -235,8 +235,8 @@ run_config_sync() {
     case $direction in
         1)
             while IFS=$'\t' read -r local_path repo_path _backup_flag; do
-                mkdir -p "$(dirname "$repo_path")"
-                cp "$local_path" "$repo_path"
+                mkdir -p "$(dirname "$repo_path")" || error "无法创建目录: $(dirname "$repo_path")"
+                cp "$local_path" "$repo_path" || error "备份失败: $local_path -> $repo_path"
                 i=$((i + 1))
                 info "[$i/$total] 已备份 $repo_path"
             done < <(manifest_sync_pairs)
@@ -248,8 +248,8 @@ run_config_sync() {
                 if [ "$backup_flag" = "1" ]; then
                     backup_file "$local_path" ~/.backup
                 fi
-                mkdir -p "$(dirname "$local_path")"
-                cp "$repo_path" "$local_path"
+                mkdir -p "$(dirname "$local_path")" || error "无法创建目录: $(dirname "$local_path")"
+                cp "$repo_path" "$local_path" || error "恢复失败: $repo_path -> $local_path"
                 i=$((i + 1))
                 info "[$i/$total] 已恢复 $local_path"
             done < <(manifest_sync_pairs)

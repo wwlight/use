@@ -11,7 +11,7 @@ if (-not (Test-Path $pluginsDir)) {
 
 foreach ($plugin in $manifest.zshPlugins) {
     $targetPath = Join-Path $pluginsDir $plugin.name
-    if (-not (Test-Path $targetPath)) {
+    if (-not (Test-Path $targetPath -PathType Container)) {
         Write-Info "正在下载插件: $($plugin.name)..."
         try {
             git clone $plugin.repo $targetPath
