@@ -20,7 +20,7 @@
   "softwareAppsDir": "D:/SoftwareApps",
   "sync": {
     "toRepo": [
-      { "local": "~/.zshrc", "repo": "configs/windows/.zshrc" },
+      { "local": "~/.zshrc", "repo": "configs/windows/.zshrc", "backup": true },
       { "local": "~/.bashrc", "repo": "configs/windows/.bashrc" },
       { "local": "~/.zsh/functions/utils.zsh", "repo": "configs/windows/utils.zsh" },
       { "local": "~/.zsh/functions/scoop_services.zsh", "repo": "configs/windows/scoop_services.zsh" },

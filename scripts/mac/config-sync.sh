@@ -8,4 +8,4 @@ source "$SCRIPT_DIR/lib/utils.sh"
 init_manifest mac
 check_target_system "macOS"
 
-run_config_sync mac ~/.zshrc
+run_config_sync mac "$@"

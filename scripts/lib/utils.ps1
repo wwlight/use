@@ -115,6 +115,18 @@ function Backup-File {
 # ==============================
 # 解析 config-sync 方向参数
 # ==============================
+function Resolve-SyncDirectionArg {
+    param([string[]]$Args)
+
+    foreach ($a in $Args) {
+        if ($a -eq '1' -or $a -eq '2') {
+            return $a
+        }
+    }
+
+    return $null
+}
+
 function Get-SyncDirection {
     param(
         [string]$Arg,
@@ -143,8 +155,7 @@ function Get-SyncDirection {
 function Invoke-ManifestSync {
     param(
         [string]$Scope,
-        [string]$Arg,
-        [string[]]$BackupLocal
+        [string]$Arg
     )
 
     $manifest = Read-Manifest -Scope $Scope
@@ -173,14 +184,14 @@ function Invoke-ManifestSync {
             Write-Info "配置已备份到仓库"
         }
         '2' {
-            foreach ($f in $BackupLocal) {
-                Backup-File $f '~/.backup'
-            }
             $i = 0
             foreach ($item in $manifest.sync.toRepo) {
                 $i++
                 $local = Get-ExpandedPath $item.local
                 $repo = Join-Path $Script:ProjectRoot $item.repo
+                if ($item.backup) {
+                    Backup-File $item.local '~/.backup'
+                }
                 $localDir = Split-Path $local -Parent
                 if (-not (Test-Path $localDir)) {
                     New-Item -ItemType Directory -Path $localDir -Force | Out-Null
@@ -196,5 +207,7 @@ function Invoke-ManifestSync {
         }
     }
 
-    Write-Info "下次可直接运行：npm run ${Scope}:sync -- ${Direction} 跳过交互选择"
+    if ([string]::IsNullOrWhiteSpace($Arg)) {
+        Write-Info "下次可直接运行：npm run ${Scope}:sync -- $direction 跳过交互选择"
+    }
 }
