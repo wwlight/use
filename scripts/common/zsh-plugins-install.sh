@@ -6,6 +6,7 @@ source "$SCRIPT_DIR/lib/utils.sh"
 
 init_manifest common
 
+info '正在安装 zsh 插件...'
 plugins_json=$(manifest_get "zshPlugins")
 plugins_dir=$(expand_path "~/.zsh/plugins")
 mkdir -p "$plugins_dir"

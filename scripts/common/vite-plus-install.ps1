@@ -10,5 +10,10 @@ if (Get-Command vp -ErrorAction SilentlyContinue) {
 
 Write-Info '正在安装 vite.plus...'
 $ErrorActionPreference = 'Stop'
-irm $manifest.vitePlus.installUrlPs1 | iex
+try {
+    irm $manifest.vitePlus.installUrlPs1 | iex
+}
+catch {
+    Write-ErrorAndExit 'vite.plus 安装失败！'
+}
 Write-Info 'vite.plus 安装成功'
