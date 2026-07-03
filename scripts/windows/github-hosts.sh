@@ -1,10 +1,6 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-if command -v pwsh &> /dev/null; then
-  pwsh -NoProfile -ExecutionPolicy Bypass -File "$SCRIPT_DIR/github-hosts.ps1"
-else
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$SCRIPT_DIR/github-hosts.ps1"
-fi
+SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PS_CMD="powershell.exe"
+command -v pwsh.exe &>/dev/null && PS_CMD="pwsh.exe"
+exec "$PS_CMD" -NoProfile -ExecutionPolicy Bypass -File "$SCRIPT_PATH/github-hosts.ps1" "$@"
