@@ -39,9 +39,7 @@ $ vpr mac:sync                                # 交互选择同步方向
 > 建议使用管理员 PowerShell 运行。
 >
 > ```sh
-> # zip 下载解压后需先解除脚本封锁（git clone 可跳过）
-> powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-ChildItem -LiteralPath './scripts' -Recurse -Include *.ps1,*.psm1 | Unblock-File -ErrorAction SilentlyContinue"
-> powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/github-hosts.ps1
+> powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/github-hosts.ps1   # 更新 GitHub hosts
 > powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/scoop-install.ps1
 > powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/init.ps1
 > # Git Bash 备选：
@@ -51,8 +49,6 @@ $ vpr mac:sync                                # 交互选择同步方向
 > ```
 >
 > `scoop-install` / `init` 会自动检测并安装 [vite.plus](https://vite.plus/)（`vpr`）。
-
-
 
 #### 操作命令
 
@@ -103,12 +99,9 @@ A：在 cmd 目标路径后追加 -NoLogo /k 或者 -nologo /k
 ```
 
 
-
 ## common
 
 > `vpr common:*` 会通过分发器按当前 shell 自动选择 `.ps1` 或 `.sh`。
-
-
 
 #### 操作命令
 
@@ -122,4 +115,3 @@ $ vpr common:setup                            # Git 全局配置
 
 - [_eza](./configs/common/_eza) - [eza](https://eza.rocks/) 自动补全配置 | [官方地址](https://github.com/eza-community/eza/tree/main/completions/zsh)
 - [starship.toml](./configs/common/starship.toml) - [starship](https://starship.rs/) 配置文件
-

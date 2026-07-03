@@ -1,4 +1,9 @@
-$Script:ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
+﻿$Script:ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
+
+$policy = Get-ExecutionPolicy -Scope CurrentUser
+if ($policy -eq 'Restricted' -or $policy -eq 'Undefined') {
+    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+}
 
 # ==============================
 # 平台特有（Windows）
@@ -48,64 +53,6 @@ function Write-ErrorAndExit {
 }
 
 # ==============================
-# 远程脚本下载（带进度）
-# ==============================
-function Invoke-RemoteScript {
-    param(
-        [Parameter(Mandatory)]
-        [string]$Url,
-        [string]$Label = '远程脚本'
-    )
-
-    Write-Info "正在下载 $Label ..."
-    Write-Host "  $Url" -ForegroundColor DarkGray
-
-    $request = [System.Net.HttpWebRequest]::Create($Url)
-    $request.Timeout = 300000
-    $request.UserAgent = 'use-main/1.0'
-
-    try {
-        $response = $request.GetResponse()
-    }
-    catch {
-        Write-ErrorAndExit "下载失败: $Url`n$($_.Exception.Message)"
-    }
-
-    $totalBytes = $response.ContentLength
-    $stream = $response.GetResponseStream()
-    $buffer = New-Object byte[] 8192
-    $downloaded = 0L
-    $ms = New-Object System.IO.MemoryStream
-
-    try {
-        while (($read = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) {
-            $ms.Write($buffer, 0, $read)
-            $downloaded += $read
-            if ($totalBytes -gt 0) {
-                $pct = [int][math]::Min(100, ($downloaded * 100 / $totalBytes))
-                $status = '{0:N1} / {1:N1} KB' -f ($downloaded / 1KB), ($totalBytes / 1KB)
-                Write-Progress -Activity "下载 $Label" -Status $status -PercentComplete $pct
-            }
-            else {
-                $status = '{0:N1} KB' -f ($downloaded / 1KB)
-                Write-Progress -Activity "下载 $Label" -Status $status
-            }
-        }
-    }
-    finally {
-        Write-Progress -Activity "下载 $Label" -Completed
-        $stream.Close()
-        $response.Close()
-    }
-
-    Write-Info "下载完成 ($('{0:N1}' -f ($downloaded / 1KB)) KB)"
-    Write-Info '正在执行安装脚本（可能需要几分钟）...'
-
-    $scriptText = [System.Text.Encoding]::UTF8.GetString($ms.ToArray())
-    Invoke-Expression $scriptText
-}
-
-# ==============================
 # manifest 读取
 # ==============================
 function Read-Manifest {
@@ -124,9 +71,9 @@ function Read-Manifest {
 function Get-ExpandedPath {
     param([string]$Path)
     if ($Path -match '^~(/|\\|$)') {
-        $Path = $Path -replace '^~', $env:USERPROFILE
+        return $Path -replace '^~', $env:USERPROFILE
     }
-    return $Path -replace '/', '\'
+    return $Path
 }
 
 # ==============================
@@ -185,6 +132,11 @@ function Copy-FileDataOnly {
     else {
         Copy-Item $source $destination -Force
     }
+
+    $unblock = Get-Command Unblock-File -ErrorAction SilentlyContinue
+    if ($unblock -and (Test-Path $destination)) {
+        Unblock-File -Path $destination -ErrorAction SilentlyContinue
+    }
 }
 
 # ==============================
@@ -227,10 +179,10 @@ function Backup-File {
 # 解析 config-sync 方向参数
 # ==============================
 function Resolve-SyncDirectionArg {
-    param([string[]]$RawArgs)
+    param([string[]]$Args)
 
     $directionArg = $null
-    foreach ($a in $RawArgs) {
+    foreach ($a in $Args) {
         if ($a -eq '1' -or $a -eq '2') {
             $directionArg = $a
         }
