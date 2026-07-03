@@ -1,8 +1,13 @@
 ﻿$Script:ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 
-$policy = Get-ExecutionPolicy -Scope CurrentUser
+$policy = Get-ExecutionPolicy -Scope Process
 if ($policy -eq 'Restricted' -or $policy -eq 'Undefined') {
-    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+    Set-ExecutionPolicy -ExecutionPolicy Bypass -Scope Process -Force
+}
+
+$unblock = Get-Command Unblock-File -ErrorAction SilentlyContinue
+if ($unblock -and $PSCommandPath) {
+    Unblock-File -LiteralPath $PSCommandPath -ErrorAction SilentlyContinue
 }
 
 # ==============================
