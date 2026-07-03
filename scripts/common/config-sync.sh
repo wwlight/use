@@ -7,4 +7,4 @@ source "$SCRIPT_DIR/lib/utils.sh"
 
 init_manifest common
 
-run_config_sync common
+run_config_sync common "$@"

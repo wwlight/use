@@ -204,7 +204,7 @@ manifest_sync_pairs() {
         const projectRoot = process.argv[2];
         const expand = (p) => p.replace(/^~(?=\/|$)/, os.homedir());
         for (const item of m.sync.toRepo) {
-            process.stdout.write(expand(item.local) + '\t' + path.join(projectRoot, item.repo) + '\n');
+            process.stdout.write(expand(item.local) + '\t' + path.join(projectRoot, item.repo) + '\t' + (item.backup ? '1' : '0') + '\n');
         }
     " "$MANIFEST_PATH" "$PROJECT_ROOT"
 }
@@ -212,20 +212,29 @@ manifest_sync_pairs() {
 run_config_sync() {
     local scope="$1"
     shift
-    local pre_backup_files=("$@")
+    local direction_arg=""
+
+    while [ $# -gt 0 ]; do
+        case "$1" in
+            1|2) direction_arg="$1" ;;
+            --) ;;
+        esac
+        shift
+    done
+
     local example="示例: npm run ${scope}:sync -- 2 或 vpr ${scope}:sync 2"
 
-    direction=$(prompt_sync_direction "$scope" \
+    direction=$(prompt_sync_direction "$direction_arg" \
         "$example" \
         "1) 备份本地配置 -> 仓库 configs/$scope/" \
         "2) 从仓库恢复配置 -> 本地") || exit 1
 
-    total=$(manifest_sync_pairs | wc -l)
+    total=$(manifest_sync_pairs | wc -l | tr -d '[:space:]')
     i=0
 
     case $direction in
         1)
-            while IFS=$'\t' read -r local_path repo_path; do
+            while IFS=$'\t' read -r local_path repo_path _backup_flag; do
                 mkdir -p "$(dirname "$repo_path")"
                 cp "$local_path" "$repo_path"
                 i=$((i + 1))
@@ -235,11 +244,10 @@ run_config_sync() {
             info "配置已备份到仓库"
             ;;
         2)
-            for f in "${pre_backup_files[@]}"; do
-                backup_file "$f" ~/.backup
-            done
-
-            while IFS=$'\t' read -r local_path repo_path; do
+            while IFS=$'\t' read -r local_path repo_path backup_flag; do
+                if [ "$backup_flag" = "1" ]; then
+                    backup_file "$local_path" ~/.backup
+                fi
                 mkdir -p "$(dirname "$local_path")"
                 cp "$repo_path" "$local_path"
                 i=$((i + 1))
@@ -253,5 +261,7 @@ run_config_sync() {
             ;;
     esac
 
-    info "下次可直接运行：npm run ${scope}:sync -- $direction 跳过交互选择"
+    if [ -z "$direction_arg" ]; then
+        info "下次可直接运行：npm run ${scope}:sync -- $direction 跳过交互选择"
+    fi
 }
