@@ -21,7 +21,7 @@ function Install-OrRestoreScoop {
     $scoopBackup = Join-Path $Script:ProjectRoot $manifest.scoopBackup
 
     if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
-        Write-ErrorAndExit 'scoop 未安装！请先运行: bash ./scripts/windows/scoop-install.sh 或 pwsh -File ./scripts/windows/scoop-install.ps1'
+        Write-ErrorAndExit 'scoop 未安装！请先运行: vpr pm'
     }
 
     if (Test-Path $scoopBackup) {
@@ -51,7 +51,6 @@ function Sync-Configurations {
     Write-Info '步骤5/5: 正在同步配置...'
 
     $configScript = Join-Path $PSScriptRoot 'config-sync.ps1'
-    $commonScript = Join-Path $ScriptDir 'common/config-sync.ps1'
     $baseScript = Join-Path $ScriptDir 'common/git-setup.ps1'
 
     if (Test-Path $configScript) {
@@ -60,14 +59,6 @@ function Sync-Configurations {
     }
     else {
         Write-ErrorAndExit "找不到配置同步脚本: $configScript"
-    }
-
-    if (Test-Path $commonScript) {
-        & $commonScript 2
-        if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '同步公共配置失败！' }
-    }
-    else {
-        Write-Warn "找不到公共同步脚本: $commonScript"
     }
 
     if (Test-Path $baseScript) {

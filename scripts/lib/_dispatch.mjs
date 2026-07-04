@@ -4,6 +4,13 @@ import { fileURLToPath } from 'node:url'
 
 const scriptsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
+export function detectPlatform() {
+  const p = process.platform
+  if (p === 'darwin') return 'mac'
+  if (p === 'win32') return 'win'
+  return null
+}
+
 export function resolveScript(scriptDir, scriptName) {
   const useBash = !isPowerShell()
   const ext = useBash ? '.sh' : '.ps1'
@@ -15,7 +22,7 @@ export function isPowerShell() {
     || (process.env.ComSpec || '').toLowerCase().includes('pwsh')
 }
 
-function unblockPowerShellScripts() {
+export function unblockPowerShellScripts() {
   const command = `Get-ChildItem -LiteralPath '${scriptsDir.replace(/'/g, "''")}' -Recurse -Include *.ps1,*.psm1 | Unblock-File -ErrorAction SilentlyContinue`
   const options = { stdio: 'ignore' }
   const pwsh = spawnSync('pwsh', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command], options)

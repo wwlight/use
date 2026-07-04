@@ -274,19 +274,35 @@ function Invoke-ManifestSync {
         [string]$DirectionArg
     )
 
-    $manifest = Read-Manifest -Scope $Scope
-    $example = "示例: npm run ${Scope}:sync -- 2 或 vpr ${Scope}:sync 2"
-    $line1 = "1) 备份本地配置 -> 仓库 configs/$Scope/"
-    $line2 = "2) 从仓库恢复配置 -> 本地"
+    $scopes = @($Scope)
+    if ($Scope -eq 'mac' -or $Scope -eq 'windows') {
+        $scopes += 'common'
+    }
+
+    $items = @()
+    foreach ($s in $scopes) {
+        $manifest = Read-Manifest -Scope $s
+        $items += $manifest.sync.toRepo
+    }
+
+    $example = '示例: vpr sync 2'
+    if ($scopes.Count -gt 1) {
+        $line1 = '1) 备份本地配置 -> 仓库'
+        $line2 = '2) 从仓库恢复配置 -> 本地'
+    }
+    else {
+        $line1 = "1) 备份本地配置 -> 仓库 configs/$Scope/"
+        $line2 = '2) 从仓库恢复配置 -> 本地'
+    }
 
     $direction = Get-SyncDirection $DirectionArg $example $line1 $line2
 
-    $total = $manifest.sync.toRepo.Count
+    $total = $items.Count
 
     switch ($direction) {
         '1' {
             $i = 0
-            foreach ($item in $manifest.sync.toRepo) {
+            foreach ($item in $items) {
                 $i++
                 $local = Get-ExpandedPath $item.local
                 $repo = Join-Path $Script:ProjectRoot $item.repo
@@ -297,11 +313,11 @@ function Invoke-ManifestSync {
                 Copy-FileDataOnly $local $repo
                 Write-Info "[$i/$total] 已备份 $($item.repo)"
             }
-            Write-Info "配置已备份到仓库"
+            Write-Info '配置已备份到仓库'
         }
         '2' {
             $i = 0
-            foreach ($item in $manifest.sync.toRepo) {
+            foreach ($item in $items) {
                 $i++
                 $local = Get-ExpandedPath $item.local
                 $repo = Join-Path $Script:ProjectRoot $item.repo
@@ -315,7 +331,7 @@ function Invoke-ManifestSync {
                 Copy-FileDataOnly $repo $local
                 Write-Info "[$i/$total] 已恢复 $($item.local)"
             }
-            Write-Info "配置已恢复到本地"
+            Write-Info '配置已恢复到本地'
         }
         default {
             Write-Host '无效选择'
@@ -324,6 +340,6 @@ function Invoke-ManifestSync {
     }
 
     if ([string]::IsNullOrWhiteSpace($DirectionArg)) {
-        Write-Info "下次可直接运行：npm run ${Scope}:sync -- $direction 跳过交互选择"
+        Write-Info "下次可直接运行：vpr sync $direction 跳过交互选择"
     }
 }

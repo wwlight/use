@@ -95,8 +95,7 @@ backup_file() {
 
 # ==============================
 # 解析 config-sync 方向参数
-# 兼容 npm/pnpm/vpr：这些 runner 常关闭 stdin，但 /dev/tty 仍可用
-# 用法: direction=$(prompt_sync_direction "$1" "示例: npm run mac:sync -- 2 或 vpr mac:sync 2" "1) ..." "2) ...")
+# 用法: direction=$(prompt_sync_direction "$1" "示例: vpr sync 2" "1) ..." "2) ...")
 # ==============================
 prompt_sync_direction() {
     local arg="$1"
@@ -194,25 +193,44 @@ manifest_get() {
 }
 
 manifest_sync_pairs() {
-    if [[ -z "$MANIFEST_PATH" ]]; then
-        error "请先调用 init_manifest"
+    local scopes=("$@")
+    if [[ ${#scopes[@]} -eq 0 ]]; then
+        if [[ -z "$MANIFEST_SCOPE" ]]; then
+            error "请先调用 init_manifest"
+        fi
+        scopes=("$MANIFEST_SCOPE")
     fi
+
     node -e "
+        const fs = require('fs');
         const path = require('path');
         const os = require('os');
-        const m = require(process.argv[1]);
-        const projectRoot = process.argv[2];
+        const projectRoot = process.argv[1];
+        const scopes = process.argv.slice(2);
         const expand = (p) => p.replace(/^~(?=\/|$)/, os.homedir());
-        for (const item of m.sync.toRepo) {
-            process.stdout.write(expand(item.local) + '\t' + path.join(projectRoot, item.repo) + '\t' + (item.backup ? '1' : '0') + '\n');
+        for (const scope of scopes) {
+            const manifestPath = path.join(projectRoot, 'scripts', scope, '_manifest.json');
+            if (!fs.existsSync(manifestPath)) {
+                process.stderr.write('找不到 manifest: ' + manifestPath + '\n');
+                process.exit(1);
+            }
+            const m = require(manifestPath);
+            for (const item of m.sync.toRepo) {
+                process.stdout.write(expand(item.local) + '\t' + path.join(projectRoot, item.repo) + '\t' + (item.backup ? '1' : '0') + '\n');
+            }
         }
-    " "$MANIFEST_PATH" "$PROJECT_ROOT"
+    " "$PROJECT_ROOT" "${scopes[@]}"
 }
 
 run_config_sync() {
     local scope="$1"
     shift
     local direction_arg=""
+    local sync_scopes=("$scope")
+
+    if [[ "$scope" == "mac" || "$scope" == "windows" ]]; then
+        sync_scopes+=("common")
+    fi
 
     while [ $# -gt 0 ]; do
         case "$1" in
@@ -222,14 +240,22 @@ run_config_sync() {
         shift
     done
 
-    local example="示例: npm run ${scope}:sync -- 2 或 vpr ${scope}:sync 2"
+    local example="示例: vpr sync 2"
+    local line1 line2
+    if [[ ${#sync_scopes[@]} -gt 1 ]]; then
+        line1="1) 备份本地配置 -> 仓库"
+        line2="2) 从仓库恢复配置 -> 本地"
+    else
+        line1="1) 备份本地配置 -> 仓库 configs/$scope/"
+        line2="2) 从仓库恢复配置 -> 本地"
+    fi
 
     direction=$(prompt_sync_direction "$direction_arg" \
         "$example" \
-        "1) 备份本地配置 -> 仓库 configs/$scope/" \
-        "2) 从仓库恢复配置 -> 本地") || exit 1
+        "$line1" \
+        "$line2") || exit 1
 
-    total=$(manifest_sync_pairs | wc -l | tr -d '[:space:]')
+    total=$(manifest_sync_pairs "${sync_scopes[@]}" | wc -l | tr -d '[:space:]')
     i=0
 
     case $direction in
@@ -239,7 +265,7 @@ run_config_sync() {
                 cp "$local_path" "$repo_path" || error "备份失败: $local_path -> $repo_path"
                 i=$((i + 1))
                 info "[$i/$total] 已备份 $repo_path"
-            done < <(manifest_sync_pairs)
+            done < <(manifest_sync_pairs "${sync_scopes[@]}")
 
             info "配置已备份到仓库"
             ;;
@@ -252,7 +278,7 @@ run_config_sync() {
                 cp "$repo_path" "$local_path" || error "恢复失败: $repo_path -> $local_path"
                 i=$((i + 1))
                 info "[$i/$total] 已恢复 $local_path"
-            done < <(manifest_sync_pairs)
+            done < <(manifest_sync_pairs "${sync_scopes[@]}")
 
             info "配置已恢复到本地"
             ;;
@@ -262,6 +288,6 @@ run_config_sync() {
     esac
 
     if [ -z "$direction_arg" ]; then
-        info "下次可直接运行：npm run ${scope}:sync -- $direction 跳过交互选择"
+        info "下次可直接运行：vpr sync $direction 跳过交互选择"
     fi
 }

@@ -19,7 +19,7 @@ usage() {
 示例:
   bash $(basename "$0")
   bash $(basename "$0") ustc
-  npm run mac:brew -- ustc
+  vpr pm -- ustc
 EOF
 }
 

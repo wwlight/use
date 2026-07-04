@@ -8,6 +8,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const TASK_MAP = {
   sync: 'config-sync',
   setup: 'git-setup',
+  'vite-plus': 'vite-plus-install',
 }
 
 const task = process.argv[2]

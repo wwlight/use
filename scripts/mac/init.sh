@@ -32,7 +32,7 @@ install_or_restore_brew() {
     local BREWFILE="$PROJECT_ROOT/$brewfile"
 
     if ! command -v brew &> /dev/null; then
-        error "Homebrew 未安装！请先运行: bash ./scripts/mac/brew-install.sh"
+        error "Homebrew 未安装！请先运行: vpr pm"
     fi
 
     if [ -f "$BREWFILE" ]; then
@@ -59,19 +59,12 @@ install_vite_plus() {
 sync_configurations() {
     info "步骤5/5: 正在同步配置..."
     local CONFIG_SCRIPT="$SCRIPT_DIR/mac/config-sync.sh"
-    local COMMON_SCRIPT="$SCRIPT_DIR/common/config-sync.sh"
     local BASE_SCRIPT="$SCRIPT_DIR/common/git-setup.sh"
 
     if [ -f "$CONFIG_SCRIPT" ]; then
         bash "$CONFIG_SCRIPT" 2 || error "同步配置失败！"
     else
         error "找不到配置同步脚本: $CONFIG_SCRIPT"
-    fi
-
-    if [ -f "$COMMON_SCRIPT" ]; then
-        bash "$COMMON_SCRIPT" 2 || error "同步公共配置失败！"
-    else
-        warn "找不到公共同步脚本: $COMMON_SCRIPT"
     fi
 
     if [ -f "$BASE_SCRIPT" ]; then

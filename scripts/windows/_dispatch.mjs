@@ -10,6 +10,7 @@ const TASK_MAP = {
   zsh: 'zsh-install',
   'git-extras': 'git-extras-install',
   clink: 'clink-install',
+  hosts: 'github-hosts',
 }
 
 const task = process.argv[2]
