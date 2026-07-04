@@ -1,6 +1,16 @@
 # 个人配置
 
-命令会通过 `[scripts/_dispatch.mjs](./scripts/_dispatch.mjs)` 按当前操作系统自动分发（macOS → Homebrew，Windows → Scoop）。
+## 安装 [vite.plus](http://vite.plus)
+
+```sh
+# mac / Git Bash
+$ bash ./scripts/common/vite-plus-install.sh
+
+# zip 下载解压后需先解除脚本封锁（git clone 可跳过）
+$ powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-ChildItem -LiteralPath './scripts' -Recurse -Include *.ps1,*.psm1 | Unblock-File -ErrorAction SilentlyContinue"
+# Windows PowerShell
+$ powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/common/vite-plus-install.ps1
+```
 
 ## 通用命令
 
@@ -14,20 +24,7 @@ $ vpr sync 1                                     # 同步本地配置到仓库
 $ vpr sync 2                                     # 从仓库恢复配置到本地
 $ vpr sync                                       # 交互选择同步方向
 ```
-
-
-
-#### 安装 [vite.plus](http://vite.plus)
-
-`pm` / `init` 会自动检测并安装；单独安装时使用：
-
-```sh
-# mac / Git Bash
-bash ./scripts/common/vite-plus-install.sh
-
-# Windows PowerShell
-pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/common/vite-plus-install.ps1
-```
+- 命令会通过 [scripts/_dispatch.mjs](./scripts/_dispatch.mjs) 按当前操作系统自动分发（`macOS` → `Homebrew`，`Windows` → `Scoop`）。
 
 
 
@@ -37,10 +34,10 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/common/vite-plus-install
 > 首次安装
 >
 > ```sh
-> vpr pm                                         # 官方源（默认）
-> vpr pm -- ustc                                 # 中科大镜像
-> vpr pm -- tuna                                 # 清华镜像
-> vpr init                                       # 初始化（需先安装 brew）
+> $ vpr pm                                         # 官方源（默认）
+> $ vpr pm -- ustc                                 # 中科大镜像
+> $ vpr pm -- tuna                                 # 清华镜像
+> $ vpr init                                       # 初始化（需先安装 brew）
 > ```
 
 文件说明
@@ -55,14 +52,11 @@ pwsh -NoProfile -ExecutionPolicy Bypass -File ./scripts/common/vite-plus-install
 
 > [!NOTE]
 > 首次安装
-> 建议使用管理员 PowerShell 运行。
 >
 > ```sh
-> # zip 下载解压后需先解除脚本封锁（git clone 可跳过）
-> powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-ChildItem -LiteralPath './scripts' -Recurse -Include *.ps1,*.psm1 | Unblock-File -ErrorAction SilentlyContinue"
-> vpr hosts                                      # 更新 GitHub hosts（需管理员）
-> vpr pm                                         # 安装 scoop
-> vpr init                                       # 初始化系统软件
+> $ vpr hosts                                      # 更新 GitHub hosts（需管理员）
+> $ vpr pm                                         # 安装 scoop
+> $ vpr init                                       # 初始化系统软件
 > ```
 
 
