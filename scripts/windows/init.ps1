@@ -54,7 +54,9 @@ function Sync-Configurations {
     $baseScript = Join-Path $ScriptDir 'common/git-setup.ps1'
 
     if (Test-Path $configScript) {
+        $env:SYNC_SELECT_ALL = '1'
         & $configScript 2
+        Remove-Item Env:SYNC_SELECT_ALL -ErrorAction SilentlyContinue
         if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '同步配置失败！' }
     }
     else {

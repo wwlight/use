@@ -62,7 +62,7 @@ sync_configurations() {
     local BASE_SCRIPT="$SCRIPT_DIR/common/git-setup.sh"
 
     if [ -f "$CONFIG_SCRIPT" ]; then
-        bash "$CONFIG_SCRIPT" 2 || error "同步配置失败！"
+        SYNC_SELECT_ALL=1 bash "$CONFIG_SCRIPT" 2 || error "同步配置失败！"
     else
         error "找不到配置同步脚本: $CONFIG_SCRIPT"
     fi

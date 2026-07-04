@@ -231,12 +231,25 @@ function Resolve-SyncDirectionArg {
 
     $directionArg = $null
     foreach ($a in $RawArgs) {
+        if ($a -eq '--') { continue }
         if ($a -eq '1' -or $a -eq '2') {
-            $directionArg = $a
+            return $a
+        }
+        if (-not [string]::IsNullOrWhiteSpace($a)) {
+            return $a
         }
     }
 
-    return $directionArg
+    return $null
+}
+
+function Format-RepoDisplay {
+    param([string]$Repo)
+
+    if ($Repo.StartsWith('./')) {
+        return $Repo
+    }
+    return "./$Repo"
 }
 
 function Get-SyncDirection {
@@ -249,6 +262,10 @@ function Get-SyncDirection {
 
     if ($DirectionArg -eq '1' -or $DirectionArg -eq '2') {
         return $DirectionArg
+    }
+
+    if (-not [string]::IsNullOrWhiteSpace($DirectionArg)) {
+        Write-ErrorAndExit "无效的同步方向: 请使用 1 或 2`n$Example"
     }
 
     if (-not (Test-InteractivePrompt)) {
@@ -265,6 +282,71 @@ function Get-SyncDirection {
     return $choice
 }
 
+function Test-SkipSyncSelect {
+    if ($env:SYNC_SELECT_ALL -eq '1') {
+        return $true
+    }
+    return -not (Test-InteractivePrompt)
+}
+
+function Get-SyncItemsFiltered {
+    param(
+        [string[]]$Scopes,
+        [string]$Direction,
+        [string]$DirectionArg
+    )
+
+    $items = @()
+    foreach ($s in $Scopes) {
+        $manifest = Read-Manifest -Scope $s
+        foreach ($item in $manifest.sync.toRepo) {
+            $items += [PSCustomObject]@{
+                local  = $item.local
+                repo   = $item.repo
+                backup = [bool]$item.backup
+            }
+        }
+    }
+
+    if (Test-SkipSyncSelect) {
+        return $items
+    }
+
+    $pairsFile = [System.IO.Path]::GetTempFileName()
+    $filteredFile = [System.IO.Path]::GetTempFileName()
+    try {
+        $lines = foreach ($item in $items) {
+            $backupFlag = if ($item.backup) { '1' } else { '0' }
+            "$($item.local)`t$($item.repo)`t$backupFlag"
+        }
+        [System.IO.File]::WriteAllLines($pairsFile, $lines)
+
+        $scriptPath = Join-Path $PSScriptRoot 'sync-select.mjs'
+        & node $scriptPath $Direction $pairsFile $filteredFile 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            Write-ErrorAndExit '文件选择已取消'
+        }
+
+        $selected = @()
+        foreach ($line in [System.IO.File]::ReadAllLines($filteredFile)) {
+            if ([string]::IsNullOrWhiteSpace($line)) { continue }
+            $parts = $line.Split("`t")
+            $selected += [PSCustomObject]@{
+                local  = $parts[0]
+                repo   = $parts[1]
+                backup = ($parts[2] -eq '1')
+            }
+        }
+        if ($selected.Count -eq 0) {
+            Write-ErrorAndExit '没有可同步的配置项'
+        }
+        return $selected
+    }
+    finally {
+        Remove-Item $pairsFile, $filteredFile -Force -ErrorAction SilentlyContinue
+    }
+}
+
 # ==============================
 # 配置同步入口
 # ==============================
@@ -279,12 +361,6 @@ function Invoke-ManifestSync {
         $scopes += 'common'
     }
 
-    $items = @()
-    foreach ($s in $scopes) {
-        $manifest = Read-Manifest -Scope $s
-        $items += $manifest.sync.toRepo
-    }
-
     $example = '示例: vpr sync 2'
     if ($scopes.Count -gt 1) {
         $line1 = '1) 备份本地配置 -> 仓库'
@@ -296,7 +372,7 @@ function Invoke-ManifestSync {
     }
 
     $direction = Get-SyncDirection $DirectionArg $example $line1 $line2
-
+    $items = Get-SyncItemsFiltered -Scopes $scopes -Direction $direction -DirectionArg $DirectionArg
     $total = $items.Count
 
     switch ($direction) {
@@ -311,7 +387,7 @@ function Invoke-ManifestSync {
                     New-Item -ItemType Directory -Path $repoDir -Force | Out-Null
                 }
                 Copy-FileDataOnly $local $repo
-                Write-Info "[$i/$total] 已备份 $($item.repo)"
+                Write-Info "[$i/$total] 已备份 $(Format-RepoDisplay $item.repo)"
             }
             Write-Info '配置已备份到仓库'
         }

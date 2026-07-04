@@ -108,6 +108,12 @@ prompt_sync_direction() {
         return 0
     fi
 
+    if [ -n "$arg" ]; then
+        safe_echo "${RED}[ERROR]${NC} 无效的同步方向: 请使用 1 或 2
+$example" >&2
+        return 1
+    fi
+
     local choice=""
     local tty_path=""
 
@@ -144,9 +150,17 @@ $example" >&2
 expand_path() {
     local path="$1"
     case "$path" in
-        "~/"*) echo "$HOME/${path#~/}" ;;
+        "~/"*) echo "$HOME/${path#\~/}" ;;
         "~")    echo "$HOME" ;;
         *)      echo "$path" ;;
+    esac
+}
+
+format_repo_display() {
+    local path="$1"
+    case "$path" in
+        ./*) echo "$path" ;;
+        *)   echo "./$path" ;;
     esac
 }
 
@@ -204,10 +218,8 @@ manifest_sync_pairs() {
     node -e "
         const fs = require('fs');
         const path = require('path');
-        const os = require('os');
         const projectRoot = process.argv[1];
         const scopes = process.argv.slice(2);
-        const expand = (p) => p.replace(/^~(?=\/|$)/, os.homedir());
         for (const scope of scopes) {
             const manifestPath = path.join(projectRoot, 'scripts', scope, '_manifest.json');
             if (!fs.existsSync(manifestPath)) {
@@ -216,16 +228,52 @@ manifest_sync_pairs() {
             }
             const m = require(manifestPath);
             for (const item of m.sync.toRepo) {
-                process.stdout.write(expand(item.local) + '\t' + path.join(projectRoot, item.repo) + '\t' + (item.backup ? '1' : '0') + '\n');
+                process.stdout.write(item.local + '\t' + item.repo + '\t' + (item.backup ? '1' : '0') + '\n');
             }
         }
     " "$PROJECT_ROOT" "${scopes[@]}"
+}
+
+should_skip_sync_select() {
+    [ "$SYNC_SELECT_ALL" = "1" ] && return 0
+    local tty_path
+    tty_path=$(tty 2>/dev/null) || tty_path=""
+    if [ -n "$tty_path" ] || [ -t 0 ]; then
+        return 1
+    fi
+    return 0
+}
+
+manifest_sync_pairs_filtered() {
+    local direction="$1"
+    shift
+    local scopes=("$@")
+    local pairs_file filtered_file node_script
+
+    pairs_file=$(mktemp) || error "无法创建临时文件"
+    manifest_sync_pairs "${scopes[@]}" > "$pairs_file"
+
+    if should_skip_sync_select; then
+        cat "$pairs_file"
+        rm -f "$pairs_file"
+        return
+    fi
+
+    filtered_file=$(mktemp) || error "无法创建临时文件"
+    node_script="${SCRIPT_DIR}/lib/sync-select.mjs"
+    node "$node_script" "$direction" "$pairs_file" "$filtered_file" || {
+        rm -f "$pairs_file" "$filtered_file"
+        exit 1
+    }
+    cat "$filtered_file"
+    rm -f "$pairs_file" "$filtered_file"
 }
 
 run_config_sync() {
     local scope="$1"
     shift
     local direction_arg=""
+    local invalid_direction_arg=""
     local sync_scopes=("$scope")
 
     if [[ "$scope" == "mac" || "$scope" == "windows" ]]; then
@@ -236,9 +284,15 @@ run_config_sync() {
         case "$1" in
             1|2) direction_arg="$1" ;;
             --) ;;
+            *)
+                [ -n "$1" ] && invalid_direction_arg="$1"
+                ;;
         esac
         shift
     done
+
+    local direction_input="$direction_arg"
+    [ -z "$direction_input" ] && direction_input="$invalid_direction_arg"
 
     local example="示例: vpr sync 2"
     local line1 line2
@@ -250,35 +304,48 @@ run_config_sync() {
         line2="2) 从仓库恢复配置 -> 本地"
     fi
 
-    direction=$(prompt_sync_direction "$direction_arg" \
+    direction=$(prompt_sync_direction "$direction_input" \
         "$example" \
         "$line1" \
         "$line2") || exit 1
 
-    total=$(manifest_sync_pairs "${sync_scopes[@]}" | wc -l | tr -d '[:space:]')
+    sync_pairs=()
+    while IFS= read -r line; do
+        [ -n "$line" ] && sync_pairs+=("$line")
+    done < <(manifest_sync_pairs_filtered "$direction" "${sync_scopes[@]}")
+    total=${#sync_pairs[@]}
+    [ "$total" -gt 0 ] || error "没有可同步的配置项"
     i=0
 
     case $direction in
         1)
-            while IFS=$'\t' read -r local_path repo_path _backup_flag; do
-                mkdir -p "$(dirname "$repo_path")" || error "无法创建目录: $(dirname "$repo_path")"
-                cp "$local_path" "$repo_path" || error "备份失败: $local_path -> $repo_path"
+            for pair in "${sync_pairs[@]}"; do
+                IFS=$'\t' read -r local_path repo_path _backup_flag <<< "$pair"
+                local_abs=$(expand_path "$local_path")
+                repo_abs="${PROJECT_ROOT}/${repo_path}"
+                repo_display=$(format_repo_display "$repo_path")
+                mkdir -p "$(dirname "$repo_abs")" || error "无法创建目录: $(format_repo_display "$(dirname "$repo_path")")"
+                cp "$local_abs" "$repo_abs" || error "备份失败: $local_path -> $repo_display"
                 i=$((i + 1))
-                info "[$i/$total] 已备份 $repo_path"
-            done < <(manifest_sync_pairs "${sync_scopes[@]}")
+                info "[$i/$total] 已备份 $repo_display"
+            done
 
             info "配置已备份到仓库"
             ;;
         2)
-            while IFS=$'\t' read -r local_path repo_path backup_flag; do
+            for pair in "${sync_pairs[@]}"; do
+                IFS=$'\t' read -r local_path repo_path backup_flag <<< "$pair"
+                local_abs=$(expand_path "$local_path")
+                repo_abs="${PROJECT_ROOT}/${repo_path}"
+                repo_display=$(format_repo_display "$repo_path")
                 if [ "$backup_flag" = "1" ]; then
-                    backup_file "$local_path" ~/.backup
+                    backup_file "$local_abs" ~/.backup
                 fi
-                mkdir -p "$(dirname "$local_path")" || error "无法创建目录: $(dirname "$local_path")"
-                cp "$repo_path" "$local_path" || error "恢复失败: $repo_path -> $local_path"
+                mkdir -p "$(dirname "$local_abs")" || error "无法创建目录: $(dirname "$local_path")"
+                cp "$repo_abs" "$local_abs" || error "恢复失败: $repo_display -> $local_path"
                 i=$((i + 1))
                 info "[$i/$total] 已恢复 $local_path"
-            done < <(manifest_sync_pairs "${sync_scopes[@]}")
+            done
 
             info "配置已恢复到本地"
             ;;

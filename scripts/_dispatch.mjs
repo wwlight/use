@@ -78,10 +78,14 @@ function runWinBackup() {
 }
 
 function parseSyncDirection(args) {
-  for (const arg of args) {
+  const meaningful = args.filter((arg) => arg !== '--')
+  if (meaningful.length === 0) return null
+
+  for (const arg of meaningful) {
     if (arg === '1' || arg === '2') return arg
   }
-  return null
+
+  return '__INVALID__'
 }
 
 function captureScript(scriptPath, args = []) {
@@ -99,6 +103,11 @@ function captureScript(scriptPath, args = []) {
 
 function resolveSyncDirection(args) {
   const parsed = parseSyncDirection(args)
+  if (parsed === '__INVALID__') {
+    console.error('\x1b[31m[ERROR]\x1b[0m 无效的同步方向: 请使用 1 或 2')
+    console.error('示例: vpr sync 2')
+    process.exit(1)
+  }
   if (parsed) return { direction: parsed, prompted: false }
 
   const scriptPath = resolveScript(path.join(__dirname, 'common'), 'prompt-sync-direction')
