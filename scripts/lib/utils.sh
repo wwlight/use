@@ -405,6 +405,7 @@ run_config_sync() {
                 local_abs=$(expand_path "$local_path")
                 repo_abs="${PROJECT_ROOT}/${repo_path}"
                 repo_display=$(format_repo_display "$repo_path")
+                i=$((i + 1))
                 if [ "$backup_flag" = "1" ]; then
                     bak_name=$(backup_file "$local_abs" ~/.backup)
                     if [ -n "$bak_name" ]; then
@@ -413,7 +414,6 @@ run_config_sync() {
                 fi
                 mkdir -p "$(dirname "$local_abs")" || error "无法创建目录: $(dirname "$local_path")"
                 cp "$repo_abs" "$local_abs" || error "恢复失败: $repo_display -> $local_path"
-                i=$((i + 1))
                 info "[$i/$total] 已恢复 $(format_local_display "$local_path")"
             done
 
