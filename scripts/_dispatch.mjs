@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { detectPlatform, isPowerShell, resolveScript, runBash, runPwsh, unblockPowerShellScripts } from './lib/_dispatch.mjs'
+import * as readline from 'node:readline/promises'
+import { cleanupSyncTempFile, readSyncPairLines } from './lib/sync-pairs.mjs'
+import { detectPlatform, isPowerShell, resolveScript, runBash, runPwsh } from './lib/_dispatch.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
@@ -88,20 +91,7 @@ function parseSyncDirection(args) {
   return '__INVALID__'
 }
 
-function captureScript(scriptPath, args = []) {
-  if (isPowerShell()) {
-    unblockPowerShellScripts()
-  }
-  return spawnSync(
-    isPowerShell() ? 'pwsh' : 'bash',
-    isPowerShell()
-      ? ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, ...args]
-      : [scriptPath, ...args],
-    { cwd: projectRoot, encoding: 'utf8', stdio: ['inherit', 'pipe', 'inherit'] },
-  )
-}
-
-function resolveSyncDirection(args) {
+async function promptSyncDirection(args) {
   const parsed = parseSyncDirection(args)
   if (parsed === '__INVALID__') {
     console.error('\x1b[31m[ERROR]\x1b[0m 无效的同步方向: 请使用 1 或 2')
@@ -110,30 +100,113 @@ function resolveSyncDirection(args) {
   }
   if (parsed) return { direction: parsed, prompted: false }
 
-  const scriptPath = resolveScript(path.join(__dirname, 'common'), 'prompt-sync-direction')
-  const result = captureScript(scriptPath, [])
-  if (result.status !== 0) process.exit(result.status ?? 1)
-
-  const direction = result.stdout.trim()
-  if (direction !== '1' && direction !== '2') {
-    console.error('[ERROR] 无效的同步方向')
+  if (!process.stdin.isTTY) {
+    console.error('\x1b[31m[ERROR]\x1b[0m 非交互环境请传入方向参数: 1=备份到仓库, 2=应用到本地')
+    console.error('示例: vpr sync 2')
     process.exit(1)
   }
-  return { direction, prompted: true }
+
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout })
+  try {
+    console.log('请选择拷贝方向:')
+    console.log('1) 备份本地配置 -> 仓库')
+    console.log('2) 从仓库恢复配置 -> 本地')
+    const answer = (await rl.question('> ')).trim()
+    if (answer !== '1' && answer !== '2') {
+      console.error('\x1b[31m[ERROR]\x1b[0m 无效的同步方向: 请使用 1 或 2')
+      console.error('示例: vpr sync 2')
+      process.exit(1)
+    }
+    return { direction: answer, prompted: true }
+  }
+  finally {
+    rl.close()
+  }
 }
 
-function runUnifiedSync(platform, args) {
-  const { direction, prompted } = resolveSyncDirection(args)
+function markSyncInteractive() {
+  if (process.stdin.isTTY) {
+    process.env.SYNC_INTERACTIVE = '1'
+  }
+}
+
+async function runSyncSelect(direction, lines) {
+  if (process.env.SYNC_SELECT_ALL === '1') return null
+  if (!process.stdin.isTTY) return null
+  if (lines.length === 0) return null
+
+  const filteredFile = path.join(os.tmpdir(), `sync-filtered-${process.pid}.txt`)
+
+  markSyncInteractive()
+  try {
+    const { runSyncSelectPrompt } = await import('./lib/sync-select.mjs')
+    const count = await runSyncSelectPrompt({ direction, rawLines: lines, outPath: filteredFile })
+    if (count === 0) {
+      cleanupSyncTempFile(filteredFile)
+      console.error('\x1b[31m[ERROR]\x1b[0m 没有可同步的配置项')
+      process.exit(1)
+    }
+    return { file: filteredFile, count }
+  }
+  catch (err) {
+    cleanupSyncTempFile(filteredFile)
+    if (err?.code === 'CANCELLED') process.exit(130)
+    console.error(`\x1b[31m[ERROR]\x1b[0m ${err?.message || '文件选择已取消'}`)
+    process.exit(1)
+  }
+}
+
+function logSyncProgress(direction, total) {
+  if (total <= 0) return
+  const message = direction === '1'
+    ? `正在备份 ${total} 个文件到仓库...`
+    : `正在恢复 ${total} 个文件到本地...`
+  console.log(`\x1b[32m[INFO]\x1b[0m ${message}`)
+}
+
+async function runUnifiedSync(platform, args) {
+  markSyncInteractive()
+  process.env.SYNC_FROM_DISPATCH = '1'
+
+  let pairLines
+  try {
+    pairLines = readSyncPairLines(platform, __dirname)
+  }
+  catch (err) {
+    console.error(`\x1b[31m[ERROR]\x1b[0m ${err.message}`)
+    process.exit(1)
+  }
+
+  const { direction, prompted } = await promptSyncDirection(args)
+  const selection = await runSyncSelect(direction, pairLines)
+
+  let tempFile = null
+  const itemCount = selection?.count ?? pairLines.length
+
+  if (selection) {
+    tempFile = selection.file
+    process.env.SYNC_FILTERED_PAIRS = selection.file
+  }
+
+  logSyncProgress(direction, itemCount)
+
   const syncArgs = [direction]
 
-  const status = platform === 'mac'
-    ? exitStatus(runBash(path.join(__dirname, 'mac/config-sync.sh'), syncArgs))
-    : runSubDispatch('windows/_dispatch.mjs', 'sync', syncArgs)
+  try {
+    const status = platform === 'mac'
+      ? exitStatus(runBash(path.join(__dirname, 'mac/config-sync.sh'), syncArgs))
+      : runSubDispatch('windows/_dispatch.mjs', 'sync', syncArgs)
 
-  if (prompted && status === 0) {
-    console.log(`\x1b[32m[INFO]\x1b[0m 下次可直接运行：vpr sync ${direction} 跳过交互选择`)
+    if (prompted && status === 0) {
+      console.log(`\x1b[32m[INFO]\x1b[0m 下次可直接运行：vpr sync ${direction} 跳过交互选择`)
+    }
+    return status
   }
-  return status
+  finally {
+    delete process.env.SYNC_FROM_DISPATCH
+    delete process.env.SYNC_FILTERED_PAIRS
+    cleanupSyncTempFile(tempFile)
+  }
 }
 
 function runWinSetup() {
@@ -147,7 +220,7 @@ function runWinSync(args) {
   return runUnifiedSync('win', args)
 }
 
-function runCrossPlatformTask(platform) {
+async function runCrossPlatformTask(platform) {
   switch (task) {
     case 'pm':
       return platform === 'mac'
@@ -194,4 +267,4 @@ if (WIN_ONLY_TASKS.includes(task)) {
   process.exit(runWinOnlyTask())
 }
 
-process.exit(runCrossPlatformTask(platform))
+process.exit(await runCrossPlatformTask(platform))

@@ -4,32 +4,42 @@
  */
 import { execSync } from 'node:child_process'
 import fs from 'node:fs'
+import path from 'node:path'
 import readline from 'node:readline'
 import tty from 'node:tty'
+import { fileURLToPath } from 'node:url'
+import { formatLocalDisplay, formatRepoDisplay } from './sync-pairs.mjs'
 
-const direction = process.argv[2]
-const pairsPath = process.argv[3]
-const outPath = process.argv[4]
-
-if (!direction || !pairsPath) {
-  console.error('用法: node sync-select.mjs <1|2> <pairs-file> [out-file]')
-  process.exit(1)
+function parseItems(rawLines) {
+  return rawLines.map((line) => {
+    const [local, repo, backup] = line.split('\t')
+    return { local, repo, backup, selected: true, line }
+  })
 }
 
-const rawLines = fs.readFileSync(pairsPath, 'utf8').trim().split('\n').filter(Boolean)
-const items = rawLines.map((line) => {
-  const [local, repo, backup] = line.split('\t')
-  return { local, repo, backup, selected: true, line }
-})
-
-function formatRepoDisplay(repo) {
-  return repo.startsWith('./') ? repo : `./${repo}`
-}
-
-function writeResult(lines) {
+function writeResult(lines, outPath) {
   const content = `${lines.join('\n')}\n`
   if (outPath) fs.writeFileSync(outPath, content)
   else process.stdout.write(content)
+}
+
+function openWindowsConsole() {
+  try {
+    const fdIn = fs.openSync('CONIN$', 'r')
+    const fdOut = fs.openSync('CONOUT$', 'w')
+    return {
+      input: new tty.ReadStream(fdIn),
+      output: new tty.WriteStream(fdOut),
+      owned: true,
+      close() {
+        if (!this.input.destroyed) this.input.destroy()
+        if (!this.output.destroyed) this.output.destroy()
+      },
+    }
+  }
+  catch {
+    return null
+  }
 }
 
 function openTerminal() {
@@ -43,13 +53,18 @@ function openTerminal() {
   }
 
   if (process.platform === 'win32') {
-    if (!process.stdin.isTTY) return null
-    return {
-      input: process.stdin,
-      output: process.stdout,
-      owned: false,
-      close() {},
+    if (process.env.SYNC_INTERACTIVE === '1') {
+      return openWindowsConsole()
     }
+    if (process.stdin.isTTY) {
+      return {
+        input: process.stdin,
+        output: process.stdout,
+        owned: false,
+        close() {},
+      }
+    }
+    return null
   }
 
   try {
@@ -99,6 +114,10 @@ function restoreFrame(output, frame) {
   if (up > 0) output.write(`\x1B[${up}A\r`)
 }
 
+function isToggleKey(str, key) {
+  return str === ' ' || key?.name === 'space' || key?.name === 'x'
+}
+
 function createMultiselect({ message, choices, input, output }) {
   let cursor = 0
   let prevFrame = ''
@@ -119,7 +138,7 @@ function createMultiselect({ message, choices, input, output }) {
         return `${pointer} [${mark}] ${truncate(item.label, labelMax)}`
       }),
       '',
-      '↑↓ 移动  空格 切换  回车 确认',
+      '↑↓ 移动  空格/x 切换  回车 确认',
     ]
     if (error) lines.push('', error)
     return `${lines.join('\n')}\n`
@@ -147,8 +166,19 @@ function createMultiselect({ message, choices, input, output }) {
   }
 
   return new Promise((resolve, reject) => {
-    if (!input.isTTY) {
+    const canInteract = input.isTTY || process.env.SYNC_INTERACTIVE === '1'
+    if (!canInteract) {
       reject(new Error('非 TTY 环境'))
+      return
+    }
+
+    try {
+      if (typeof input.setRawMode === 'function') {
+        input.setRawMode(true)
+      }
+    }
+    catch (err) {
+      reject(new Error(`无法进入交互模式: ${err.message}`))
       return
     }
 
@@ -159,19 +189,28 @@ function createMultiselect({ message, choices, input, output }) {
     })
     rl.prompt()
 
-    input.setRawMode(true)
-
     const close = () => {
       input.removeListener('keypress', onKeypress)
       output.write('\n')
       output.write('\x1B[?25h')
-      input.setRawMode(false)
+      if (typeof input.setRawMode === 'function') {
+        input.setRawMode(false)
+      }
       rl?.close()
       rl = undefined
     }
 
-    const onKeypress = (_str, key) => {
-      if (!key || state === 'submit') return
+    const onKeypress = (str, key) => {
+      if (state === 'submit') return
+
+      if (isToggleKey(str, key)) {
+        choices[cursor].selected = !choices[cursor].selected
+        error = ''
+        render()
+        return
+      }
+
+      if (!key) return
 
       if (key.name === 'return' || key.name === 'enter') {
         const picked = choices.filter((c) => c.selected)
@@ -194,13 +233,12 @@ function createMultiselect({ message, choices, input, output }) {
       else if (key.name === 'down') {
         cursor = (cursor + 1) % choices.length
       }
-      else if (key.name === 'space') {
-        choices[cursor].selected = !choices[cursor].selected
-        error = ''
-      }
       else if (key.ctrl && key.name === 'c') {
         close()
-        process.exit(130)
+        const err = new Error('文件选择已取消')
+        err.code = 'CANCELLED'
+        reject(err)
+        return
       }
       else {
         return
@@ -214,21 +252,26 @@ function createMultiselect({ message, choices, input, output }) {
   })
 }
 
-async function promptSelection() {
+export async function runSyncSelectPrompt({ direction, rawLines, outPath }) {
+  const items = parseItems(rawLines)
+
   if (items.length === 0) {
-    writeResult(rawLines)
-    return
+    writeResult(rawLines, outPath)
+    return 0
   }
 
   const term = openTerminal()
   if (!term) {
-    writeResult(rawLines)
-    return
+    if (process.env.SYNC_INTERACTIVE === '1') {
+      throw new Error('无法打开交互终端，请使用 SYNC_SELECT_ALL=1 跳过选择')
+    }
+    writeResult(rawLines, outPath)
+    return rawLines.length
   }
 
   const title = direction === '1' ? '选择要备份到仓库的文件' : '选择要恢复到本地的文件'
   const choices = items.map((item) => ({
-    label: direction === '1' ? formatRepoDisplay(item.repo) : item.local,
+    label: direction === '1' ? formatRepoDisplay(item.repo) : formatLocalDisplay(item.local),
     selected: item.selected,
     line: item.line,
   }))
@@ -240,20 +283,42 @@ async function promptSelection() {
       input: term.input,
       output: term.output,
     })
-    writeResult(picked.map((c) => c.line))
+    writeResult(picked.map((c) => c.line), outPath)
+    return picked.length
   }
-  catch {
-    writeResult(rawLines)
+  catch (err) {
+    if (process.env.SYNC_INTERACTIVE === '1') {
+      throw err
+    }
+    writeResult(rawLines, outPath)
+    return rawLines.length
   }
   finally {
     term.close()
   }
 }
 
-try {
-  await promptSelection()
-}
-catch (err) {
-  console.error(err.message)
-  process.exit(1)
+const isCli = process.argv[1]
+  && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+
+if (isCli) {
+  const direction = process.argv[2]
+  const pairsPath = process.argv[3]
+  const outPath = process.argv[4]
+
+  if (!direction || !pairsPath) {
+    console.error('用法: node sync-select.mjs <1|2> <pairs-file> [out-file]')
+    process.exit(1)
+  }
+
+  const rawLines = fs.readFileSync(pairsPath, 'utf8').trim().split('\n').filter(Boolean)
+
+  try {
+    await runSyncSelectPrompt({ direction, rawLines, outPath })
+  }
+  catch (err) {
+    if (err.code === 'CANCELLED') process.exit(130)
+    console.error(err?.message || String(err))
+    process.exit(1)
+  }
 }

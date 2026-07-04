@@ -6,6 +6,7 @@
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
+CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
 safe_echo() {
@@ -19,6 +20,7 @@ safe_echo() {
 }
 
 info() { safe_echo "${GREEN}[INFO]${NC} $1"; }
+backup_info() { safe_echo "${CYAN}[INFO]${NC} $1"; }
 warn() { safe_echo "${YELLOW}[WARN]${NC} $1"; }
 error() { safe_echo "${RED}[ERROR]${NC} $1"; exit 1; }
 
@@ -55,27 +57,23 @@ check_target_system() {
 # 使用方法: backup_file <目标文件> [备份目录]
 # ==============================
 backup_file() {
+    # 输出备份文件名（相对于 backup_dir），失败时返回空
     local target_file="$1"
-    local backup_dir="${2:-$(dirname "$target_file")}"  # 默认目标文件所在目录
+    local backup_dir="${2:-$(dirname "$target_file")}"
 
-    # 检查目标文件
     if [ ! -f "$target_file" ]; then
-        warn "目标文件不存在: $target_file"
         return 0
     fi
 
-    # 创建备份目录（如果不存在）
     if ! mkdir -p "$backup_dir"; then
         warn "无法创建备份目录: $backup_dir"
         return 0
     fi
 
-    # 生成备份文件名（格式：原文件名.bak.年月日.序号）
     local file_name=$(basename "$target_file")
     local date_str=$(date +%Y%m%d)
     local backup_base="${backup_dir}/${file_name}.bak.${date_str}"
 
-    # 查找已存在的备份文件确定下一个序号
     local next_num=0
     while [ -f "${backup_base}.${next_num}" ]; do
         ((next_num++))
@@ -83,14 +81,11 @@ backup_file() {
 
     local backup_file="${backup_base}.${next_num}"
 
-    # 执行备份
     if cp "$target_file" "$backup_file" 2>/dev/null; then
-        info "备份成功: $target_file -> $backup_file"
+        echo "${file_name}.bak.${date_str}.${next_num}"
     else
-        warn "备份失败: $target_file -> $backup_file"
+        warn "备份失败: $file_name"
     fi
-
-    return 0
 }
 
 # ==============================
@@ -162,6 +157,44 @@ format_repo_display() {
         ./*) echo "$path" ;;
         *)   echo "./$path" ;;
     esac
+}
+
+format_local_display() {
+    local path="${1//\\//}"
+    case "$path" in
+        ~) echo "~"; return ;;
+        ~/*) echo "$path"; return ;;
+    esac
+    local home="${HOME%/}"
+    if [ "$path" = "$home" ]; then
+        echo "~"
+    elif [[ "$path" == "$home/"* ]]; then
+        echo "~/${path#$home/}"
+    else
+        echo "$path"
+    fi
+}
+
+sync_select_run() {
+    local direction="$1"
+    local pairs_file="$2"
+    local filtered_file="$3"
+    local node_script="${SCRIPT_DIR}/lib/sync-select.mjs"
+    local rc=0
+
+    if [ -t 0 ] || [ -n "$(tty 2>/dev/null)" ]; then
+        SYNC_INTERACTIVE=1 node "$node_script" "$direction" "$pairs_file" "$filtered_file" || rc=$?
+    else
+        node "$node_script" "$direction" "$pairs_file" "$filtered_file" || rc=$?
+    fi
+
+    if [ "$rc" -ne 0 ]; then
+        rm -f "$pairs_file" "$filtered_file"
+        if [ "$rc" -eq 130 ]; then
+            error "文件选择已取消"
+        fi
+        error "文件选择失败，请重试或通过 vpr sync 运行"
+    fi
 }
 
 init_manifest() {
@@ -244,11 +277,44 @@ should_skip_sync_select() {
     return 0
 }
 
+is_sync_dispatch_mode() {
+    [ "$SYNC_FROM_DISPATCH" = "1" ]
+}
+
+sync_progress_hint() {
+    local direction="$1"
+    local total="$2"
+
+    [ "$total" -gt 0 ] || return 0
+    is_sync_dispatch_mode && return 0
+
+    if [ "$direction" = "1" ]; then
+        info "正在备份 $total 个文件到仓库..."
+    else
+        info "正在恢复 $total 个文件到本地..."
+    fi
+}
+
 manifest_sync_pairs_filtered() {
     local direction="$1"
     shift
     local scopes=("$@")
-    local pairs_file filtered_file node_script
+    local pairs_file filtered_file
+
+    if [ -n "$SYNC_FILTERED_PAIRS" ] && [ -f "$SYNC_FILTERED_PAIRS" ]; then
+        cat "$SYNC_FILTERED_PAIRS"
+        rm -f "$SYNC_FILTERED_PAIRS"
+        unset SYNC_FILTERED_PAIRS
+        return
+    fi
+
+    if is_sync_dispatch_mode; then
+        if should_skip_sync_select; then
+            manifest_sync_pairs "${scopes[@]}"
+            return
+        fi
+        error "缺少已选文件列表，请通过 vpr sync 运行"
+    fi
 
     pairs_file=$(mktemp) || error "无法创建临时文件"
     manifest_sync_pairs "${scopes[@]}" > "$pairs_file"
@@ -259,12 +325,8 @@ manifest_sync_pairs_filtered() {
         return
     fi
 
-    filtered_file=$(mktemp) || error "无法创建临时文件"
-    node_script="${SCRIPT_DIR}/lib/sync-select.mjs"
-    node "$node_script" "$direction" "$pairs_file" "$filtered_file" || {
-        rm -f "$pairs_file" "$filtered_file"
-        exit 1
-    }
+    filtered_file=$(mktemp) || { rm -f "$pairs_file"; error "无法创建临时文件"; }
+    sync_select_run "$direction" "$pairs_file" "$filtered_file"
     cat "$filtered_file"
     rm -f "$pairs_file" "$filtered_file"
 }
@@ -295,6 +357,10 @@ run_config_sync() {
     [ -z "$direction_input" ] && direction_input="$invalid_direction_arg"
 
     local example="示例: vpr sync 2"
+    if is_sync_dispatch_mode && [ "$direction_input" != "1" ] && [ "$direction_input" != "2" ]; then
+        error "缺少同步方向参数: $example"
+    fi
+
     local line1 line2
     if [[ ${#sync_scopes[@]} -gt 1 ]]; then
         line1="1) 备份本地配置 -> 仓库"
@@ -315,6 +381,7 @@ run_config_sync() {
     done < <(manifest_sync_pairs_filtered "$direction" "${sync_scopes[@]}")
     total=${#sync_pairs[@]}
     [ "$total" -gt 0 ] || error "没有可同步的配置项"
+    sync_progress_hint "$direction" "$total"
     i=0
 
     case $direction in
@@ -339,12 +406,15 @@ run_config_sync() {
                 repo_abs="${PROJECT_ROOT}/${repo_path}"
                 repo_display=$(format_repo_display "$repo_path")
                 if [ "$backup_flag" = "1" ]; then
-                    backup_file "$local_abs" ~/.backup
+                    bak_name=$(backup_file "$local_abs" ~/.backup)
+                    if [ -n "$bak_name" ]; then
+                        backup_info "[$i/$total] 已备份 $(format_local_display "$local_path") -> ~/.backup/$bak_name"
+                    fi
                 fi
                 mkdir -p "$(dirname "$local_abs")" || error "无法创建目录: $(dirname "$local_path")"
                 cp "$repo_abs" "$local_abs" || error "恢复失败: $repo_display -> $local_path"
                 i=$((i + 1))
-                info "[$i/$total] 已恢复 $local_path"
+                info "[$i/$total] 已恢复 $(format_local_display "$local_path")"
             done
 
             info "配置已恢复到本地"
@@ -354,7 +424,7 @@ run_config_sync() {
             ;;
     esac
 
-    if [ -z "$direction_arg" ]; then
+    if [ -z "$direction_arg" ] && ! is_sync_dispatch_mode; then
         info "下次可直接运行：vpr sync $direction 跳过交互选择"
     fi
 }

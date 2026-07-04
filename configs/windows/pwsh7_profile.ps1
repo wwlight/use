@@ -21,7 +21,6 @@ function b { vr build @args }
 
 # git
 function gp { git push @args }
-function gl { git pull @args }
 function grt { cd "$(git rev-parse --show-toplevel)" }
 function gc {
   $branch = git branch | fzf

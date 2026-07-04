@@ -16,6 +16,10 @@ function Test-Administrator {
 }
 
 function Test-InteractivePrompt {
+    if ($env:SYNC_INTERACTIVE -eq '1') {
+        return $true
+    }
+
     if (-not [Environment]::UserInteractive) {
         return $false
     }
@@ -34,6 +38,29 @@ function Test-InteractivePrompt {
 function Write-Info {
     param([string]$Message)
     Write-Host "[INFO] $Message" -ForegroundColor Green
+}
+
+function Write-Backup {
+    param([string]$Message)
+    Write-Host "[INFO] $Message" -ForegroundColor Cyan
+}
+
+function Write-SyncProgressHint {
+    param(
+        [string]$Direction,
+        [int]$Total
+    )
+
+    if ($Total -le 0) { return }
+    if ($env:SYNC_FROM_DISPATCH -eq '1') { return }
+
+    if ($Direction -eq '1') {
+        Write-Info "正在备份 $Total 个文件到仓库..."
+    }
+    else {
+        Write-Info "正在恢复 $Total 个文件到本地..."
+    }
+    [Console]::Out.Flush()
 }
 
 function Write-Warn {
@@ -118,6 +145,25 @@ function Read-Manifest {
     Get-Content $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 }
 
+function Get-SyncScopes {
+    param([string]$Scope)
+
+    $scopes = @($Scope)
+    if ($Scope -eq 'mac' -or $Scope -eq 'windows') {
+        $scopes += 'common'
+    }
+    return $scopes
+}
+
+function Write-SyncSelectError {
+    if ($LASTEXITCODE -eq 130) {
+        Write-ErrorAndExit '文件选择已取消'
+    }
+    if ($LASTEXITCODE -ne 0) {
+        Write-ErrorAndExit '文件选择失败，请重试或通过 vpr sync 运行'
+    }
+}
+
 # ==============================
 # 路径展开（~ -> $HOME）
 # ==============================
@@ -127,6 +173,22 @@ function Get-ExpandedPath {
         $Path = $Path -replace '^~', $env:USERPROFILE
     }
     return $Path -replace '/', '\'
+}
+
+function Format-LocalDisplay {
+    param([string]$Path)
+
+    $normalized = $Path -replace '\\', '/'
+    $userHome = ($env:USERPROFILE -replace '\\', '/').TrimEnd('/')
+
+    if ($normalized -eq $userHome) {
+        return '~'
+    }
+    if ($normalized -like "$userHome/*") {
+        return "~/$($normalized.Substring($userHome.Length + 1))"
+    }
+
+    return $normalized
 }
 
 # ==============================
@@ -198,8 +260,7 @@ function Backup-File {
 
     $target = Get-ExpandedPath $TargetFile
     if (-not (Test-Path $target)) {
-        Write-Warn "目标文件不存在: $target"
-        return
+        return $null
     }
 
     $backupRoot = Get-ExpandedPath $BackupDir
@@ -216,10 +277,11 @@ function Backup-File {
     $backupFile = "$backupBase.$nextNum"
     try {
         Copy-FileDataOnly $target $backupFile
-        Write-Info "备份成功: $target -> $backupFile"
+        return "$fileName.bak.$dateStr.$nextNum"
     }
     catch {
-        Write-Warn "备份失败: $target -> $backupFile"
+        Write-Warn "备份失败: $fileName"
+        return $null
     }
 }
 
@@ -282,11 +344,50 @@ function Get-SyncDirection {
     return $choice
 }
 
+function Resolve-SyncDirection {
+    param(
+        [string]$DirectionArg,
+        [string]$Example,
+        [string]$Line1,
+        [string]$Line2
+    )
+
+    if ($DirectionArg -eq '1' -or $DirectionArg -eq '2') {
+        return $DirectionArg
+    }
+
+    if (Test-SyncDispatchMode) {
+        Write-ErrorAndExit "缺少同步方向参数`n$Example"
+    }
+
+    return Get-SyncDirection $DirectionArg $Example $Line1 $Line2
+}
+
+function Test-SyncDispatchMode {
+    return $env:SYNC_FROM_DISPATCH -eq '1'
+}
+
 function Test-SkipSyncSelect {
     if ($env:SYNC_SELECT_ALL -eq '1') {
         return $true
     }
     return -not (Test-InteractivePrompt)
+}
+
+function Read-SyncItemsFromPairsFile {
+    param([string]$PairsFile)
+
+    $selected = @()
+    foreach ($line in [System.IO.File]::ReadAllLines($PairsFile)) {
+        if ([string]::IsNullOrWhiteSpace($line)) { continue }
+        $parts = $line.Split("`t")
+        $selected += [PSCustomObject]@{
+            local  = $parts[0]
+            repo   = $parts[1]
+            backup = ($parts[2] -eq '1')
+        }
+    }
+    return $selected
 }
 
 function Get-SyncItemsFiltered {
@@ -295,6 +396,20 @@ function Get-SyncItemsFiltered {
         [string]$Direction,
         [string]$DirectionArg
     )
+
+    if ($env:SYNC_FILTERED_PAIRS -and (Test-Path $env:SYNC_FILTERED_PAIRS)) {
+        try {
+            $selected = Read-SyncItemsFromPairsFile $env:SYNC_FILTERED_PAIRS
+            if ($selected.Count -eq 0) {
+                Write-ErrorAndExit '没有可同步的配置项'
+            }
+            return $selected
+        }
+        finally {
+            Remove-Item $env:SYNC_FILTERED_PAIRS -Force -ErrorAction SilentlyContinue
+            Remove-Item Env:SYNC_FILTERED_PAIRS -ErrorAction SilentlyContinue
+        }
+    }
 
     $items = @()
     foreach ($s in $Scopes) {
@@ -306,6 +421,13 @@ function Get-SyncItemsFiltered {
                 backup = [bool]$item.backup
             }
         }
+    }
+
+    if (Test-SyncDispatchMode) {
+        if (Test-SkipSyncSelect) {
+            return $items
+        }
+        Write-ErrorAndExit '缺少已选文件列表，请通过 vpr sync 运行'
     }
 
     if (Test-SkipSyncSelect) {
@@ -321,28 +443,22 @@ function Get-SyncItemsFiltered {
         }
         [System.IO.File]::WriteAllLines($pairsFile, $lines)
 
-        $scriptPath = Join-Path $PSScriptRoot 'sync-select.mjs'
-        & node $scriptPath $Direction $pairsFile $filteredFile 2>&1 | Out-Null
-        if ($LASTEXITCODE -ne 0) {
-            Write-ErrorAndExit '文件选择已取消'
+        if (Test-InteractivePrompt) {
+            $env:SYNC_INTERACTIVE = '1'
         }
 
-        $selected = @()
-        foreach ($line in [System.IO.File]::ReadAllLines($filteredFile)) {
-            if ([string]::IsNullOrWhiteSpace($line)) { continue }
-            $parts = $line.Split("`t")
-            $selected += [PSCustomObject]@{
-                local  = $parts[0]
-                repo   = $parts[1]
-                backup = ($parts[2] -eq '1')
-            }
-        }
+        $scriptPath = Join-Path $PSScriptRoot 'sync-select.mjs'
+        & node $scriptPath $Direction $pairsFile $filteredFile
+        Write-SyncSelectError
+
+        $selected = Read-SyncItemsFromPairsFile $filteredFile
         if ($selected.Count -eq 0) {
             Write-ErrorAndExit '没有可同步的配置项'
         }
         return $selected
     }
     finally {
+        Remove-Item Env:SYNC_INTERACTIVE -ErrorAction SilentlyContinue
         Remove-Item $pairsFile, $filteredFile -Force -ErrorAction SilentlyContinue
     }
 }
@@ -356,10 +472,7 @@ function Invoke-ManifestSync {
         [string]$DirectionArg
     )
 
-    $scopes = @($Scope)
-    if ($Scope -eq 'mac' -or $Scope -eq 'windows') {
-        $scopes += 'common'
-    }
+    $scopes = Get-SyncScopes $Scope
 
     $example = '示例: vpr sync 2'
     if ($scopes.Count -gt 1) {
@@ -371,9 +484,11 @@ function Invoke-ManifestSync {
         $line2 = '2) 从仓库恢复配置 -> 本地'
     }
 
-    $direction = Get-SyncDirection $DirectionArg $example $line1 $line2
+    $direction = Resolve-SyncDirection $DirectionArg $example $line1 $line2
     $items = Get-SyncItemsFiltered -Scopes $scopes -Direction $direction -DirectionArg $DirectionArg
     $total = $items.Count
+
+    Write-SyncProgressHint -Direction $direction -Total $total
 
     switch ($direction) {
         '1' {
@@ -398,14 +513,17 @@ function Invoke-ManifestSync {
                 $local = Get-ExpandedPath $item.local
                 $repo = Join-Path $Script:ProjectRoot $item.repo
                 if ($item.backup) {
-                    Backup-File $item.local '~/.backup'
+                    $bakName = Backup-File $item.local '~/.backup'
+                    if ($bakName) {
+                        Write-Backup "[$i/$total] 已备份 $(Format-LocalDisplay $item.local) -> ~/.backup/$bakName"
+                    }
                 }
                 $localDir = Split-Path $local -Parent
                 if (-not (Test-Path $localDir)) {
                     New-Item -ItemType Directory -Path $localDir -Force | Out-Null
                 }
                 Copy-FileDataOnly $repo $local
-                Write-Info "[$i/$total] 已恢复 $($item.local)"
+                Write-Info "[$i/$total] 已恢复 $(Format-LocalDisplay $item.local)"
             }
             Write-Info '配置已恢复到本地'
         }
@@ -415,7 +533,7 @@ function Invoke-ManifestSync {
         }
     }
 
-    if ([string]::IsNullOrWhiteSpace($DirectionArg)) {
+    if ([string]::IsNullOrWhiteSpace($DirectionArg) -and -not (Test-SyncDispatchMode)) {
         Write-Info "下次可直接运行：vpr sync $direction 跳过交互选择"
     }
 }
