@@ -5,7 +5,7 @@ $manifest = Read-Manifest
 
 function Setup-Directories {
     Write-Info '步骤1/5: 正在创建目录结构...'
-    foreach ($dir in $manifest.directories) {
+    foreach ($dir in (Get-ManifestDirectories)) {
         $path = Get-ExpandedPath $dir
         try {
             New-Item -ItemType Directory -Path $path -Force | Out-Null

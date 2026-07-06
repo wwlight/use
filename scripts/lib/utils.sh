@@ -1,8 +1,6 @@
 #!/bin/bash
 
-# ==============================
-# 颜色定义和打印方法
-# ==============================
+# --- 颜色定义和打印方法 ---
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[0;33m'
@@ -24,9 +22,7 @@ backup_info() { safe_echo "${CYAN}[INFO]${NC} $1"; }
 warn() { safe_echo "${YELLOW}[WARN]${NC} $1"; }
 error() { safe_echo "${RED}[ERROR]${NC} $1"; exit 1; }
 
-# ==============================
-# 系统环境检测
-# ==============================
+# --- 系统环境检测 ---
 detect_system() {
     if command -v uname &>/dev/null; then
         case "$(uname -s)" in
@@ -44,18 +40,14 @@ detect_system() {
     fi
 }
 
-# ==============================
-# 检查是否匹配目标系统
-# ==============================
+# --- 检查是否匹配目标系统 ---
 check_target_system() {
     local current=$(detect_system)
     [[ "$current" != "$1" ]] && error "本脚本仅支持 $1 系统，检测到当前系统为 $current"
 }
 
-# ==============================
-# 备份（支持自定义路径+日期序号+错误不中断）
+# --- 备份（支持自定义路径+日期序号+错误不中断） ---
 # 使用方法: backup_file <目标文件> [备份目录]
-# ==============================
 backup_file() {
     # 输出备份文件名（相对于 backup_dir），失败时返回空
     local target_file="$1"
@@ -88,10 +80,8 @@ backup_file() {
     fi
 }
 
-# ==============================
-# 解析 config-sync 方向参数
+# --- 解析 config-sync 方向参数 ---
 # 用法: direction=$(prompt_sync_direction "$1" "示例: vpr sync 2" "1) ..." "2) ...")
-# ==============================
 prompt_sync_direction() {
     local arg="$1"
     local example="$2"
@@ -139,9 +129,7 @@ $example" >&2
     echo "$choice"
 }
 
-# ==============================
-# manifest.json 读取
-# ==============================
+# --- manifest.json 读取 ---
 expand_path() {
     local path="$1"
     case "$path" in
@@ -237,6 +225,37 @@ manifest_get() {
         if (typeof v === 'object') console.log(JSON.stringify(v));
         else console.log(String(v));
     " "$manifest_path" "$key"
+}
+
+manifest_directories() {
+    local scopes=("$@")
+    if [[ ${#scopes[@]} -eq 0 ]]; then
+        if [[ -z "$MANIFEST_SCOPE" ]]; then
+            error "请先调用 init_manifest"
+        fi
+        scopes=("$MANIFEST_SCOPE")
+        if [[ "$MANIFEST_SCOPE" == mac || "$MANIFEST_SCOPE" == windows ]]; then
+            scopes=("common" "$MANIFEST_SCOPE")
+        fi
+    fi
+
+    node -e "
+        const path = require('path');
+        const projectRoot = process.argv[1];
+        const scopes = process.argv.slice(2);
+        const seen = new Set();
+        const dirs = [];
+        for (const scope of scopes) {
+            const m = require(path.join(projectRoot, 'scripts', scope, '_manifest.json'));
+            for (const d of m.directories ?? []) {
+                if (!seen.has(d)) {
+                    seen.add(d);
+                    dirs.push(d);
+                }
+            }
+        }
+        console.log(JSON.stringify(dirs));
+    " "$PROJECT_ROOT" "${scopes[@]}"
 }
 
 manifest_sync_pairs() {

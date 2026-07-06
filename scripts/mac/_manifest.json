@@ -18,20 +18,14 @@
       "coreGitRemote": "https://mirrors.ustc.edu.cn/homebrew-core.git"
     }
   },
-  "directories": [
-    "~/.zsh/plugins",
-    "~/.zsh/cache",
-    "~/.zsh/functions",
-    "~/.zsh/zfunc",
-    "~/.config/starship"
-  ],
   "sync": {
     "toRepo": [
-      { "local": "~/.zshrc", "repo": "configs/mac/.zshrc", "backup": true },
+      { "local": "~/.zshenv", "repo": "configs/common/.zshenv" },
+      { "local": "~/.zsh/.zshrc", "repo": "configs/mac/.zshrc", "backup": true },
       { "local": "~/.bashrc", "repo": "configs/mac/.bashrc" },
       { "local": "~/.zsh/functions/utils.zsh", "repo": "configs/mac/utils.zsh" },
       { "local": "~/.config/ghostty/config", "repo": "configs/mac/ghostty_config" }
     ]
   },
-  "zprofile": "~/.zprofile"
+  "zprofile": "~/.zsh/.zprofile"
 }

@@ -1,4 +1,11 @@
 {
+  "directories": [
+    "~/.zsh/plugins",
+    "~/.zsh/cache",
+    "~/.zsh/history",
+    "~/.zsh/functions",
+    "~/.config/starship"
+  ],
   "git": {
     "credentialHelper": "store",
     "defaultBranch": "main",
@@ -7,7 +14,9 @@
   },
   "sync": {
     "toRepo": [
-      { "local": "~/.zsh/zfunc/_eza", "repo": "configs/common/_eza" },
+      { "local": "~/.zsh/.zshrc_core", "repo": "configs/common/.zshrc_core" },
+      { "local": "~/.zsh/functions/_eza", "repo": "configs/common/_eza" },
+      { "local": "~/.zsh/functions/aliases.zsh", "repo": "configs/common/aliases.zsh" },
       { "local": "~/.config/starship/starship.toml", "repo": "configs/common/starship.toml" }
     ]
   },

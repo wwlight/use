@@ -11,7 +11,7 @@ init_manifest mac
 setup_directories() {
     info "步骤1/5: 正在创建目录结构..."
     local directories_json
-    directories_json=$(manifest_get "directories")
+    directories_json=$(manifest_directories)
 
     node -e "
         const dirs = JSON.parse(process.argv[1]);

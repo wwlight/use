@@ -4,12 +4,7 @@
     { "name": "clink-gizmos", "repo": "https://github.com/chrisant996/clink-gizmos" }
   ],
   "directories": [
-    "D:/SoftwareApps",
-    "~/.zsh/plugins",
-    "~/.zsh/cache",
-    "~/.zsh/functions",
-    "~/.zsh/zfunc",
-    "~/.config/starship"
+    "D:/SoftwareApps"
   ],
   "gitExtras": {
     "repo": "https://github.com/tj/git-extras.git"
@@ -20,9 +15,11 @@
   "softwareAppsDir": "D:/SoftwareApps",
   "sync": {
     "toRepo": [
-      { "local": "~/.zshrc", "repo": "configs/windows/.zshrc", "backup": true },
+      { "local": "~/.zshenv", "repo": "configs/common/.zshenv" },
+      { "local": "~/.zsh/.zshrc", "repo": "configs/windows/.zshrc", "backup": true },
       { "local": "~/.bashrc", "repo": "configs/windows/.bashrc" },
       { "local": "~/.zsh/functions/utils.zsh", "repo": "configs/windows/utils.zsh" },
+      { "local": "~/.zsh/functions/aliases.win.zsh", "repo": "configs/windows/aliases.zsh" },
       { "local": "~/.zsh/functions/scoop_services.zsh", "repo": "configs/windows/scoop_services.zsh" },
       { "local": "D:/SoftwareApps/Scoop/config/services-manifest.json", "repo": "configs/windows/services-manifest.json" },
       { "local": "~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1", "repo": "configs/windows/pwsh5_profile.ps1", "backup": true },

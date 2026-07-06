@@ -1,8 +1,6 @@
 $Script:ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 
-# ==============================
-# 平台特有（Windows）
-# ==============================
+# --- 平台特有（Windows） ---
 function Test-Administrator {
     try {
         $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -32,9 +30,7 @@ function Test-InteractivePrompt {
     }
 }
 
-# ==============================
-# 打印方法
-# ==============================
+# --- 打印方法 ---
 function Write-Info {
     param([string]$Message)
     Write-Host "[INFO] $Message" -ForegroundColor Green
@@ -74,9 +70,7 @@ function Write-ErrorAndExit {
     exit 1
 }
 
-# ==============================
-# 远程脚本下载（带进度）
-# ==============================
+# --- 远程脚本下载（带进度） ---
 function Invoke-RemoteScript {
     param(
         [Parameter(Mandatory)]
@@ -132,9 +126,24 @@ function Invoke-RemoteScript {
     Invoke-Expression $scriptText
 }
 
-# ==============================
-# manifest 读取
-# ==============================
+# --- manifest 读取 ---
+function Get-ManifestDirectories {
+    param([string]$Scope = 'windows')
+
+    $dirs = @()
+    $seen = @{}
+    foreach ($s in (Get-SyncScopes $Scope)) {
+        $m = Read-Manifest -Scope $s
+        foreach ($d in @($m.directories)) {
+            if ($d -and -not $seen.ContainsKey($d)) {
+                $seen[$d] = $true
+                $dirs += $d
+            }
+        }
+    }
+    return $dirs
+}
+
 function Read-Manifest {
     param([string]$Scope = 'windows')
 
@@ -164,9 +173,7 @@ function Write-SyncSelectError {
     }
 }
 
-# ==============================
-# 路径展开（~ -> $HOME）
-# ==============================
+# --- 路径展开（~ -> $HOME） ---
 function Get-ExpandedPath {
     param([string]$Path)
     if ($Path -match '^~(/|\\|$)') {
@@ -191,9 +198,7 @@ function Format-LocalDisplay {
     return $normalized
 }
 
-# ==============================
-# 文件复制（不保留 Zone.Identifier 等 ADS）
-# ==============================
+# --- 文件复制（不保留 Zone.Identifier 等 ADS） ---
 function Copy-FileDataOnly {
     param(
         [string]$SourceFile,
@@ -249,9 +254,7 @@ function Copy-FileDataOnly {
     }
 }
 
-# ==============================
-# 备份（支持自定义路径+日期序号+错误不中断）
-# ==============================
+# --- 备份（支持自定义路径+日期序号+错误不中断） ---
 function Backup-File {
     param(
         [string]$TargetFile,
@@ -285,9 +288,7 @@ function Backup-File {
     }
 }
 
-# ==============================
-# 解析 config-sync 方向参数
-# ==============================
+# --- 解析 config-sync 方向参数 ---
 function Resolve-SyncDirectionArg {
     param([string[]]$RawArgs)
 
@@ -463,9 +464,7 @@ function Get-SyncItemsFiltered {
     }
 }
 
-# ==============================
-# 配置同步入口
-# ==============================
+# --- 配置同步入口 ---
 function Invoke-ManifestSync {
     param(
         [string]$Scope,
