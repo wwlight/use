@@ -20,7 +20,6 @@ alias gc='git branch | fzf | xargs git checkout'
 
 # 其它
 alias cls="clear"
-alias reload='source "$HOME/.zshenv" 2>/dev/null; source "${ZDOTDIR:-$HOME/.zsh}/.zshrc"'
-alias ping="gping"
+alias reload='exec zsh -l'
 alias of="onefetch"
 alias oc="opencode"

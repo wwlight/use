@@ -7,8 +7,9 @@
 # PATH (N == Null Glob)
 typeset -U path PATH
 path=(
-    $HOME/.opencode/bin(N)
+    $HOME/.local/bin(N)  # uv tool
     $HOME/.npm_global/bin(N)
+    $HOME/.opencode/bin(N)
     $path
 )
 

@@ -17,7 +17,8 @@
       { "local": "~/.zsh/.zshrc_core", "repo": "configs/common/.zshrc_core" },
       { "local": "~/.zsh/functions/_eza", "repo": "configs/common/_eza" },
       { "local": "~/.zsh/functions/aliases.zsh", "repo": "configs/common/aliases.zsh" },
-      { "local": "~/.config/starship/starship.toml", "repo": "configs/common/starship.toml" }
+      { "local": "~/.config/starship/starship.toml", "repo": "configs/common/starship.toml" },
+      { "local": "~/.config/opencode/opencode.jsonc", "repo": "configs/common/opencode.jsonc", "backup": true }
     ]
   },
   "vitePlus": {

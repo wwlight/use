@@ -102,5 +102,4 @@ cask "the-unarchiver"
 cask "visual-studio-code"
 # Free messaging and calling application
 cask "wechat"
-uv "headroom-ai[all]"
 uv "serena-agent"

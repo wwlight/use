@@ -112,7 +112,7 @@ A：在 cmd 目标路径后追加 -NoLogo /k 或者 -nologo /k
 
 ## common 配置
 
-## 文件说明
+文件说明
 
 - [.zshenv](./.zshenv) - 设置 `ZDOTDIR`，**必须** sync 到 `~/.zshenv`（home 根目录，不在 `~/.zsh/` 内）
 - [.zshrc_core](./.zshrc_core) - mac / windows 公共核心 zsh 配置，sync 到 `~/.zsh/.zshrc_core`

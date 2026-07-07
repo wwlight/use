@@ -4,13 +4,15 @@
 # docker compose
 export COMPOSE_FILE=$HOME/.docker/compose.yml
 
+# vp (vite+) 环境初始化
+. "$HOME/.vite-plus/env"
+
 # PATH (N == Null Glob)
 typeset -U path PATH
 path=(
-    $HOME/.local/bin(N)
-    $HOME/.vite-plus/bin(N)
-    $HOME/.opencode/bin(N)
     $HOME/.cargo/bin(N)
+    $HOME/.local/bin(N)  # uv tool
+    $HOME/.opencode/bin(N)
     $path
 )
 

@@ -1,0 +1,121 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // MCP 服务器配置
+  "mcp": {
+    "mdn": {
+      "type": "remote",
+      "url": "https://mcp.mdn.mozilla.net/",
+      "enabled": true
+    },
+    "shadcn": {
+      "type": "local",
+      "command": [
+        "npx",
+        "shadcn@latest",
+        "mcp"
+      ],
+      "enabled": true
+    },
+    "headroom": {
+      "type": "local",
+      "command": [
+        "docker",
+        "exec",
+        "-i",
+        "headroom",
+        "headroom",
+        "mcp",
+        "serve",
+        "--proxy-url",
+        "http://localhost:20129"
+      ],
+      "enabled": true
+    },
+    "serena": {
+      "type": "local",
+      "command": [
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "ide"
+      ],
+      "enabled": true
+    }
+  },
+  // 服务端监听配置
+  "server": {
+    "port": 4096,
+    "hostname": "0.0.0.0",
+    "mdns": true
+  },
+  // 默认模型
+  "model": "omniroute/oc/deepseek-v4-flash-free",
+  // 注入到 system prompt 的额外指令
+  "instructions": [
+    "~/.config/opencode/skills/git-workspace/SKILL.md",
+    "~/.config/opencode/skills/karpathy-guidelines/SKILL.md",
+    "Use `mdn` when you need the latest MDN Web API docs, CSS/HTML/JS reference, or cross-browser compatibility data.",
+    "Use `shadcn` when you need to search, view source code, or add shadcn/ui components to the project.",
+    "Use `serena` tools for symbol-level code operations: find symbol definitions, references, rename across files, replace symbol bodies, insert code before/after symbols."
+  ],
+  // 权限控制
+  "permission": {
+    "edit": "ask",
+    "bash": {
+      "*": "ask",
+      "git *": "allow",
+      "npm *": "allow",
+      "grep *": "allow",
+      "ls *": "allow",
+      "which *": "allow"
+    }
+  },
+  "plugin": [],
+  // 模型提供商配置
+  "provider": {
+    "omniroute": {
+      "api": "openai-compatible",
+      "options": {
+        "baseURL": "http://127.0.0.1:20129/v1"
+      },
+      "models": {
+        "auto/best-free": {
+          "name": "best-free",
+          "description": "自动组合·最佳免费"
+        },
+        "oc/big-pickle": {
+          "name": "big-pickle",
+          "description": "OpenCode 免费模型"
+        },
+        "oc/deepseek-v4-flash-free": {
+          "name": "deepseek-v4-flash-free",
+          "description": "DeepSeek V4 免费版"
+        },
+        "oc/minimax-m3-free": {
+          "name": "minimax-m3-free",
+          "description": "MiniMax M3 免费版"
+        },
+        "oc/minimax-m2.5-free": {
+          "name": "minimax-m2.5-free",
+          "description": "MiniMax M2.5 免费版"
+        },
+        "oc/ling-2.6-1t-free": {
+          "name": "ling-2.6-1t-free",
+          "description": "Ling 2.6 免费版"
+        },
+        "oc/trinity-large-preview-free": {
+          "name": "trinity-large-preview-free",
+          "description": "Trinity 免费版"
+        },
+        "oc/nemotron-3-super-free": {
+          "name": "nemotron-3-super-free",
+          "description": "Nemotron 3 免费版"
+        },
+        "oc/qwen3.6-plus-free": {
+          "name": "qwen3.6-plus-free",
+          "description": "Qwen3.6 免费版"
+        }
+      }
+    }
+  }
+}
