@@ -26,8 +26,9 @@
     "installUrlSh": "https://vite.plus"
   },
   "zshPlugins": [
-    { "name": "fast-syntax-highlighting", "repo": "https://github.com/zdharma-continuum/fast-syntax-highlighting.git" },
+    { "name": "zsh-autocomplete", "repo": "https://github.com/marlonrichert/zsh-autocomplete.git" },
     { "name": "zsh-autosuggestions", "repo": "https://github.com/zsh-users/zsh-autosuggestions.git" },
+    { "name": "zsh-syntax-highlighting", "repo": "https://github.com/zsh-users/zsh-syntax-highlighting.git" },
     { "name": "zsh-completions", "repo": "https://github.com/zsh-users/zsh-completions.git" }
   ]
 }

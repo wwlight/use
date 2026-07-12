@@ -23,6 +23,7 @@ $ vpr setup                                      # 从仓库恢复软件（Brewf
 $ vpr sync 1                                     # 同步本地配置到仓库
 $ vpr sync 2                                     # 从仓库恢复配置到本地
 $ vpr sync                                       # 交互选择同步方向
+$ vpr zsh-plugin                                 # 安装/更新 zsh 插件
 ```
 - 命令会通过 [scripts/_dispatch.mjs](./scripts/_dispatch.mjs) 按当前操作系统自动分发（`mac` → `Homebrew`，`windows` → `Scoop`）。
 
@@ -65,6 +66,7 @@ $ vpr sync                                       # 交互选择同步方向
 
 ```sh
 $ vpr zsh                                        # 安装 zsh 到 git（已装 zsh 时可选择跳过插件）
+$ vpr zsh-plugin                                 # 安装/更新 zsh 插件
 $ vpr git-setup                                  # Git 全局配置
 $ vpr git-extras                                 # 安装 git-extras 插件
 $ vpr clink                                      # 安装 clink 插件（cmd 扩展）

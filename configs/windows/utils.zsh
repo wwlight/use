@@ -91,9 +91,10 @@ function history_clean() {
     { lines[++n] = $0 }
     END {
         for (i = n; i >= 1; i--) {
-            if (is_bad(lines[i])) continue
-            if (lines[i] ~ /^: [0-9]+:[0-9]+;/) continue
-            if (!seen[lines[i]]++) result[++count] = lines[i]
+            cmd = lines[i]
+            sub(/^: [0-9]+:[0-9]+;/, "", cmd)
+            if (is_bad(cmd)) continue
+            if (!seen[cmd]++) result[++count] = lines[i]
         }
         for (i = count; i > 0; i--) print result[i]
     }' > $tmp

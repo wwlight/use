@@ -6,11 +6,10 @@ alias lt='eza --tree --icons'
 
 # vp (vite+)
 alias v="vp"
-alias vc="v create"
-alias vr="v run"
-alias s="vr start"
-alias d="vr dev"
-alias b="vr build"
+alias vc="vp create"
+alias s="vpr start"
+alias d="vpr dev"
+alias b="vpr build"
 
 # git
 alias gp='git push'
@@ -23,3 +22,4 @@ alias cls="clear"
 alias reload='exec zsh -l'
 alias of="onefetch"
 alias oc="opencode"
+alias t="tldr"

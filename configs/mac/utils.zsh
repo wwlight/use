@@ -67,6 +67,7 @@ function history_clean() {
     local tmp=$(mktemp)
 
     grep -v $'\ufffd' $HISTFILE | tail -r | awk '
+    /^#/ { next }
     function is_bad(cmd) {
         if (length(cmd) <= 1) return 1
         if (cmd ~ /^(cat|node|python|python3|bash|cargo|rustc|uv|clear)$/) return 1
@@ -78,9 +79,10 @@ function history_clean() {
         return 0
     }
     {
-        if (is_bad($0)) next
-        if ($0 ~ /^: [0-9]+:[0-9]+;/) next
-        if (!seen[$0]++) result[++count] = $0
+        cmd = $0
+        sub(/^: [0-9]+:[0-9]+;/, "", cmd)
+        if (is_bad(cmd)) next
+        if (!seen[cmd]++) result[++count] = $0
     } END {
         for (i = count; i > 0; i--) print result[i]
     }' > $tmp

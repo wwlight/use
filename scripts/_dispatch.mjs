@@ -10,7 +10,7 @@ import { detectPlatform, isPowerShell, resolveScript, runBash, runPwsh } from '.
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
 
-const CROSS_PLATFORM_TASKS = ['pm', 'init', 'backup', 'setup', 'sync', 'vite-plus']
+const CROSS_PLATFORM_TASKS = ['pm', 'init', 'backup', 'setup', 'sync', 'vite-plus', 'zsh-plugin']
 const WIN_ONLY_TASKS = ['zsh', 'git-setup', 'git-extras', 'clink', 'hosts']
 const ALL_TASKS = [...CROSS_PLATFORM_TASKS, ...WIN_ONLY_TASKS]
 
@@ -235,7 +235,8 @@ async function runCrossPlatformTask(platform) {
     case 'sync':
       return platform === 'mac' ? runMacSync(scriptArgs) : runWinSync(scriptArgs)
     case 'vite-plus':
-      return runSubDispatch('common/_dispatch.mjs', 'vite-plus', scriptArgs)
+    case 'zsh-plugin':
+      return runSubDispatch('common/_dispatch.mjs', task, scriptArgs)
     default:
       return 1
   }

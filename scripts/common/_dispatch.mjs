@@ -9,6 +9,7 @@ const TASK_MAP = {
   sync: 'config-sync',
   setup: 'git-setup',
   'vite-plus': 'vite-plus-install',
+  'zsh-plugin': 'zsh-plugins-install',
 }
 
 const task = process.argv[2]

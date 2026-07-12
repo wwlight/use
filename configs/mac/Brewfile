@@ -45,6 +45,8 @@ brew "rustup"
 brew "sqlite"
 # Cross-shell prompt for astronauts
 brew "starship"
+# Very fast implementation of tldr in Rust
+brew "tealdeer"
 # Extremely fast Python package installer and resolver, written in Rust
 brew "uv"
 # High-performance data structure server that primarily serves key/value workloads

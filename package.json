@@ -11,6 +11,7 @@
     "sync": "node ./scripts/_dispatch.mjs sync",
     "vite-plus": "node ./scripts/_dispatch.mjs vite-plus",
     "zsh": "node ./scripts/_dispatch.mjs zsh",
+    "zsh-plugin": "node ./scripts/_dispatch.mjs zsh-plugin",
     "git-setup": "node ./scripts/_dispatch.mjs git-setup",
     "git-extras": "node ./scripts/_dispatch.mjs git-extras",
     "clink": "node ./scripts/_dispatch.mjs clink",

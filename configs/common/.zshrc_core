@@ -1,4 +1,4 @@
-# ~/.zsh/.zshrc_core — mac / windows 公共核心配置
+# ~/.zsh/.zshrc_core — 公共核心配置
 # 由 ~/.zshenv 设置 ZDOTDIR=$HOME/.zsh 后，zsh 从 ~/.zsh/.zshrc 加载平台配置，再 source 本文件
 
 # --- 环境变量 ---
@@ -9,54 +9,45 @@ export ZSH_FUNCTIONS=$ZSH/functions
 export ZSH_COMPDUMP=$ZSH_CACHE/.zcompdump-$HOST
 export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml
 export EZA_CONFIG_DIR=$HOME/.config/eza
-mkdir -p $ZSH_CACHE $ZSH_CACHE/zcompcache $ZSH_HISTORY
+[[ -d $ZSH_CACHE ]] || mkdir -p $ZSH_CACHE $ZSH_CACHE/zcompcache $ZSH_HISTORY
 
 # --- 历史记录 ---
 export HISTFILE=$ZSH_HISTORY/.zsh_history
 export HISTSIZE=5000
 export SAVEHIST=4000
-setopt append_history           # 追加写入（非覆盖）
-setopt inc_append_history       # 实时增量写入
-setopt hist_ignore_all_dups     # 忽略所有重复命令
-setopt hist_expire_dups_first   # 淘汰重复记录优先
-setopt hist_save_no_dups        # 保存时删除重复项
-setopt hist_find_no_dups        # 搜索时不显示重复项
-setopt hist_reduce_blanks       # 压缩多余空格
-setopt hist_ignore_space        # 忽略空格开头的命令
-setopt hist_verify              # 执行前确认历史命令
-unsetopt extended_history       # 不记录时间戳和持续时间
-unsetopt share_history          # 禁用会话间共享历史
-# 其它
-setopt auto_cd                  # 输入目录名自动cd
-setopt correct                  # 命令纠错
-setopt complete_in_word         # 在单词中间也能补全
-setopt always_to_end            # 补全后光标移到末尾
+setopt append_history
+setopt inc_append_history
+setopt hist_ignore_all_dups
+setopt hist_expire_dups_first
+setopt hist_save_no_dups
+setopt hist_find_no_dups
+setopt hist_reduce_blanks
+setopt hist_ignore_space
+setopt hist_verify
+setopt share_history
 
-# --- 补全系统 ---
+# --- shell 行为 ---
+setopt auto_cd
+setopt correct
+setopt complete_in_word
+setopt always_to_end
+
+# --- 插件 ---
 fpath=(
     $ZSH/plugins/zsh-completions/src
     $ZSH_FUNCTIONS
     $fpath
 )
-# 自定义补全 _*（须在 compinit 前 autoload）
 autoload -Uz $ZSH_FUNCTIONS/_*(N:t)
-# 补全缓存目录（默认 ~/.zcompcache）
 zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path $ZSH_CACHE/zcompcache
-autoload -Uz compinit
-if [[ -n $ZSH_COMPDUMP(#qN.mh+24) ]]; then
-    compinit -C -d $ZSH_COMPDUMP
-else
-    compinit -i -d $ZSH_COMPDUMP
-fi
 zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
 zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
-
-# --- 插件 ---
 plugins=(
-    fast-syntax-highlighting
+    zsh-autocomplete
     zsh-autosuggestions
+    zsh-syntax-highlighting
 )
 for plugin ($plugins); do
     p=$ZSH/plugins/$plugin/$plugin.plugin.zsh
@@ -68,22 +59,17 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 ZSH_AUTOSUGGEST_USE_ASYNC=1
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#53555c"
 
-# --- 工具初始化 ---
-command -v fzf    >/dev/null && source <(fzf --zsh)
-command -v zoxide >/dev/null && eval "$(zoxide init zsh --cmd cd)"
-command -v uv     >/dev/null && eval "$(uv generate-shell-completion zsh)"
-command -v uvx    >/dev/null && eval "$(uvx --generate-shell-completion zsh)"
-
-# --- starship ---
-function set_win_title() {
-    echo -ne "\033]0; $(basename "$USER") \007"
-}
-if command -v starship >/dev/null; then
-    eval "$(starship init zsh)"
-    starship_precmd_user_func="set_win_title"
+# --- 工具缓存 ---
+if [[ ! -s $ZSH_FUNCTIONS/tools-init.zsh ]]; then
+    {
+        command -v starship >/dev/null && starship init zsh
+        command -v fzf      >/dev/null && fzf --zsh
+        command -v zoxide   >/dev/null && zoxide init zsh --cmd cd
+        command -v uv       >/dev/null && uv generate-shell-completion zsh
+        command -v uvx      >/dev/null && uvx --generate-shell-completion zsh
+    } > $ZSH_FUNCTIONS/tools-init.zsh
 fi
-precmd_functions+=(set_win_title)
 
-# --- 自定义命令函数 (*.zsh，按文件名排序) ---
+# --- 自定义命令函数 ---
 funcfiles=($ZSH_FUNCTIONS/*.zsh(N))
 for f in ${(o)funcfiles}; do source $f; done
