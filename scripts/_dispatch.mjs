@@ -213,6 +213,7 @@ function runWinSetup() {
   return exitStatus(spawnSync('scoop', ['import', './configs/windows/scoop_backup.json'], {
     stdio: 'inherit',
     cwd: projectRoot,
+    shell: true,
   }))
 }
 

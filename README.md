@@ -116,8 +116,7 @@ A：在 cmd 目标路径后追加 -NoLogo /k 或者 -nologo /k
 
 文件说明
 
-- [.zshenv](./.zshenv) - 设置 `ZDOTDIR`，**必须** sync 到 `~/.zshenv`（home 根目录，不在 `~/.zsh/` 内）
-- [.zshrc_core](./.zshrc_core) - mac / windows 公共核心 zsh 配置，sync 到 `~/.zsh/.zshrc_core`
+- [.zshrc_core](./.zshrc_core) - mac / windows 公共核心 zsh 配置，sync 到 `~/.zsh/.zshrc_core`，由平台 `.zshrc` source
 - [aliases.zsh](./aliases.zsh) - 公共别名，sync 到 `~/.zsh/functions/aliases.zsh`
 - [_eza](./_eza) - [eza](https://eza.rocks/) 自动补全配置 | [官方地址](https://github.com/eza-community/eza/tree/main/completions/zsh)
 - [starship.toml](./starship.toml) - [starship](https://starship.rs/) 配置文件

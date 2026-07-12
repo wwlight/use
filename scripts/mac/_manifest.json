@@ -20,8 +20,7 @@
   },
   "sync": {
     "toRepo": [
-      { "local": "~/.zshenv", "repo": "configs/common/.zshenv" },
-      { "local": "~/.zsh/.zshrc", "repo": "configs/mac/.zshrc", "backup": true },
+      { "local": "~/.zshrc", "repo": "configs/mac/.zshrc", "backup": true },
       { "local": "~/.bashrc", "repo": "configs/mac/.bashrc" },
       { "local": "~/.zsh/functions/utils.zsh", "repo": "configs/mac/utils.zsh" },
       { "local": "~/.config/ghostty/config", "repo": "configs/mac/ghostty_config" },

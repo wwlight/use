@@ -1,15 +1,14 @@
 # ~/.zsh/.zshrc_core — 公共核心配置
-# 由 ~/.zshenv 设置 ZDOTDIR=$HOME/.zsh 后，zsh 从 ~/.zsh/.zshrc 加载平台配置，再 source 本文件
 
 # --- 环境变量 ---
-export ZSH=${ZSH:-$HOME/.zsh}
+export ZSH=$HOME/.zsh
 export ZSH_CACHE=$ZSH/cache
 export ZSH_HISTORY=$ZSH/history
 export ZSH_FUNCTIONS=$ZSH/functions
 export ZSH_COMPDUMP=$ZSH_CACHE/.zcompdump-$HOST
 export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml
 export EZA_CONFIG_DIR=$HOME/.config/eza
-[[ -d $ZSH_CACHE ]] || mkdir -p $ZSH_CACHE $ZSH_CACHE/zcompcache $ZSH_HISTORY
+[[ -d $ZSH_CACHE && -d $ZSH_HISTORY ]] || mkdir -p $ZSH_CACHE $ZSH_CACHE/zcompcache $ZSH_HISTORY
 
 # --- 历史记录 ---
 export HISTFILE=$ZSH_HISTORY/.zsh_history
@@ -44,6 +43,8 @@ zstyle ':completion:*' cache-path $ZSH_CACHE/zcompcache
 zstyle ':completion:*' menu select
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
 zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
+zstyle ':completion:*:*:*:files'  ignored-patterns '.*'
+zstyle ':completion:*:*:*:globbed-files' ignored-patterns '.*'
 plugins=(
     zsh-autocomplete
     zsh-autosuggestions

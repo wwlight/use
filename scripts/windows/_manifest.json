@@ -15,8 +15,7 @@
   "softwareAppsDir": "D:/SoftwareApps",
   "sync": {
     "toRepo": [
-      { "local": "~/.zshenv", "repo": "configs/common/.zshenv" },
-      { "local": "~/.zsh/.zshrc", "repo": "configs/windows/.zshrc", "backup": true },
+      { "local": "~/.zshrc", "repo": "configs/windows/.zshrc", "backup": true },
       { "local": "~/.bashrc", "repo": "configs/windows/.bashrc" },
       { "local": "~/.zsh/functions/utils.zsh", "repo": "configs/windows/utils.zsh" },
       { "local": "~/.zsh/functions/aliases.win.zsh", "repo": "configs/windows/aliases.zsh" },

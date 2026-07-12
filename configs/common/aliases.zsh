@@ -19,7 +19,7 @@ alias gc='git branch | fzf | xargs git checkout'
 
 # 其它
 alias cls="clear"
-alias reload='exec zsh -l'
+alias reload='source ~/.zshrc'
 alias of="onefetch"
 alias oc="opencode"
 alias t="tldr"

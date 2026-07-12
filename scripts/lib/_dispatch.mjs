@@ -48,6 +48,6 @@ export function runPwsh(scriptPath, args = []) {
 export function runBash(scriptPath, args = []) {
   return spawnSync('bash', [scriptPath, ...args], {
     stdio: 'inherit',
-    shell: false,
+    shell: true,
   })
 }

@@ -1,5 +1,5 @@
 #!/bin/zsh
-# ~/.zsh/.zshrc — windows
+# ~/.zshrc — windows
 
 # vp (vite+) 环境初始化
 . "$HOME/.vite-plus/env"
@@ -13,4 +13,4 @@ path=(
     $path
 )
 
-[[ -r $ZSH/.zshrc_core ]] && source $ZSH/.zshrc_core
+[[ -r $HOME/.zsh/.zshrc_core ]] && source $HOME/.zsh/.zshrc_core

@@ -1,269 +1,283 @@
 {
     "apps": [
         {
-            "Version": "26.02",
             "Source": "main",
+            "Version": "26.02",
             "Name": "7zip",
             "Updated": "2026-07-02T22:32:13.8590224+08:00",
             "Info": ""
         },
         {
-            "Version": "1.0.5",
             "Source": "main",
+            "Version": "1.0.5",
             "Name": "btop",
             "Updated": "2025-11-22T09:58:15.0577303+08:00",
             "Info": ""
         },
         {
-            "Version": "1.9.6",
             "Source": "extras",
+            "Version": "1.9.6",
             "Name": "clash-party",
             "Updated": "2026-07-03T03:12:31.9747385+08:00",
             "Info": ""
         },
         {
-            "Version": "1.9.28",
             "Source": "main",
+            "Version": "1.9.29",
             "Name": "clink",
-            "Updated": "2026-07-03T03:12:37.2605381+08:00",
+            "Updated": "2026-07-12T20:24:22.8573628+08:00",
             "Info": ""
         },
         {
-            "Version": "3.9.16",
             "Source": "extras",
+            "Version": "3.9.16",
             "Name": "cursor",
             "Updated": "2026-07-03T03:15:20.1036383+08:00",
             "Info": ""
         },
         {
-            "Version": "3.14.1",
             "Source": "main",
+            "Version": "3.14.1",
             "Name": "dark",
             "Updated": "2025-07-11T22:31:42.533029+08:00",
             "Info": ""
         },
         {
-            "Version": "0.23.4",
             "Source": "main",
+            "Version": "0.23.5",
             "Name": "eza",
-            "Updated": "2025-10-25T15:07:08.367353+08:00",
+            "Updated": "2026-07-12T20:24:28.4846611+08:00",
             "Info": ""
         },
         {
-            "Version": "3.4.0",
             "Source": "nerd-fonts",
+            "Version": "3.4.0",
             "Name": "FiraCode-NF",
             "Updated": "2025-07-11T23:32:36.9001981+08:00",
             "Info": ""
         },
         {
-            "Version": "3.4.0",
             "Source": "nerd-fonts",
+            "Version": "3.4.0",
             "Name": "FiraCode-NF-Mono",
             "Updated": "2025-07-11T23:32:51.8582786+08:00",
             "Info": ""
         },
         {
-            "Version": "11.2",
             "Source": "extras",
+            "Version": "11.2",
             "Name": "fscapture",
             "Updated": "2025-12-12T19:58:52.0668714+08:00",
             "Info": ""
         },
         {
-            "Version": "0.73.1",
             "Source": "main",
+            "Version": "0.74.0",
             "Name": "fzf",
-            "Updated": "2026-07-03T03:15:23.7999059+08:00",
+            "Updated": "2026-07-12T20:24:36.4874584+08:00",
             "Info": ""
         },
         {
-            "Version": "2.95.0",
             "Source": "main",
+            "Version": "2.96.0",
             "Name": "gh",
-            "Updated": "2026-07-03T03:15:33.4007138+08:00",
+            "Updated": "2026-07-12T20:25:15.951263+08:00",
             "Info": ""
         },
         {
-            "Version": "2.52.0",
             "Source": "main",
+            "Version": "2.52.0",
             "Name": "git",
             "Updated": "2025-11-26T21:05:33.3396295+08:00",
             "Info": "Held package"
         },
         {
-            "Version": "150.0.7871.47",
             "Source": "extras",
+            "Version": "150.0.7871.47",
             "Name": "googlechrome",
             "Updated": "2026-07-03T03:19:46.3196245+08:00",
             "Info": ""
         },
         {
-            "Version": "3.4.1",
+            "Source": "main",
+            "Version": "1.20.4",
+            "Name": "gping",
+            "Updated": "2026-07-03T03:19:49.1500718+08:00",
+            "Info": ""
+        },
+        {
             "Source": "extras",
+            "Version": "3.4.1",
             "Name": "hyper",
             "Updated": "2026-07-03T04:22:17.8457128+08:00",
             "Info": ""
         },
         {
-            "Version": "2.67.9",
             "Source": "main",
+            "Version": "2.67.9",
             "Name": "innounp",
             "Updated": "2026-07-03T03:19:51.4420466+08:00",
             "Info": ""
         },
         {
-            "Version": "1.0.6",
             "Source": "extras",
+            "Version": "1.0.6",
             "Name": "keyviz",
             "Updated": "2025-07-11T23:58:35.2085869+08:00",
             "Info": ""
         },
         {
-            "Version": "1.17.0",
             "Source": "extras",
+            "Version": "1.17.0",
             "Name": "localsend",
             "Updated": "2026-03-31T16:12:12.4424758+08:00",
             "Info": ""
         },
         {
-            "Version": "1.522",
             "Source": "nerd-fonts",
+            "Version": "1.522",
             "Name": "LXGWWenKaiMono",
             "Updated": "2026-03-18T18:49:38.2650806+08:00",
             "Info": ""
         },
         {
-            "Version": "7.9",
             "Source": "nerd-fonts",
+            "Version": "7.9",
             "Name": "Maple-Mono-NF-CN",
             "Updated": "2026-01-05T12:23:00.3051742+08:00",
             "Info": ""
         },
         {
-            "Version": "3.4.0",
             "Source": "nerd-fonts",
+            "Version": "3.4.0",
             "Name": "Monaspace-NF-Mono",
             "Updated": "2025-07-11T23:36:55.4801842+08:00",
             "Info": ""
         },
         {
-            "Version": "1.8.19",
             "Source": "extras",
+            "Version": "1.8.19",
             "Name": "motrix",
             "Updated": "2025-07-30T21:04:42.6381915+08:00",
             "Info": ""
         },
         {
-            "Version": "1.31.2",
             "Source": "main",
+            "Version": "1.31.2",
             "Name": "nginx",
             "Updated": "2026-07-03T03:19:57.9414569+08:00",
             "Info": ""
         },
         {
-            "Version": "3.39.9",
             "Source": "main",
+            "Version": "3.39.9",
             "Name": "ngrok",
             "Updated": "2026-07-03T03:13:42.1366678+08:00",
             "Info": ""
         },
         {
-            "Version": "1.12.7",
             "Source": "extras",
+            "Version": "1.12.7",
             "Name": "obsidian",
             "Updated": "2026-03-31T18:49:08.8253343+08:00",
             "Info": ""
         },
         {
-            "Version": "2.27.1",
             "Source": "extras",
+            "Version": "2.27.1",
             "Name": "onefetch",
             "Updated": "2026-03-23T13:34:29.8003519+08:00",
             "Info": ""
         },
         {
-            "Version": "1.17.13",
             "Source": "main",
+            "Version": "1.17.18",
             "Name": "opencode",
-            "Updated": "2026-07-03T03:20:18.1574302+08:00",
+            "Updated": "2026-07-12T20:27:52.1728778+08:00",
             "Info": ""
         },
         {
-            "Version": "260622",
             "Source": "extras",
+            "Version": "260622",
             "Name": "potplayer",
             "Updated": "2026-07-03T03:20:43.8200592+08:00",
             "Info": ""
         },
         {
-            "Version": "3.1.1",
             "Source": "main",
+            "Version": "3.1.1",
             "Name": "pyenv",
             "Updated": "2025-07-11T22:39:27.2823798+08:00",
             "Info": ""
         },
         {
-            "Version": "1.26.0",
             "Source": "main",
+            "Version": "1.26.0",
             "Name": "starship",
             "Updated": "2026-07-03T03:20:48.0852015+08:00",
             "Info": ""
         },
         {
-            "Version": "5.0.1",
             "Source": "extras",
+            "Version": "5.0.1",
             "Name": "switchhosts",
             "Updated": "2026-07-03T03:24:18.120794+08:00",
             "Info": ""
         },
         {
-            "Version": "0.11.26",
             "Source": "main",
-            "Name": "uv",
-            "Updated": "2026-07-03T03:21:00.642476+08:00",
+            "Version": "1.8.1",
+            "Name": "tealdeer",
+            "Updated": "2026-07-12T21:47:36.1408255+08:00",
             "Info": ""
         },
         {
-            "Version": "14.51.36247.0",
+            "Source": "main",
+            "Version": "0.11.28",
+            "Name": "uv",
+            "Updated": "2026-07-12T20:29:07.3528799+08:00",
+            "Info": ""
+        },
+        {
             "Source": "extras",
+            "Version": "14.51.36247.0",
             "Name": "vcredist2022",
             "Updated": "2026-07-03T03:22:10.3943136+08:00",
             "Info": ""
         },
         {
-            "Version": "1.127.0",
             "Source": "extras",
+            "Version": "1.127.0",
             "Name": "vscode",
             "Updated": "2026-07-03T03:28:43.483221+08:00",
             "Info": ""
         },
         {
-            "Version": "4.1.11.24",
             "Source": "extras",
+            "Version": "4.1.11.24",
             "Name": "wechat",
             "Updated": "2026-07-03T03:23:41.2576529+08:00",
             "Info": ""
         },
         {
-            "Version": "7.23",
             "Source": "extras",
+            "Version": "7.23",
             "Name": "winrar",
             "Updated": "2026-07-03T03:23:51.9704217+08:00",
             "Info": ""
         },
         {
-            "Version": "3.0.0-alpha.11",
             "Source": "versions",
+            "Version": "3.0.0-alpha.11",
             "Name": "winsw-pre",
             "Updated": "2026-07-03T03:32:52.1073187+08:00",
             "Info": ""
         },
         {
-            "Version": "0.9.9",
             "Source": "main",
+            "Version": "0.10.0",
             "Name": "zoxide",
-            "Updated": "2026-03-18T21:51:42.4906969+08:00",
+            "Updated": "2026-07-12T20:29:13.1757175+08:00",
             "Info": ""
         }
     ],
@@ -271,8 +285,8 @@
         {
             "Name": "main",
             "Source": "https://github.com/ScoopInstaller/Main",
-            "Updated": "2026-07-02T21:12:24+08:00",
-            "Manifests": 1601
+            "Updated": "2026-07-12T18:25:10+08:00",
+            "Manifests": 1611
         },
         {
             "Name": "extras",
@@ -283,7 +297,7 @@
         {
             "Name": "versions",
             "Source": "https://github.com/ScoopInstaller/Versions",
-            "Updated": "2026-07-03T02:05:17+08:00",
+            "Updated": "2026-07-12T18:03:24+08:00",
             "Manifests": 592
         },
         {

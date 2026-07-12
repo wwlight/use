@@ -1,5 +1,5 @@
 #!/bin/zsh
-# ~/.zsh/.zshrc — mac
+# ~/.zshrc — mac
 
 # docker compose
 export COMPOSE_FILE=$HOME/.docker/compose.yml
@@ -26,4 +26,4 @@ if [[ -s "${SDKMAN_DIR}/bin/sdkman-init.sh" ]]; then
     }
 fi
 
-[[ -r $ZSH/.zshrc_core ]] && source $ZSH/.zshrc_core
+[[ -r $HOME/.zsh/.zshrc_core ]] && source $HOME/.zsh/.zshrc_core
