@@ -7,7 +7,7 @@
 $ bash ./scripts/common/vite-plus-install.sh
 
 # zip 下载解压后需先解除脚本封锁（git clone 可跳过）
-$ powershell -NoProfile -ExecutionPolicy Bypass -Command "Get-ChildItem -LiteralPath './scripts' -Recurse -Include *.ps1,*.psm1 | Unblock-File -ErrorAction SilentlyContinue"
+$ powershell -NoProfile -ExecutionPolicy Bypass -Command { 'scripts','configs' | ForEach-Object { Get-ChildItem -LiteralPath "./$_" -Recurse -Include *.ps1,*.psm1 | Unblock-File -ErrorAction SilentlyContinue } }
 # windows PowerShell
 $ powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/common/vite-plus-install.ps1
 ```
