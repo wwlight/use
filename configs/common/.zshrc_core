@@ -41,6 +41,7 @@ autoload -Uz $ZSH_FUNCTIONS/_*(N:t)
 zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path $ZSH_CACHE/zcompcache
 zstyle ':completion:*' menu select
+zstyle ':autocomplete:*' timeout 10
 zstyle ':completion:*' matcher-list 'm:{a-zA-Z}={A-Za-z}'
 zstyle ':completion:*' list-colors "${(s.:.)LS_COLORS}"
 zstyle ':completion:*:*:*:files'  ignored-patterns '.*'
@@ -66,10 +67,17 @@ if [[ ! -s $ZSH_FUNCTIONS/tools-init.zsh ]]; then
         command -v starship >/dev/null && starship init zsh
         command -v fzf      >/dev/null && fzf --zsh
         command -v zoxide   >/dev/null && zoxide init zsh --cmd cd
-        command -v uv       >/dev/null && uv generate-shell-completion zsh
-        command -v uvx      >/dev/null && uvx --generate-shell-completion zsh
     } > $ZSH_FUNCTIONS/tools-init.zsh
 fi
+
+# --- uv 补全懒加载 ---
+_uv_lazy() {
+    local _c=$1 _f=$2; eval "
+        _$c() { unset -f _$c; eval \"\$(command $c $_f zsh 2>/dev/null)\"; _$c \"\$@\" }
+        compdef _$c $c"
+}
+command -v uv  >/dev/null && _uv_lazy uv  generate-shell-completion
+command -v uvx >/dev/null && _uv_lazy uvx --generate-shell-completion
 
 # --- 自定义命令函数 ---
 funcfiles=($ZSH_FUNCTIONS/*.zsh(N))
