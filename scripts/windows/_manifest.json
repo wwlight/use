@@ -11,6 +11,17 @@
   },
   "githubHostsUrl": "https://raw.hellogithub.com/hosts",
   "scoopBackup": "configs/windows/scoop_backup.json",
+  "scoopBackupLite": "configs/windows/scoop_backup.lite.json",
+  "scoopLiteApps": [
+    "7zip",
+    "eza",
+    "FiraCode-NF-Mono",
+    "fzf",
+    "git",
+    "starship",
+    "winsw-pre",
+    "zoxide"
+  ],
   "scoopDir": "D:\\SoftwareApps\\Scoop",
   "softwareAppsDir": "D:/SoftwareApps",
   "sync": {
@@ -21,7 +32,7 @@
       { "local": "~/.zsh/functions/aliases.win.zsh", "repo": "configs/windows/aliases.zsh" },
       { "local": "~/.zsh/functions/scoop_services.zsh", "repo": "configs/windows/scoop_services.zsh" },
       { "local": "D:/SoftwareApps/Scoop/config/services-manifest.json", "repo": "configs/windows/services-manifest.json" },
-      { "local": "D:/SoftwareApps/Scoop/persist/clash-party/data/mihomo.yaml", "repo": "configs/common/mihomo.yaml" },
+      { "local": "D:/SoftwareApps/Scoop/persist/clash-party/data/mihomo.yaml", "repo": "configs/common/mihomo.yaml", "lite": false },
       { "local": "~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1", "repo": "configs/windows/pwsh5_profile.ps1", "backup": true },
       { "local": "~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1", "repo": "configs/windows/pwsh7_profile.ps1", "backup": true }
     ]

@@ -1,5 +1,4 @@
 tap "anomalyco/tap", trusted: true
-tap "oven-sh/bun", trusted: true
 tap "sdkman/tap", trusted: true
 # Resource monitor. C++ version and continuation of bashtop and bpytop
 brew "btop"
@@ -11,8 +10,6 @@ brew "docker"
 brew "docker-compose"
 # Modern, maintained replacement for ls
 brew "eza"
-# Play, record, convert, and stream select audio and video codecs
-brew "ffmpeg"
 # Command-line fuzzy finder written in Go
 brew "fzf"
 # GNU internationalization (i18n) and localization (l10n) library

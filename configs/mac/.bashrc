@@ -7,5 +7,5 @@ eval "$(zoxide init bash --cmd cd)"
 
 . "$HOME/.cargo/env"
 
-# Vite+ bin (https://viteplus.dev)
-. "$HOME/.vite-plus/env"
+# vite+ 环境初始化
+[[ -r $HOME/.vite-plus/env ]] && . "$HOME/.vite-plus/env"

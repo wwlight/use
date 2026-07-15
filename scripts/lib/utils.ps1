@@ -36,6 +36,11 @@ function Write-Info {
     Write-Host "[INFO] $Message" -ForegroundColor Green
 }
 
+function Write-Step {
+    param([string]$Message)
+    Write-Host "[INFO] $Message" -ForegroundColor Magenta
+}
+
 function Write-Backup {
     param([string]$Message)
     Write-Host "[INFO] $Message" -ForegroundColor Cyan
@@ -68,62 +73,6 @@ function Write-ErrorAndExit {
     param([string]$Message)
     Write-Host "[ERROR] $Message" -ForegroundColor Red
     exit 1
-}
-
-# --- 远程脚本下载（带进度） ---
-function Invoke-RemoteScript {
-    param(
-        [Parameter(Mandatory)]
-        [string]$Url,
-        [string]$Label = '远程脚本'
-    )
-
-    Write-Info "正在下载 $Label ..."
-    Write-Host "  $Url" -ForegroundColor DarkGray
-
-    $request = [System.Net.HttpWebRequest]::Create($Url)
-    $request.Timeout = 300000
-    $request.UserAgent = 'use-main/1.0'
-
-    try {
-        $response = $request.GetResponse()
-    }
-    catch {
-        Write-ErrorAndExit "下载失败: $Url`n$($_.Exception.Message)"
-    }
-
-    $totalBytes = $response.ContentLength
-    $stream = $response.GetResponseStream()
-    $buffer = New-Object byte[] 8192
-    $downloaded = 0L
-    $ms = New-Object System.IO.MemoryStream
-
-    try {
-        while (($read = $stream.Read($buffer, 0, $buffer.Length)) -gt 0) {
-            $ms.Write($buffer, 0, $read)
-            $downloaded += $read
-            if ($totalBytes -gt 0) {
-                $pct = [int][math]::Min(100, ($downloaded * 100 / $totalBytes))
-                $status = '{0:N1} / {1:N1} KB' -f ($downloaded / 1KB), ($totalBytes / 1KB)
-                Write-Progress -Activity "下载 $Label" -Status $status -PercentComplete $pct
-            }
-            else {
-                $status = '{0:N1} KB' -f ($downloaded / 1KB)
-                Write-Progress -Activity "下载 $Label" -Status $status
-            }
-        }
-    }
-    finally {
-        Write-Progress -Activity "下载 $Label" -Completed
-        $stream.Close()
-        $response.Close()
-    }
-
-    Write-Info "下载完成 ($('{0:N1}' -f ($downloaded / 1KB)) KB)"
-    Write-Info '正在执行安装脚本（可能需要几分钟）...'
-
-    $scriptText = [System.Text.Encoding]::UTF8.GetString($ms.ToArray())
-    Invoke-Expression $scriptText
 }
 
 # --- manifest 读取 ---
@@ -416,6 +365,9 @@ function Get-SyncItemsFiltered {
     foreach ($s in $Scopes) {
         $manifest = Read-Manifest -Scope $s
         foreach ($item in $manifest.sync.toRepo) {
+            if ($env:SYNC_PROFILE -eq 'lite' -and $item.PSObject.Properties['lite'] -and $item.lite -eq $false) {
+                continue
+            }
             $items += [PSCustomObject]@{
                 local  = $item.local
                 repo   = $item.repo

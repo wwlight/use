@@ -10,14 +10,13 @@ function l { eza -l --icons @args }
 function la { eza -la --icons @args }
 function lt { eza --tree --icons @args }
 
-# vp (vite+)
-. "$HOME/.vite-plus/env.ps1" # 环境初始化
+# vite+
+if (Test-Path "$HOME/.vite-plus/env.ps1") { . "$HOME/.vite-plus/env.ps1" }
 function v { vp @args }
-function vc { v create @args }
-function vr { v run @args }
-function s { vr start @args }
-function d { vr dev @args }
-function b { vr build @args }
+function vc { vp create @args }
+function s { vpr start @args }
+function d { vpr dev @args }
+function b { vpr build @args }
 
 # git
 function gp { git push @args }

@@ -18,12 +18,8 @@
       { "local": "~/.zsh/functions/_eza", "repo": "configs/common/_eza" },
       { "local": "~/.zsh/functions/aliases.zsh", "repo": "configs/common/aliases.zsh" },
       { "local": "~/.config/starship/starship.toml", "repo": "configs/common/starship.toml" },
-      { "local": "~/.config/opencode/opencode.jsonc", "repo": "configs/common/opencode.jsonc", "backup": true }
+      { "local": "~/.config/opencode/opencode.jsonc", "repo": "configs/common/opencode.jsonc", "backup": true, "lite": false }
     ]
-  },
-  "vitePlus": {
-    "installUrlPs1": "https://vite.plus/ps1",
-    "installUrlSh": "https://vite.plus"
   },
   "zshPlugins": [
     { "name": "zsh-autocomplete", "repo": "https://github.com/marlonrichert/zsh-autocomplete.git" },

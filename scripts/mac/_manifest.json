@@ -1,5 +1,6 @@
 {
   "brewfile": "configs/mac/Brewfile",
+  "brewfileLite": "configs/mac/Brewfile.lite",
   "brewMirrors": {
     "official": {
       "installScript": "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
@@ -8,14 +9,12 @@
       "apiDomain": "https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api",
       "bottleDomain": "https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles",
       "brewGitRemote": "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git",
-      "coreGitRemote": "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/homebrew-core.git",
       "installGitRepo": "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/install.git"
     },
     "ustc": {
       "apiDomain": "https://mirrors.ustc.edu.cn/homebrew-bottles/api",
       "bottleDomain": "https://mirrors.ustc.edu.cn/homebrew-bottles",
-      "brewGitRemote": "https://mirrors.ustc.edu.cn/brew.git",
-      "coreGitRemote": "https://mirrors.ustc.edu.cn/homebrew-core.git"
+      "brewGitRemote": "https://mirrors.ustc.edu.cn/brew.git"
     }
   },
   "sync": {
@@ -24,8 +23,8 @@
       { "local": "~/.bashrc", "repo": "configs/mac/.bashrc" },
       { "local": "~/.zsh/functions/utils.zsh", "repo": "configs/mac/utils.zsh" },
       { "local": "~/.config/ghostty/config", "repo": "configs/mac/ghostty_config" },
-      { "local": "~/Library/Application Support/mihomo-party/mihomo.yaml", "repo": "configs/common/mihomo.yaml" }
+      { "local": "~/Library/Application Support/mihomo-party/mihomo.yaml", "repo": "configs/common/mihomo.yaml", "lite": false }
     ]
   },
-  "zprofile": "~/.zsh/.zprofile"
+  "zprofile": "~/.zprofile"
 }

@@ -3,13 +3,13 @@
 
 $manifest = Read-Manifest
 
-Write-Info '步骤1/4: 检查 scoop 安装...'
+Write-Step '步骤1/4: 检查 scoop 安装...'
 if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
     Write-ErrorAndExit '未检测到 scoop 安装，请先安装 scoop'
 }
 Write-Info 'scoop 已安装'
 
-Write-Info '步骤2/4: 检查 clink 安装...'
+Write-Step '步骤2/4: 检查 clink 安装...'
 if (-not (Get-Command clink -ErrorAction SilentlyContinue)) {
     Write-Warn '未检测到 clink，正在通过 scoop 安装...'
     scoop install clink
@@ -17,7 +17,7 @@ if (-not (Get-Command clink -ErrorAction SilentlyContinue)) {
     Write-Info 'clink 安装成功'
 }
 else {
-    Write-Info 'clink 已安装'
+    Write-Info 'clink 已安装，跳过'
 }
 
 $clinkPath = (scoop prefix clink).Trim()
@@ -29,7 +29,7 @@ $scriptsPath = Join-Path $clinkPath 'scripts'
 Write-Info 'Clink 安装路径:'
 Write-Host $clinkPath
 
-Write-Info '步骤3/4: 处理插件...'
+Write-Step '步骤3/4: 处理插件...'
 foreach ($plugin in $manifest.clinkPlugins) {
     $targetPath = Join-Path $scriptsPath $plugin.name
     if (-not (Test-Path $targetPath)) {
@@ -43,7 +43,7 @@ foreach ($plugin in $manifest.clinkPlugins) {
         }
     }
     else {
-        Write-Info "插件 $($plugin.name) 已存在，跳过下载"
+        Write-Info "插件 $($plugin.name) 已存在，跳过"
     }
 }
 
@@ -60,7 +60,7 @@ else {
     Write-Info "$scriptsPath 注册成功"
 }
 
-Write-Info '步骤4/4: 启用 clink 自动运行...'
+Write-Step '步骤4/4: 启用 clink 自动运行...'
 clink set tips.enable false
 clink autorun install -- --quiet
 if ($LASTEXITCODE -ne 0) {

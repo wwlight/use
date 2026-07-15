@@ -26,6 +26,6 @@ foreach ($plugin in $manifest.zshPlugins) {
         }
     }
     else {
-        Write-Info "插件 $($plugin.name) 已存在，跳过下载"
+        Write-Info "插件 $($plugin.name) 已存在，跳过"
     }
 }

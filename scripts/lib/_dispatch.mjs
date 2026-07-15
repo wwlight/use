@@ -31,14 +31,20 @@ export function unblockPowerShellScripts() {
   }
 }
 
+/** Strip npm/vpr `--` arg separators (e.g. `vpr pm -- ustc`). */
+export function stripArgSeparator(args = []) {
+  return args.filter((arg) => arg !== '--')
+}
+
 export function runPwsh(scriptPath, args = []) {
   unblockPowerShellScripts()
+  const cleanArgs = stripArgSeparator(args)
 
-  const pwsh = spawnSync('pwsh', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, ...args], {
+  const pwsh = spawnSync('pwsh', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, ...cleanArgs], {
     stdio: 'inherit',
   })
   if (pwsh.error && pwsh.error.code === 'ENOENT') {
-    return spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, ...args], {
+    return spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, ...cleanArgs], {
       stdio: 'inherit',
     })
   }
@@ -46,7 +52,7 @@ export function runPwsh(scriptPath, args = []) {
 }
 
 export function runBash(scriptPath, args = []) {
-  return spawnSync('bash', [scriptPath, ...args], {
+  return spawnSync('bash', [scriptPath, ...stripArgSeparator(args)], {
     stdio: 'inherit',
     shell: true,
   })

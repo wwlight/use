@@ -3,7 +3,6 @@
 
 $manifest = Read-Manifest
 $scoopDir = $manifest.scoopDir
-$vitePlusScript = Join-Path $ScriptDir 'common/vite-plus-install.ps1'
 
 if (Get-Command scoop -ErrorAction SilentlyContinue) {
     Write-Info 'scoop 已安装，跳过'
@@ -41,6 +40,3 @@ else {
         Write-Warn 'scoop 已安装，但当前 shell 未识别 scoop 命令，请重新打开终端'
     }
 }
-
-& $vitePlusScript
-if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }

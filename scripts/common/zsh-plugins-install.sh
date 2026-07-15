@@ -27,6 +27,6 @@ node -e "
         }
         info "$plugin_name 下载完成"
     else
-        info "插件 $plugin_name 已存在，跳过下载"
+        info "插件 $plugin_name 已存在，跳过"
     fi
 done

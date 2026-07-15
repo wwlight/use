@@ -1,0 +1,14 @@
+# 尝鲜版：仅安装配置可跑通所需的最小集合
+# Modern, maintained replacement for ls
+brew "eza"
+# Command-line fuzzy finder written in Go
+brew "fzf"
+# Distributed revision control system
+brew "git"
+# Cross-shell prompt for astronauts
+brew "starship"
+# Shell extension to navigate your filesystem faster
+brew "zoxide"
+# Terminal emulator that uses platform-native UI and GPU acceleration
+cask "ghostty"
+cask "font-fira-code-nerd-font"

@@ -1,6 +1,6 @@
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { isPowerShell, resolveScript, runBash, runPwsh } from '../lib/_dispatch.mjs'
+import { isPowerShell, resolveScript, runBash, runPwsh, stripArgSeparator } from '../lib/_dispatch.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -14,7 +14,7 @@ const TASK_MAP = {
 }
 
 const task = process.argv[2]
-const scriptArgs = process.argv.slice(3)
+const scriptArgs = stripArgSeparator(process.argv.slice(3))
 
 if (!task || !TASK_MAP[task]) {
   console.error(`用法: node dispatch.mjs <${Object.keys(TASK_MAP).join('|')}> [args...]`)

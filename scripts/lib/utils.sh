@@ -1,23 +1,19 @@
 #!/bin/bash
 
 # --- 颜色定义和打印方法 ---
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[0;33m'
-CYAN='\033[0;36m'
-NC='\033[0m' # No Color
+RED=$'\033[0;31m'
+GREEN=$'\033[0;32m'
+YELLOW=$'\033[0;33m'
+CYAN=$'\033[0;36m'
+MAGENTA=$'\033[0;35m'
+NC=$'\033[0m'
 
 safe_echo() {
-    if command -v printf >/dev/null && printf "%b" "$1" >/dev/null 2>&1; then
-        printf "%b\n" "$1"
-    elif echo -e "$1" >/dev/null 2>&1; then
-        echo -e "$1"
-    else
-        echo "$1"
-    fi
+    printf '%s\n' "$1"
 }
 
 info() { safe_echo "${GREEN}[INFO]${NC} $1"; }
+step() { safe_echo "${MAGENTA}[INFO]${NC} $1"; }
 backup_info() { safe_echo "${CYAN}[INFO]${NC} $1"; }
 warn() { safe_echo "${YELLOW}[WARN]${NC} $1"; }
 error() { safe_echo "${RED}[ERROR]${NC} $1"; exit 1; }
@@ -279,7 +275,9 @@ manifest_sync_pairs() {
                 process.exit(1);
             }
             const m = require(manifestPath);
+            const liteOnly = process.env.SYNC_PROFILE === 'lite';
             for (const item of m.sync.toRepo) {
+                if (liteOnly && item.lite === false) continue;
                 process.stdout.write(item.local + '\t' + item.repo + '\t' + (item.backup ? '1' : '0') + '\n');
             }
         }

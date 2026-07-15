@@ -1,0 +1,80 @@
+{
+    "apps": [
+        {
+            "Source": "main",
+            "Version": "26.02",
+            "Name": "7zip",
+            "Updated": "2026-07-02T22:32:13.8590224+08:00",
+            "Info": ""
+        },
+        {
+            "Source": "main",
+            "Version": "0.23.5",
+            "Name": "eza",
+            "Updated": "2026-07-12T20:24:28.4846611+08:00",
+            "Info": ""
+        },
+        {
+            "Source": "nerd-fonts",
+            "Version": "3.4.0",
+            "Name": "FiraCode-NF-Mono",
+            "Updated": "2025-07-11T23:32:51.8582786+08:00",
+            "Info": ""
+        },
+        {
+            "Source": "main",
+            "Version": "0.74.0",
+            "Name": "fzf",
+            "Updated": "2026-07-12T20:24:36.4874584+08:00",
+            "Info": ""
+        },
+        {
+            "Source": "main",
+            "Version": "2.52.0",
+            "Name": "git",
+            "Updated": "2025-11-26T21:05:33.3396295+08:00",
+            "Info": "Held package"
+        },
+        {
+            "Source": "main",
+            "Version": "1.26.0",
+            "Name": "starship",
+            "Updated": "2026-07-03T03:20:48.0852015+08:00",
+            "Info": ""
+        },
+        {
+            "Source": "versions",
+            "Version": "3.0.0-alpha.11",
+            "Name": "winsw-pre",
+            "Updated": "2026-07-03T03:32:52.1073187+08:00",
+            "Info": ""
+        },
+        {
+            "Source": "main",
+            "Version": "0.10.0",
+            "Name": "zoxide",
+            "Updated": "2026-07-12T20:29:13.1757175+08:00",
+            "Info": ""
+        }
+    ],
+    "buckets": [
+        {
+            "Name": "main",
+            "Source": "https://github.com/ScoopInstaller/Main",
+            "Updated": "2026-07-12T18:25:10+08:00",
+            "Manifests": 1611
+        },
+        {
+            "Name": "versions",
+            "Source": "https://github.com/ScoopInstaller/Versions",
+            "Updated": "2026-07-12T18:03:24+08:00",
+            "Manifests": 592
+        },
+        {
+            "Name": "nerd-fonts",
+            "Source": "https://github.com/matthewjberger/scoop-nerd-fonts",
+            "Updated": "2026-06-28T02:09:10+08:00",
+            "Manifests": 367
+        }
+    ]
+}

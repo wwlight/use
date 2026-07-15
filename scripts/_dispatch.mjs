@@ -1,21 +1,23 @@
 #!/usr/bin/env node
 import { spawnSync } from 'node:child_process'
+import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as readline from 'node:readline/promises'
 import { cleanupSyncTempFile, readSyncPairLines } from './lib/sync-pairs.mjs'
-import { detectPlatform, isPowerShell, resolveScript, runBash, runPwsh } from './lib/_dispatch.mjs'
+import { writeScoopLiteBackup } from './lib/scoop-lite-backup.mjs'
+import { detectPlatform, isPowerShell, resolveScript, runBash, runPwsh, stripArgSeparator } from './lib/_dispatch.mjs'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
 
-const CROSS_PLATFORM_TASKS = ['pm', 'init', 'backup', 'setup', 'sync', 'vite-plus', 'zsh-plugin']
+const CROSS_PLATFORM_TASKS = ['pm', 'init', 'backup', 'setup', 'sync', 'zsh-plugin']
 const WIN_ONLY_TASKS = ['zsh', 'git-setup', 'git-extras', 'clink', 'hosts']
 const ALL_TASKS = [...CROSS_PLATFORM_TASKS, ...WIN_ONLY_TASKS]
 
 const task = process.argv[2]
-const scriptArgs = process.argv.slice(3)
+const scriptArgs = stripArgSeparator(process.argv.slice(3))
 
 function exitStatus(result) {
   return result?.status ?? 1
@@ -73,11 +75,29 @@ function runMacSync(args) {
 }
 
 function runWinBackup() {
-  return exitStatus(spawnSync('scoop export > ./configs/windows/scoop_backup.json', {
+  const manifestPath = path.join(__dirname, 'windows/_manifest.json')
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+  const fullRel = manifest.scoopBackup || 'configs/windows/scoop_backup.json'
+
+  const exportStatus = exitStatus(spawnSync(`scoop export > ./${fullRel}`, {
     stdio: 'inherit',
     shell: true,
     cwd: projectRoot,
   }))
+  if (exportStatus !== 0) return exportStatus
+
+  try {
+    const { missing, written } = writeScoopLiteBackup(projectRoot, manifest)
+    console.log(`\x1b[32m[INFO]\x1b[0m 已生成尝鲜版备份（${written} 个应用）: ${manifest.scoopBackupLite}`)
+    if (missing.length > 0) {
+      console.warn(`\x1b[33m[WARN]\x1b[0m 尝鲜版清单中未安装，已跳过: ${missing.join(', ')}`)
+    }
+    return 0
+  }
+  catch (err) {
+    console.error(`\x1b[31m[ERROR]\x1b[0m 生成尝鲜版备份失败: ${err.message}`)
+    return 1
+  }
 }
 
 function parseSyncDirection(args) {
@@ -235,7 +255,6 @@ async function runCrossPlatformTask(platform) {
       return platform === 'mac' ? runMacSetup() : runWinSetup()
     case 'sync':
       return platform === 'mac' ? runMacSync(scriptArgs) : runWinSync(scriptArgs)
-    case 'vite-plus':
     case 'zsh-plugin':
       return runSubDispatch('common/_dispatch.mjs', task, scriptArgs)
     default:

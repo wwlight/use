@@ -38,7 +38,6 @@ mirror_exports() {
             lines.push('# Homebrew 镜像配置 - 清华大学镜像源');
         }
         if (cfg.brewGitRemote) lines.push('export HOMEBREW_BREW_GIT_REMOTE=\"' + cfg.brewGitRemote + '\"');
-        if (cfg.coreGitRemote) lines.push('export HOMEBREW_CORE_GIT_REMOTE=\"' + cfg.coreGitRemote + '\"');
         if (cfg.bottleDomain) lines.push('export HOMEBREW_BOTTLE_DOMAIN=\"' + cfg.bottleDomain + '\"');
         if (cfg.apiDomain) lines.push('export HOMEBREW_API_DOMAIN=\"' + cfg.apiDomain + '\"');
         process.stdout.write(lines.join('\n'));
@@ -51,11 +50,12 @@ load_mirror_env() {
 
 persist_zprofile() {
     local mirror="$1"
-    local file
-    file=$(expand_path "$(manifest_get "zprofile")")
+    local file_display file
+    file_display=$(manifest_get "zprofile")
+    file=$(expand_path "$file_display")
     local brew_path
 
-    brew_path=$(command -v brew) || error "brew 未找到，无法写入 $file"
+    brew_path=$(command -v brew) || error "brew 未找到，无法写入 $file_display"
 
     {
         echo "eval \"\$($brew_path shellenv)\""
@@ -63,7 +63,7 @@ persist_zprofile() {
         mirror_exports "$mirror"
     } > "$file"
 
-    info "已写入 $file"
+    info "已配置 Homebrew 镜像 ($mirror) 到 $file_display"
 }
 
 run_install_script() {
@@ -99,6 +99,7 @@ install_homebrew() {
     local mirror="${1:-official}"
 
     if command -v brew &> /dev/null; then
+        persist_zprofile "$mirror"
         info "Homebrew 已安装，跳过"
         return 0
     fi
@@ -121,6 +122,8 @@ install_homebrew() {
 }
 
 main() {
+    while [[ "${1:-}" == "--" ]]; do shift; done
+
     local mirror="official"
 
     case "${1:-}" in
@@ -131,7 +134,6 @@ main() {
 
     check_target_system "macOS"
     install_homebrew "$mirror"
-    bash "$SCRIPT_DIR/common/vite-plus-install.sh" || error "vite.plus 安装失败！"
 }
 
 main "$@"

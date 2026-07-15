@@ -55,25 +55,25 @@ function Install-ZshForGit {
     $zipFile = Join-Path $workDir $ZshInstall.archiveName
     $tarFile = Join-Path $workDir ($ZshInstall.archiveName -replace '\.zst$')
 
-    Write-Info '步骤1/6: 下载 zsh 压缩包...'
+    Write-Step '步骤1/6: 下载 zsh 压缩包...'
     & curl.exe --ssl-no-revoke -L $ZshInstall.downloadUrl -o $zipFile
     if ($LASTEXITCODE -ne 0) {
         Write-ErrorAndExit '下载 zsh 压缩包失败'
     }
     Write-Info "下载完成: $zipFile"
 
-    Write-Info '步骤2/6: 查找 git 安装路径...'
+    Write-Step '步骤2/6: 查找 git 安装路径...'
     Write-Info "git 路径: $GitPath"
     Write-Host ''
 
-    Write-Info '步骤3/6: 检查 7z 工具...'
+    Write-Step '步骤3/6: 检查 7z 工具...'
     if (-not (Get-Command 7z -ErrorAction SilentlyContinue)) {
         Remove-PathSafe $zipFile
         Write-ErrorAndExit '7z 命令未找到，请安装 7-Zip'
     }
     Write-Info '7z 工具可用'
 
-    Write-Info '步骤4/6: 解压 .zst 文件...'
+    Write-Step '步骤4/6: 解压 .zst 文件...'
     Remove-PathSafe $tempExtractDir
     New-Item -ItemType Directory -Path $tempExtractDir -Force | Out-Null
 
@@ -91,7 +91,7 @@ function Install-ZshForGit {
     }
     Write-Info '.zst 文件解压完成'
 
-    Write-Info '步骤5/6: 解压 .tar 文件并移动文件...'
+    Write-Step '步骤5/6: 解压 .tar 文件并移动文件...'
     & 7z x "-o$tempExtractDir" $tarFile
     if ($LASTEXITCODE -ne 0) {
         Remove-PathSafe $zipFile
@@ -114,7 +114,7 @@ function Install-ZshForGit {
         Write-ErrorAndExit "移动失败，查看详细错误: $cpErrorLog"
     }
 
-    Write-Info '步骤6/6: 清理临时文件...'
+    Write-Step '步骤6/6: 清理临时文件...'
     Remove-PathSafe $zipFile
     Remove-PathSafe $tarFile
     Remove-PathSafe $tempExtractDir
@@ -153,7 +153,7 @@ if (-not $zshAlreadyInstalled) {
     Install-ZshForGit -ZshInstall $manifest.zshInstall -GitPath $gitPath
 }
 else {
-    Write-Info 'zsh 已安装，跳过二进制安装'
+    Write-Info 'zsh 已安装，跳过'
 }
 
 if (Get-PluginInstallDecision -ZshAlreadyInstalled $zshAlreadyInstalled) {

@@ -4,8 +4,8 @@
 # docker compose
 export COMPOSE_FILE=$HOME/.docker/compose.yml
 
-# vp (vite+) 环境初始化
-. "$HOME/.vite-plus/env"
+# vite+ 环境初始化
+[[ -r $HOME/.vite-plus/env ]] && . "$HOME/.vite-plus/env"
 
 # PATH (N == Null Glob)
 typeset -U path PATH

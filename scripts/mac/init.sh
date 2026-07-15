@@ -8,8 +8,75 @@ source "$SCRIPT_DIR/lib/utils.sh"
 
 init_manifest mac
 
+usage() {
+    cat <<EOF
+用法: $(basename "$0") [lite|full]
+
+  lite  尝鲜版
+  full  完整版
+
+示例:
+  bash $(basename "$0")
+  bash $(basename "$0") lite
+  vpr init -- lite
+  vpr init -- full
+EOF
+}
+
+# 解析安装配置档：lite | full → BREW_INSTALL_PROFILE
+resolve_brew_profile() {
+    local arg="${1:-}"
+    BREW_INSTALL_PROFILE=""
+
+    case "$arg" in
+        "" )
+            ;;
+        full|--full)
+            BREW_INSTALL_PROFILE="full"
+            return 0
+            ;;
+        lite|--lite)
+            BREW_INSTALL_PROFILE="lite"
+            return 0
+            ;;
+        -h|--help|help)
+            usage
+            exit 0
+            ;;
+        *)
+            usage >&2
+            error "未知参数: $arg"
+            ;;
+    esac
+
+    local choice=""
+
+    {
+        echo "请选择 Homebrew 安装范围:"
+        echo "1) 尝鲜版"
+        echo "2) 完整版"
+    } >&2
+
+    if [ -r /dev/tty ]; then
+        read -r choice < /dev/tty || choice=""
+    elif [ -t 0 ]; then
+        read -r choice || choice=""
+    fi
+
+    case "$choice" in
+        1|lite) BREW_INSTALL_PROFILE="lite" ;;
+        2|full) BREW_INSTALL_PROFILE="full" ;;
+        "")
+            error "非交互环境请传入参数: lite 或 full（示例: vpr init -- lite）"
+            ;;
+        *)
+            error "无效选择: ${choice}（请使用 1/lite 或 2/full）"
+            ;;
+    esac
+}
+
 setup_directories() {
-    info "步骤1/5: 正在创建目录结构..."
+    step "步骤1/4: 正在创建目录结构..."
     local directories_json
     directories_json=$(manifest_directories)
 
@@ -26,9 +93,18 @@ setup_directories() {
 }
 
 install_or_restore_brew() {
-    info "步骤2/5: 正在恢复 Homebrew 依赖..."
+    local profile="$1"
+    local label="完整版"
+    [ "$profile" = "lite" ] && label="尝鲜版"
+    step "步骤2/4: 正在恢复 Homebrew 依赖（${label}）..."
+
+    local brewfile_key="brewfile"
+    if [ "$profile" = "lite" ]; then
+        brewfile_key="brewfileLite"
+    fi
+
     local brewfile
-    brewfile=$(manifest_get "brewfile")
+    brewfile=$(manifest_get "$brewfile_key")
     local BREWFILE="$PROJECT_ROOT/$brewfile"
 
     if ! command -v brew &> /dev/null; then
@@ -36,7 +112,7 @@ install_or_restore_brew() {
     fi
 
     if [ -f "$BREWFILE" ]; then
-        info "正在从 Brewfile 安装依赖..."
+        info "正在从 $(basename "$BREWFILE") 安装依赖..."
         brew bundle install --file="$BREWFILE" || {
             error "Brewfile 依赖安装失败！"
         }
@@ -47,22 +123,18 @@ install_or_restore_brew() {
 }
 
 install_zsh_plugins() {
-    info "步骤3/5: 正在安装 zsh 插件..."
+    step "步骤3/4: 正在安装 zsh 插件..."
     bash "$SCRIPT_DIR/common/zsh-plugins-install.sh" || error "zsh 插件安装失败！"
 }
 
-install_vite_plus() {
-    info "步骤4/5: 正在安装 vite.plus..."
-    bash "$SCRIPT_DIR/common/vite-plus-install.sh" || error "vite.plus 安装失败！"
-}
-
 sync_configurations() {
-    info "步骤5/5: 正在同步配置..."
+    local profile="$1"
+    step "步骤4/4: 正在同步配置..."
     local CONFIG_SCRIPT="$SCRIPT_DIR/mac/config-sync.sh"
     local BASE_SCRIPT="$SCRIPT_DIR/common/git-setup.sh"
 
     if [ -f "$CONFIG_SCRIPT" ]; then
-        SYNC_SELECT_ALL=1 bash "$CONFIG_SCRIPT" 2 || error "同步配置失败！"
+        SYNC_PROFILE="$profile" SYNC_SELECT_ALL=1 bash "$CONFIG_SCRIPT" 2 || error "同步配置失败！"
     else
         error "找不到配置同步脚本: $CONFIG_SCRIPT"
     fi
@@ -78,13 +150,17 @@ main() {
     info "===== macOS 系统配置脚本 ====="
     check_target_system "macOS"
 
+    while [[ "${1:-}" == "--" ]]; do shift; done
+
+    resolve_brew_profile "${1:-}"
+    local profile="$BREW_INSTALL_PROFILE"
+
     setup_directories
-    install_or_restore_brew
+    install_or_restore_brew "$profile"
     install_zsh_plugins
-    install_vite_plus
-    sync_configurations
+    sync_configurations "$profile"
 
     info "🎉 所有操作完成！系统已准备就绪。"
 }
 
-main
+main "$@"

@@ -4,7 +4,7 @@ alias l='eza -l --icons'
 alias la='eza -la --icons'
 alias lt='eza --tree --icons'
 
-# vp (vite+)
+# vite+
 alias v="vp"
 alias vc="vp create"
 alias s="vpr start"
