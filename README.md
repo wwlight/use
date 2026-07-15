@@ -1,5 +1,15 @@
 # 个人配置
 
+## 一键安装
+
+```sh
+# macOS
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/wwlight/use/main/install.sh)"
+
+# Windows (PowerShell)
+powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/wwlight/use/main/install.ps1'))"
+```
+
 ## 安装 [vite.plus](http://vite.plus)
 
 ```sh
