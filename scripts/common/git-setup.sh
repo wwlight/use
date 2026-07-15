@@ -21,7 +21,7 @@ setup_git() {
 
     git config --global init.defaultBranch "$default_branch"
     git config --global core.ignorecase "$ignorecase"
-    git config --global safe.directory "$safe_directory"
+    git config --global --replace-all safe.directory "$safe_directory"
     git config --global credential.helper "$credential_helper"
 
     if git config --global --get user.name &>/dev/null && git config --global --get user.email &>/dev/null; then

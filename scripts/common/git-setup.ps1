@@ -10,7 +10,7 @@ if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
 
 git config --global init.defaultBranch $manifest.git.defaultBranch
 git config --global core.ignorecase $($manifest.git.ignorecase.ToString().ToLower())
-git config --global safe.directory $manifest.git.safeDirectory
+git config --global --replace-all safe.directory $manifest.git.safeDirectory
 git config --global credential.helper $manifest.git.credentialHelper
 
 $userName = git config --global --get user.name 2>$null
