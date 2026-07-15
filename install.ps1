@@ -36,14 +36,20 @@ switch -Regex ($InstallProfile) {
     default { Write-ErrorAndExit "未知参数: $InstallProfile（使用 lite / full）" }
 }
 
-# ---------- clone / update repo ----------
-if (Test-Path "$InstallDir\.git") {
-  Write-Info '仓库已存在，正在更新...'
-  git -C $InstallDir pull --ff-only
-} else {
-  Write-Info "正在克隆仓库到 $InstallDir ..."
-  git clone --depth=1 $Repo $InstallDir
+# ---------- clone repo ----------
+$target = $InstallDir
+if (Test-Path $target) {
+  $ts = Get-Date -Format 'yyyyMMdd-HHmmss'
+  $target = "$InstallDir-$ts"
+  while (Test-Path $target) {
+    Start-Sleep -Seconds 1
+    $ts = Get-Date -Format 'yyyyMMdd-HHmmss'
+    $target = "$InstallDir-$ts"
+  }
 }
+$InstallDir = $target
+Write-Info "正在克隆仓库到 $InstallDir ..."
+git clone --depth=1 $Repo $InstallDir
 
 Set-Location $InstallDir
 

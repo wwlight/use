@@ -47,15 +47,22 @@ resolve_profile() {
   esac
 }
 
-# ---------- clone / update repo ----------
+# ---------- clone repo ----------
 ensure_repo() {
-  if [ -d "$INSTALL_DIR/.git" ]; then
-    info "仓库已存在，正在更新..."
-    git -C "$INSTALL_DIR" pull --ff-only
-  else
-    info "正在克隆仓库到 $INSTALL_DIR ..."
-    git clone --depth=1 "$REPO" "$INSTALL_DIR"
+  local target="$INSTALL_DIR"
+  if [ -e "$target" ]; then
+    local ts
+    ts=$(date +%Y%m%d-%H%M%S)
+    target="${INSTALL_DIR}-${ts}"
+    while [ -e "$target" ]; do
+      sleep 1
+      ts=$(date +%Y%m%d-%H%M%S)
+      target="${INSTALL_DIR}-${ts}"
+    done
   fi
+  INSTALL_DIR="$target"
+  info "正在克隆仓库到 $INSTALL_DIR ..."
+  git clone --depth=1 "$REPO" "$INSTALL_DIR"
 }
 
 # ---------- macOS ----------
