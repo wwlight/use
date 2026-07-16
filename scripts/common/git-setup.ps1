@@ -15,6 +15,8 @@ git config --global credential.helper $manifest.git.credentialHelper
 
 $userName = git config --global --get user.name 2>$null
 $userEmail = git config --global --get user.email 2>$null
+# --get 未配置时返回 1，属正常探测，不能泄漏给调用方的 $LASTEXITCODE
+$global:LASTEXITCODE = 0
 
 if ($userName -and $userEmail) {
     Write-Info 'git 用户名和邮箱已配置，跳过'

@@ -29,3 +29,6 @@ foreach ($plugin in $manifest.zshPlugins) {
         Write-Info "插件 $($plugin.name) 已存在，跳过"
     }
 }
+
+# 单插件失败已跳过，不向上冒泡为整次安装失败
+$global:LASTEXITCODE = 0

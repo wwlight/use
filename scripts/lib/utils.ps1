@@ -187,6 +187,8 @@ function Copy-FileDataOnly {
             if ($exitCode -ge 8) {
                 throw "robocopy 复制失败，退出码: $exitCode"
             }
+            # robocopy 0–7 均为成功（1=有文件被复制）；清掉以免泄漏到调用方的 $LASTEXITCODE
+            $global:LASTEXITCODE = 0
 
             if ($tempDir) {
                 Move-Item (Join-Path $tempDir $sourceName) $destination -Force
