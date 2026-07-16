@@ -12,11 +12,11 @@ safe_echo() {
     printf '%s\n' "$1"
 }
 
-info() { safe_echo "${GREEN}[INFO]${NC} $1"; }
-step() { safe_echo "${MAGENTA}[INFO]${NC} $1"; }
-backup_info() { safe_echo "${CYAN}[INFO]${NC} $1"; }
-warn() { safe_echo "${YELLOW}[WARN]${NC} $1"; }
-error() { safe_echo "${RED}[ERROR]${NC} $1"; exit 1; }
+info() { safe_echo "${GREEN}[INFO] $1${NC}"; }
+step() { safe_echo "${MAGENTA}[INFO] $1${NC}"; }
+backup_info() { safe_echo "${CYAN}[INFO] $1${NC}"; }
+warn() { safe_echo "${YELLOW}[WARN] $1${NC}"; }
+error() { safe_echo "${RED}[ERROR] $1${NC}"; exit 1; }
 
 # --- 系统环境检测 ---
 detect_system() {
@@ -90,8 +90,8 @@ prompt_sync_direction() {
     fi
 
     if [ -n "$arg" ]; then
-        safe_echo "${RED}[ERROR]${NC} 无效的同步方向: 请使用 1 或 2
-$example" >&2
+        safe_echo "${RED}[ERROR] 无效的同步方向: 请使用 1 或 2
+$example${NC}" >&2
         return 1
     fi
 
@@ -117,8 +117,8 @@ $example" >&2
     fi
 
     if [ -z "$choice" ]; then
-        safe_echo "${RED}[ERROR]${NC} 非交互环境请传入方向参数: 1=备份到仓库, 2=应用到本地
-$example" >&2
+        safe_echo "${RED}[ERROR] 非交互环境请传入方向参数: 1=备份到仓库, 2=应用到本地
+$example${NC}" >&2
         return 1
     fi
 

@@ -31,9 +31,9 @@ detect_os() {
 
 OS=$(detect_os)
 
-info()  { printf "\033[32m[INFO]\033[0m %s\n" "$1"; }
-step()  { printf "\033[35m[INFO]\033[0m %s\n" "$1"; }
-error() { printf "\033[31m[ERROR]\033[0m %s\n" "$1"; exit 1; }
+info()  { printf "\033[32m[INFO] %s\033[0m\n" "$1"; }
+step()  { printf "\033[35m[INFO] %s\033[0m\n" "$1"; }
+error() { printf "\033[31m[ERROR] %s\033[0m\n" "$1"; exit 1; }
 
 usage() {
   cat <<EOF
