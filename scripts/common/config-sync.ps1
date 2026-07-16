@@ -8,3 +8,4 @@ $ScriptDir = Split-Path $PSScriptRoot -Parent
 
 $directionArg = Resolve-SyncDirectionArg $SyncArgs
 Invoke-ManifestSync -Scope common -DirectionArg $directionArg
+$global:LASTEXITCODE = 0

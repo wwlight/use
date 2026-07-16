@@ -1,4 +1,4 @@
-$Script:ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
+﻿$Script:ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 
 # --- 平台特有（Windows） ---
 function Test-Administrator {

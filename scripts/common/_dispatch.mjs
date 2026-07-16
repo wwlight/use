@@ -23,5 +23,9 @@ const scriptName = TASK_MAP[task]
 const useBash = !isPowerShell()
 const scriptPath = resolveScript(__dirname, scriptName)
 
-const result = useBash ? runBash(scriptPath, scriptArgs) : runPwsh(scriptPath, scriptArgs)
+const effectiveArgs = task === 'zsh-plugin'
+  ? [useBash ? '--update' : '-Update', ...scriptArgs]
+  : scriptArgs
+
+const result = useBash ? runBash(scriptPath, effectiveArgs) : runPwsh(scriptPath, effectiveArgs)
 process.exit(result.status ?? 1)

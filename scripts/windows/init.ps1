@@ -95,6 +95,10 @@ function Install-Zsh {
     $zshScript = Join-Path $PSScriptRoot 'zsh-install.ps1'
     & $zshScript
     if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'zsh 安装失败' }
+
+    $pluginScript = Join-Path $ScriptDir 'common/zsh-plugins-install.ps1'
+    & $pluginScript
+    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'zsh 插件安装失败' }
 }
 
 function Sync-Configurations {

@@ -1,7 +1,4 @@
-﻿param(
-    [switch]$SkipPlugins,
-    [switch]$InstallPlugins
-)
+﻿param()
 
 $ScriptDir = Split-Path $PSScriptRoot -Parent
 . (Join-Path $ScriptDir 'lib/utils.ps1')
@@ -122,28 +119,6 @@ function Install-ZshForGit {
     Write-Info 'zsh 安装完成！'
 }
 
-function Get-PluginInstallDecision {
-    param([bool]$ZshAlreadyInstalled)
-
-    if ($SkipPlugins) {
-        return $false
-    }
-    if ($InstallPlugins) {
-        return $true
-    }
-    if (-not $ZshAlreadyInstalled) {
-        return $true
-    }
-
-    if (-not (Test-InteractivePrompt)) {
-        Write-Info '非交互环境，跳过 zsh 插件安装'
-        return $false
-    }
-
-    $choice = Read-Host 'zsh 已安装，是否安装 zsh 插件? (Y/n)'
-    return ($choice -ne 'n' -and $choice -ne 'N')
-}
-
 Write-Info '===== zsh for Git 安装脚本 ====='
 
 $gitPath = Get-GitPath
@@ -155,14 +130,3 @@ if (-not $zshAlreadyInstalled) {
 else {
     Write-Info 'zsh 已安装，跳过'
 }
-
-if (Get-PluginInstallDecision -ZshAlreadyInstalled $zshAlreadyInstalled) {
-    $zshPluginsScript = Join-Path $ScriptDir 'common/zsh-plugins-install.ps1'
-    & $zshPluginsScript
-    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'zsh 插件安装失败' }
-}
-else {
-    Write-Info '已跳过 zsh 插件安装'
-}
-
-Write-Info '🎉 所有操作完成！'
