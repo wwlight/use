@@ -12,8 +12,8 @@ import { detectPlatform, isPowerShell, resolveScript, runBash, runPwsh, stripArg
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
 
-const CROSS_PLATFORM_TASKS = ['pm', 'init', 'backup', 'setup', 'sync', 'zsh-plugin']
-const WIN_ONLY_TASKS = ['zsh', 'git-setup', 'git-extras', 'clink', 'hosts']
+const CROSS_PLATFORM_TASKS = ['pm', 'init', 'backup', 'setup', 'sync', 'zsh-plugin', 'git-setup']
+const WIN_ONLY_TASKS = ['zsh', 'git-extras', 'clink', 'hosts']
 const ALL_TASKS = [...CROSS_PLATFORM_TASKS, ...WIN_ONLY_TASKS]
 
 const task = process.argv[2]
@@ -229,7 +229,8 @@ async function runCrossPlatformTask(platform) {
     case 'sync':
       return runUnifiedSync(platform, scriptArgs)
     case 'zsh-plugin':
-      return runSubDispatch('common/_dispatch.mjs', task, scriptArgs)
+    case 'git-setup':
+      return runSubDispatch('common/_dispatch.mjs', task === 'git-setup' ? 'setup' : task, scriptArgs)
     default:
       return 1
   }
@@ -242,8 +243,6 @@ function runWinOnlyTask() {
     case 'hosts':
     case 'clink':
       return runSubDispatch('windows/_dispatch.mjs', task, scriptArgs)
-    case 'git-setup':
-      return runSubDispatch('common/_dispatch.mjs', 'setup', scriptArgs)
     default:
       return 1
   }

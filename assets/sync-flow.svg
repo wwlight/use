@@ -1,0 +1,361 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 0 780 638" role="img" aria-label="Use — sync 同步流程">
+  <style>
+    <![CDATA[@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+    /* ==========================================================
+       THEME — dark default; light via prefers-color-scheme / data-theme
+       (archify dual-theme SVG pattern for GitHub README)
+       ========================================================== */
+    :root,
+    svg {
+      --bg: transparent;
+      --grid: #21252b;
+      --text: #ffffff;
+      --text-muted: #94a3b8;
+      --text-dim: #475569;
+      --text-faint: #7d8da1;
+      --panel: rgba(15, 23, 42, 0.5);
+      --panel-border: #1e293b;
+      --lane-fill: rgba(15, 23, 42, 0.22);
+      --lane-stroke: #334155;
+      --arrow: #34d399;
+      --arrow-emphasis: #34d399;
+      --mask: #21252b;
+      --frontend-fill: rgba(6, 78, 59, 0.4);
+      --frontend-stroke: #34d399;
+      --backend-fill: rgba(8, 51, 68, 0.4);
+      --backend-stroke: #22d3ee;
+      --security-fill: rgba(180, 70, 20, 0.35);
+      --security-stroke: #f97316;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root,
+      svg {
+        --bg: #f8fafc;
+      --grid: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+      --text-faint: #64748b;
+      --panel: #ffffff;
+      --panel-border: #e2e8f0;
+      --lane-fill: rgba(248, 250, 252, 0.65);
+      --lane-stroke: #cbd5e1;
+      --arrow: #059669;
+      --arrow-emphasis: #059669;
+      --mask: #ffffff;
+      --frontend-fill: rgba(52, 211, 153, 0.18);
+      --frontend-stroke: #059669;
+      --backend-fill: rgba(34, 211, 238, 0.15);
+      --backend-stroke: #0891b2;
+      --security-fill: rgba(249, 115, 22, 0.15);
+      --security-stroke: #e11d48;
+      }
+    }
+
+    svg[data-theme="light"],
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --grid: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+      --text-faint: #64748b;
+      --panel: #ffffff;
+      --panel-border: #e2e8f0;
+      --lane-fill: rgba(248, 250, 252, 0.65);
+      --lane-stroke: #cbd5e1;
+      --arrow: #059669;
+      --arrow-emphasis: #059669;
+      --mask: #ffffff;
+      --frontend-fill: rgba(52, 211, 153, 0.18);
+      --frontend-stroke: #059669;
+      --backend-fill: rgba(34, 211, 238, 0.15);
+      --backend-stroke: #0891b2;
+      --security-fill: rgba(249, 115, 22, 0.15);
+      --security-stroke: #e11d48;
+    }
+
+    svg[data-theme="dark"],
+    [data-theme="dark"] {
+      --bg: transparent;
+      --grid: #21252b;
+      --text: #ffffff;
+      --text-muted: #94a3b8;
+      --text-dim: #475569;
+      --text-faint: #7d8da1;
+      --panel: rgba(15, 23, 42, 0.5);
+      --panel-border: #1e293b;
+      --lane-fill: rgba(15, 23, 42, 0.22);
+      --lane-stroke: #334155;
+      --arrow: #34d399;
+      --arrow-emphasis: #34d399;
+      --mask: #21252b;
+      --frontend-fill: rgba(6, 78, 59, 0.4);
+      --frontend-stroke: #34d399;
+      --backend-fill: rgba(8, 51, 68, 0.4);
+      --backend-stroke: #22d3ee;
+      --security-fill: rgba(180, 70, 20, 0.35);
+      --security-stroke: #f97316;
+    }
+
+* {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    .c-bg-rect { fill: var(--bg); }
+
+    .c-grid {
+      stroke: var(--grid);
+      fill: none;
+    }
+
+    .c-mask {
+      fill: var(--mask);
+      stroke: none;
+    }
+
+    .c-frontend {
+      fill: var(--frontend-fill);
+      stroke: var(--frontend-stroke);
+    }
+
+    .c-backend {
+      fill: var(--backend-fill);
+      stroke: var(--backend-stroke);
+    }
+
+    .c-security {
+      fill: var(--security-fill);
+      stroke: var(--security-stroke);
+    }
+
+    .t-primary {
+      fill: var(--text);
+    }
+
+    .t-muted {
+      fill: var(--text-muted);
+    }
+
+    .t-frontend {
+      fill: var(--frontend-stroke);
+    }
+
+    .a-default {
+      stroke: var(--arrow);
+      fill: none;
+    }
+
+    .a-emphasis {
+      stroke: var(--arrow-emphasis);
+      fill: none;
+    }
+
+    .m-default {
+      fill: var(--arrow-emphasis);
+    }
+
+    .dot-emphasis { fill: var(--arrow-emphasis); }
+    .dot-security { fill: var(--security-stroke); }
+
+    .m-emphasis {
+      fill: var(--arrow-emphasis);
+    }
+
+    @keyframes dash-flow {
+      to {
+        stroke-dashoffset: -10;
+      }
+    }
+
+    .dash-flow {
+      animation: dash-flow 0.5s linear infinite;
+    }
+
+    @keyframes dash-flow-box {
+      to {
+        stroke-dashoffset: -8;
+      }
+    }
+
+    .dash-flow-box {
+      animation: dash-flow-box 0.5s linear infinite;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+      }
+    }
+    ]]>
+  </style>
+
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="m-default" />
+    </marker>
+    <marker id="arrowhead-emphasis" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="m-emphasis" />
+    </marker>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" class="c-grid" stroke-width="0.5" />
+    </pattern>
+  </defs>
+
+  <rect class="c-bg-rect" x="10" y="0" width="780" height="100%"/>
+  <rect x="10" y="0" width="780" height="100%" fill="url(#grid)" />
+  <rect x="10" y="0" width="780" height="100%" fill="none" stroke="var(--frontend-stroke)" stroke-width="3" rx="6" />
+  <text x="30" y="24" class="t-primary" font-size="14" font-weight="700">Use — sync 同步流程</text>
+  <text x="30" y="40" class="t-muted" font-size="10">方向选择 · 同步项 · 配置拷贝</text>
+  <text x="770" y="19" class="t-primary" font-size="9" font-weight="600" text-anchor="end">Legend</text>
+  <rect x="686" y="31" width="14" height="9" rx="2" class="c-frontend" stroke-width="1" />
+  <text x="682" y="39" class="t-muted" font-size="8" text-anchor="end">Frontend</text>
+  <rect x="756" y="31" width="14" height="9" rx="2" class="c-backend" stroke-width="1" />
+  <text x="752" y="39" class="t-muted" font-size="8" text-anchor="end">Backend</text>
+  <line x1="0" y1="52" x2="800" y2="52" stroke="var(--frontend-stroke)" stroke-width="1.5" />
+  <g transform="translate(0, 42)">
+
+    <path id="sp1" d="M 400 86 L 400 126" class="a-emphasis" stroke-width="1.2" marker-end="url(#arrowhead-emphasis)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="1.5s" repeatCount="indefinite">
+        <mpath href="#sp1" />
+      </animateMotion>
+    </circle>
+
+    <!-- 方向 → 左右: 两侧出口; → 交互: 底边, r=8 -->
+    <path id="sp2" d="M 320 154 L 118 154 Q 110 154 110 162 L 110 232" class="a-emphasis" stroke-width="1.2"
+          marker-end="url(#arrowhead-emphasis)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="2.5s" repeatCount="indefinite">
+        <mpath href="#sp2" />
+      </animateMotion>
+    </circle>
+    <path id="sp3" d="M 400 182 L 400 232" class="a-emphasis" stroke-width="1.2"
+          marker-end="url(#arrowhead-emphasis)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="1.5s" repeatCount="indefinite">
+        <mpath href="#sp3" />
+      </animateMotion>
+    </circle>
+    <path id="sp4" d="M 480 154 L 682 154 Q 690 154 690 162 L 690 232" class="a-emphasis" stroke-width="1.2"
+          marker-end="url(#arrowhead-emphasis)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="2.5s" repeatCount="indefinite">
+        <mpath href="#sp4" />
+      </animateMotion>
+    </circle>
+
+    <!-- → TTY?: 左右侧入口 + 中间顶边, r=8 -->
+    <path id="sp5" d="M 110 288 L 110 334 Q 110 342 118 342 L 320 342" class="a-default" stroke-width="1.2"
+          marker-end="url(#arrowhead)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="2.5s" repeatCount="indefinite">
+        <mpath href="#sp5" />
+      </animateMotion>
+    </circle>
+    <path id="sp6" d="M 400 288 L 400 328" class="a-default" stroke-width="1.2" marker-end="url(#arrowhead)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="1.5s" repeatCount="indefinite">
+        <mpath href="#sp6" />
+      </animateMotion>
+    </circle>
+    <path id="sp7" d="M 690 288 L 690 334 Q 690 342 682 342 L 480 342" class="a-default" stroke-width="1.2"
+          marker-end="url(#arrowhead)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="2.5s" repeatCount="indefinite">
+        <mpath href="#sp7" />
+      </animateMotion>
+    </circle>
+
+    <!-- TTY? → 多选/全部: 左右侧出口贴边, 无描述 gap=40, r=8 -->
+    <path id="sp8" d="M 320 370 L 118 370 Q 110 370 110 378 L 110 424" class="a-emphasis" stroke-width="1.2"
+          marker-end="url(#arrowhead-emphasis)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="2.5s" repeatCount="indefinite">
+        <mpath href="#sp8" />
+      </animateMotion>
+    </circle>
+    <path id="sp9" d="M 480 370 L 682 370 Q 690 370 690 378 L 690 424" class="a-emphasis" stroke-width="1.2"
+          marker-end="url(#arrowhead-emphasis)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="2.5s" repeatCount="indefinite">
+        <mpath href="#sp9" />
+      </animateMotion>
+    </circle>
+
+    <!-- →完成: 左右侧入口中段, r=8 -->
+    <path id="sp10" d="M 110 480 L 110 540 Q 110 548 118 548 L 320 548" class="a-default" stroke-width="1.2"
+          marker-end="url(#arrowhead)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="2s" repeatCount="indefinite">
+        <mpath href="#sp10" />
+      </animateMotion>
+    </circle>
+    <path id="sp11" d="M 690 480 L 690 540 Q 690 548 682 548 L 480 548" class="a-default" stroke-width="1.2"
+          marker-end="url(#arrowhead)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="2s" repeatCount="indefinite">
+        <mpath href="#sp11" />
+      </animateMotion>
+    </circle>
+
+    <rect x="320" y="30" width="160" height="56" rx="6" class="c-mask" />
+    <rect x="320" y="30" width="160" height="56" rx="6" class="c-frontend" stroke-width="1.5" />
+    <text x="400" y="56" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">vpr sync</text>
+    <text x="400" y="72" class="t-muted" font-size="9" text-anchor="middle">→ _dispatch.mjs</text>
+
+    <rect x="320" y="126" width="160" height="56" rx="6" class="c-mask" />
+    <rect x="320" y="126" width="160" height="56" rx="6" class="c-frontend" stroke-width="1.5" />
+    <text x="400" y="158" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">方向</text>
+
+    <rect x="30" y="232" width="160" height="56" rx="6" class="c-mask" />
+    <rect x="30" y="232" width="160" height="56" rx="6" class="c-backend" stroke-width="1.5" />
+    <text x="110" y="256" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">本地配置 → 仓库</text>
+    <text x="110" y="272" class="t-muted" font-size="9" text-anchor="middle">备份</text>
+
+    <rect x="320" y="232" width="160" height="56" rx="6" class="c-mask" />
+    <rect x="320" y="232" width="160" height="56" rx="6" class="c-backend" stroke-width="1.5" />
+    <text x="400" y="256" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">交互选择 1 / 2</text>
+    <text x="400" y="272" class="t-muted" font-size="9" text-anchor="middle">备份 / 恢复</text>
+
+    <rect x="610" y="232" width="160" height="56" rx="6" class="c-mask" />
+    <rect x="610" y="232" width="160" height="56" rx="6" class="c-backend dash-flow-box" stroke-width="2"
+          stroke-dasharray="4,4" />
+    <text x="690" y="256" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">仓库 → 本地配置</text>
+    <text x="690" y="272" class="t-muted" font-size="9" text-anchor="middle">恢复</text>
+
+    <rect x="320" y="328" width="160" height="56" rx="6" class="c-mask" />
+    <rect x="320" y="328" width="160" height="56" rx="6" class="c-frontend" stroke-width="1.5" />
+    <text x="400" y="352" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">TTY?</text>
+    <text x="400" y="368" class="t-muted" font-size="9" text-anchor="middle">可交互多选同步项</text>
+
+    <rect x="30" y="424" width="160" height="56" rx="6" class="c-mask" />
+    <rect x="30" y="424" width="160" height="56" rx="6" class="c-backend" stroke-width="1.5" />
+    <text x="110" y="456" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">多选同步项</text>
+
+    <rect x="610" y="424" width="160" height="56" rx="6" class="c-mask" />
+    <rect x="610" y="424" width="160" height="56" rx="6" class="c-backend" stroke-width="1.5" />
+    <text x="690" y="456" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">全部项</text>
+
+    <rect x="320" y="520" width="160" height="56" rx="6" class="c-mask" />
+    <rect x="320" y="520" width="160" height="56" rx="6" class="c-frontend" stroke-width="1.5" />
+    <text x="400" y="552" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">完成</text>
+
+    <!-- 标签: 水平线上方 gap=6; 垂直线中段 -->
+    <rect x="212" y="136" width="16" height="14" rx="3" class="c-mask" />
+    <text x="220" y="146" class="t-frontend" font-size="8" text-anchor="middle">1</text>
+    <rect x="385" y="196" width="30" height="14" rx="3" class="c-mask" />
+    <text x="400" y="203" class="t-frontend" font-size="8" text-anchor="middle" dominant-baseline="middle">省略</text>
+    <rect x="572" y="136" width="16" height="14" rx="3" class="c-mask" />
+    <text x="580" y="146" class="t-frontend" font-size="8" text-anchor="middle">2</text>
+    <rect x="207" y="352" width="16" height="14" rx="3" class="c-mask" />
+    <text x="215" y="362" class="t-frontend" font-size="8" text-anchor="middle">是</text>
+    <rect x="536" y="352" width="98" height="14" rx="3" class="c-mask" />
+    <text x="585" y="362" class="t-frontend" font-size="8" text-anchor="middle">否 / SYNC_SELECT_ALL</text>
+
+  </g>
+</svg>

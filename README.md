@@ -76,6 +76,7 @@ vpr sync                          # 交互选择同步方向
 vpr sync 1                        # 本地配置 → 仓库
 vpr sync 2                        # 仓库 → 本地配置
 vpr zsh-plugin                    # 安装/更新 zsh 插件
+vpr git-setup                     # Git 全局配置
 ```
 
 > [!WARNING]
@@ -122,7 +123,6 @@ vpr init -- lite                  # 尝鲜版
 
 ```sh
 vpr zsh                           # 安装 zsh 到 git
-vpr git-setup                     # Git 全局配置
 vpr git-extras                    # 安装 git-extras
 vpr clink                         # 安装 clink 插件（cmd 扩展）
 ```
@@ -183,89 +183,10 @@ configs/common/
 
 ## 脚本逻辑
 
-### 一键安装
+![install-flow](assets/install-flow.svg)
 
-`install.sh` / `install.ps1`：判 OS → 读 lite/full → 落盘仓库 → 装包管理器 → `init`。
+![init-flow](assets/init-flow.svg)
 
-```mermaid
-flowchart TD
-  A["install.sh / install.ps1"] --> B{"OS"}
-  B -->|不支持 / 脚本不符| X["退出"]
-  B -->|通过| C["lite / full<br/>省略则稍后交互"]
-  C --> D{"~/Desktop/use"}
+![sync-flow](assets/sync-flow.svg)
 
-  D -->|不存在| E["git clone"]
-  D -->|同仓库 origin| F["fetch + reset --hard origin/main"]
-  D -->|目录已占用| G["clone 到 use-时间戳"]
-
-  E --> H{"macos / windows"}
-  F --> H
-  G --> H
-  H -->|macos| I["brew-install ustc"]
-  H -->|windows| J["scoop-install"]
-  I --> K["init"]
-  J --> K
-
-  K -->|lite| L["Brewfile.lite / scoop_backup.lite.json"]
-  K -->|full| M["Brewfile / scoop_backup.json"]
-  K -->|省略| N["交互选择 lite / full"]
-  L --> O["完成"]
-  M --> O
-  N --> O
-```
-
-### vpr 分发
-
-`vpr <task>` → `scripts/_dispatch.mjs` 按平台转发。
-
-```mermaid
-flowchart TD
-  V["vpr task"] --> D["_dispatch.mjs"]
-  D --> T{"任务"}
-
-  T -->|通用| P{"平台"}
-  T -->|仅 windows| W["windows 专属"]
-
-  P -->|macos| M["pm → brew-install<br/>init / backup / setup / sync"]
-  P -->|windows| N["pm → scoop-install<br/>init / backup / setup / sync"]
-  P -->|两端| C["zsh-plugin → common/_dispatch"]
-
-  W --> W1["zsh · git-extras · clink · hosts<br/>→ windows/_dispatch"]
-  W --> W2["git-setup → common/_dispatch"]
-```
-
-### init
-
-`vpr init [-- lite|full]`：建目录 → 装软件 → zsh 插件 → 配置同步。
-
-```mermaid
-flowchart TD
-  A["vpr init"] --> B{"lite / full / 交互选择"}
-  B --> C["创建目录结构"]
-  C --> D{"平台"}
-  D -->|macos| E["brew bundle<br/>Brewfile / Brewfile.lite"]
-  D -->|windows| F["scoop import<br/>scoop_backup(.lite).json"]
-  E --> G["zsh-plugins-install"]
-  F --> H["zsh-install + zsh-plugins-install"]
-  G --> I["config-sync 2 + git-setup"]
-  H --> I
-```
-
-### sync
-
-`vpr sync [1|2]`：选方向 →（TTY 下可多选文件）→ 拷贝。
-
-```mermaid
-flowchart TD
-  A["vpr sync"] --> B{"方向"}
-  B -->|1| C["本地配置 → 仓库"]
-  B -->|2| D["仓库 → 本地配置"]
-  B -->|省略且 TTY| E["交互选择 1 / 2"]
-  E --> F{"TTY?"}
-  C --> F
-  D --> F
-  F -->|是| G["多选同步项"]
-  F -->|否 / SYNC_SELECT_ALL| H["全部项"]
-  G --> I["config-sync"]
-  H --> I
-```
+![vpr-dispatch](assets/dispatch-flow.svg)

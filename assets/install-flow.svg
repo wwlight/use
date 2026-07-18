@@ -1,0 +1,923 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 0 780 724" role="img" aria-label="Use — install workflow">
+  <style>
+    <![CDATA[@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
+    /* ==========================================================
+       THEME — dark default; light via prefers-color-scheme / data-theme
+       (archify dual-theme SVG pattern for GitHub README)
+       ========================================================== */
+    :root,
+    svg {
+      --bg: transparent;
+      --grid: #21252b;
+      --text: #ffffff;
+      --text-muted: #94a3b8;
+      --text-dim: #475569;
+      /* UI chrome (menu hints, footer) needs more contrast than SVG .t-dim accents */
+      --text-faint: #7d8da1;
+
+      --panel: rgba(15, 23, 42, 0.5);
+      --panel-border: #1e293b;
+      --lane-fill: rgba(15, 23, 42, 0.22);
+      --lane-stroke: #334155;
+
+      --arrow: #34d399;
+      --arrow-emphasis: #34d399;
+
+      /* Opaque mask color used behind semi-transparent component fills
+         so the arrows drawn underneath are properly hidden. */
+      --mask: #21252b;
+
+      --frontend-fill: rgba(6, 78, 59, 0.4);
+      --frontend-stroke: #34d399;
+      --backend-fill: rgba(8, 51, 68, 0.4);
+      --backend-stroke: #22d3ee;
+      --database-fill: rgba(76, 29, 149, 0.4);
+      --database-stroke: #a78bfa;
+      --cloud-fill: rgba(120, 53, 15, 0.3);
+      --cloud-stroke: #fbbf24;
+      --security-fill: rgba(180, 70, 20, 0.35);
+      --security-stroke: #f97316;
+      --messagebus-fill: rgba(251, 146, 60, 0.3);
+      --messagebus-stroke: #fb923c;
+      --external-fill: rgba(30, 41, 59, 0.5);
+      --external-stroke: #94a3b8;
+
+      --toolbar-bg: rgba(15, 23, 42, 0.8);
+      --toolbar-border: #334155;
+      --toolbar-text: #e2e8f0;
+      --toolbar-hover: rgba(15, 23, 42, 0.95);
+      --toolbar-menu-bg: #0f172a;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root,
+      svg {
+        --bg: #f8fafc;
+      --grid: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+      --text-faint: #64748b;
+
+      --panel: #ffffff;
+      --panel-border: #e2e8f0;
+      --lane-fill: rgba(248, 250, 252, 0.65);
+      --lane-stroke: #cbd5e1;
+
+      --arrow: #059669;
+      --arrow-emphasis: #059669;
+
+      --mask: #ffffff;
+
+      --frontend-fill: rgba(52, 211, 153, 0.18);
+      --frontend-stroke: #059669;
+      --backend-fill: rgba(34, 211, 238, 0.15);
+      --backend-stroke: #0891b2;
+      --database-fill: rgba(167, 139, 250, 0.2);
+      --database-stroke: #7c3aed;
+      --cloud-fill: rgba(251, 191, 36, 0.18);
+      --cloud-stroke: #d97706;
+      --security-fill: rgba(249, 115, 22, 0.15);
+      --security-stroke: #e11d48;
+      --messagebus-fill: rgba(251, 146, 60, 0.15);
+      --messagebus-stroke: #ea580c;
+      --external-fill: rgba(148, 163, 184, 0.18);
+      --external-stroke: #64748b;
+
+      --toolbar-bg: rgba(255, 255, 255, 0.92);
+      --toolbar-border: #cbd5e1;
+      --toolbar-text: #334155;
+      --toolbar-hover: #ffffff;
+      --toolbar-menu-bg: #ffffff;
+      }
+    }
+
+    svg[data-theme="light"],
+    [data-theme="light"] {
+      --bg: #f8fafc;
+      --grid: #e2e8f0;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-dim: #94a3b8;
+      --text-faint: #64748b;
+
+      --panel: #ffffff;
+      --panel-border: #e2e8f0;
+      --lane-fill: rgba(248, 250, 252, 0.65);
+      --lane-stroke: #cbd5e1;
+
+      --arrow: #059669;
+      --arrow-emphasis: #059669;
+
+      --mask: #ffffff;
+
+      --frontend-fill: rgba(52, 211, 153, 0.18);
+      --frontend-stroke: #059669;
+      --backend-fill: rgba(34, 211, 238, 0.15);
+      --backend-stroke: #0891b2;
+      --database-fill: rgba(167, 139, 250, 0.2);
+      --database-stroke: #7c3aed;
+      --cloud-fill: rgba(251, 191, 36, 0.18);
+      --cloud-stroke: #d97706;
+      --security-fill: rgba(249, 115, 22, 0.15);
+      --security-stroke: #e11d48;
+      --messagebus-fill: rgba(251, 146, 60, 0.15);
+      --messagebus-stroke: #ea580c;
+      --external-fill: rgba(148, 163, 184, 0.18);
+      --external-stroke: #64748b;
+
+      --toolbar-bg: rgba(255, 255, 255, 0.92);
+      --toolbar-border: #cbd5e1;
+      --toolbar-text: #334155;
+      --toolbar-hover: #ffffff;
+      --toolbar-menu-bg: #ffffff;
+    }
+
+    svg[data-theme="dark"],
+    [data-theme="dark"] {
+      --bg: transparent;
+      --grid: #21252b;
+      --text: #ffffff;
+      --text-muted: #94a3b8;
+      --text-dim: #475569;
+      /* UI chrome (menu hints, footer) needs more contrast than SVG .t-dim accents */
+      --text-faint: #7d8da1;
+
+      --panel: rgba(15, 23, 42, 0.5);
+      --panel-border: #1e293b;
+      --lane-fill: rgba(15, 23, 42, 0.22);
+      --lane-stroke: #334155;
+
+      --arrow: #34d399;
+      --arrow-emphasis: #34d399;
+
+      /* Opaque mask color used behind semi-transparent component fills
+         so the arrows drawn underneath are properly hidden. */
+      --mask: #21252b;
+
+      --frontend-fill: rgba(6, 78, 59, 0.4);
+      --frontend-stroke: #34d399;
+      --backend-fill: rgba(8, 51, 68, 0.4);
+      --backend-stroke: #22d3ee;
+      --database-fill: rgba(76, 29, 149, 0.4);
+      --database-stroke: #a78bfa;
+      --cloud-fill: rgba(120, 53, 15, 0.3);
+      --cloud-stroke: #fbbf24;
+      --security-fill: rgba(180, 70, 20, 0.35);
+      --security-stroke: #f97316;
+      --messagebus-fill: rgba(251, 146, 60, 0.3);
+      --messagebus-stroke: #fb923c;
+      --external-fill: rgba(30, 41, 59, 0.5);
+      --external-stroke: #94a3b8;
+
+      --toolbar-bg: rgba(15, 23, 42, 0.8);
+      --toolbar-border: #334155;
+      --toolbar-text: #e2e8f0;
+      --toolbar-hover: rgba(15, 23, 42, 0.95);
+      --toolbar-menu-bg: #0f172a;
+    }
+
+* {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', 'Noto Sans Mono CJK SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
+      background: var(--bg);
+      min-height: 100vh;
+      padding: 2rem;
+      color: var(--text);
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .header {
+      margin-bottom: 2rem;
+    }
+
+    .header-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .pulse-dot {
+      width: 12px;
+      height: 12px;
+      background: var(--frontend-stroke);
+      border-radius: 50%;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 0.875rem;
+      margin-left: 1.75rem;
+    }
+
+    .diagram-container {
+      background: var(--panel);
+      border-radius: 1rem;
+      border: 1px solid var(--panel-border);
+      padding: 1.5rem;
+      overflow-x: auto;
+    }
+
+    svg {
+      width: 100%;
+      min-width: min(900px, 100%);
+      display: block;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+
+    .card {
+      background: var(--panel);
+      border-radius: 0.75rem;
+      border: 1px solid var(--panel-border);
+      padding: 1.25rem;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .card-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .card-dot.cyan {
+      background: var(--frontend-stroke);
+    }
+
+    .card-dot.emerald {
+      background: var(--backend-stroke);
+    }
+
+    .card-dot.violet {
+      background: var(--database-stroke);
+    }
+
+    .card-dot.amber {
+      background: var(--cloud-stroke);
+    }
+
+    .card-dot.rose {
+      background: var(--security-stroke);
+    }
+
+    .card-dot.orange {
+      background: var(--messagebus-stroke);
+    }
+
+    .card-dot.slate {
+      background: var(--external-stroke);
+    }
+
+    .card h3 {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .card ul {
+      list-style: none;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+    }
+
+    .card li {
+      margin-bottom: 0.375rem;
+    }
+
+    .footer {
+      text-align: center;
+      margin-top: 1.5rem;
+      color: var(--text-faint);
+      font-size: 0.75rem;
+    }
+
+    /* ==========================================================
+       Print stylesheet — hide interactive controls, force light,
+       drop the grid so the diagram doesn't waste ink, use landscape
+       so wide diagrams fit, pack summary cards into 2 columns to
+       avoid an orphan card on a trailing page.
+       ========================================================== */
+    @page {
+      size: landscape;
+      margin: 1.5cm;
+    }
+
+    @media print {
+
+      /* Force the FULL light palette — including component fills/strokes and
+         lane/arrow colors — so printing from dark theme doesn't put neon
+         strokes and translucent dark fills on white paper. */
+      :root,
+      [data-theme="dark"],
+      [data-theme="light"] {
+        --bg: #ffffff;
+        --grid: transparent;
+        --panel: #ffffff;
+        --panel-border: #e2e8f0;
+        --text: #0f172a;
+        --text-muted: #475569;
+        --text-dim: #94a3b8;
+        --text-faint: #64748b;
+        --mask: #ffffff;
+        --lane-fill: rgba(248, 250, 252, 0.65);
+        --lane-stroke: #cbd5e1;
+        --arrow: #34d399;
+        --arrow-emphasis: #059669;
+        --frontend-fill: rgba(52, 211, 153, 0.18);
+        --frontend-stroke: #059669;
+        --backend-fill: rgba(34, 211, 238, 0.15);
+        --backend-stroke: #0891b2;
+        --database-fill: rgba(167, 139, 250, 0.2);
+        --database-stroke: #7c3aed;
+        --cloud-fill: rgba(251, 191, 36, 0.18);
+        --cloud-stroke: #d97706;
+        --security-fill: rgba(249, 115, 22, 0.15);
+        --security-stroke: #e11d48;
+        --messagebus-fill: rgba(251, 146, 60, 0.15);
+        --messagebus-stroke: #ea580c;
+        --external-fill: rgba(148, 163, 184, 0.18);
+        --external-stroke: #64748b;
+      }
+
+      body {
+        background: #ffffff !important;
+        padding: 0;
+      }
+
+      .container {
+        max-width: none;
+      }
+
+      .toolbar,
+      .archify-toast,
+      .no-print {
+        display: none !important;
+      }
+
+      .diagram-container,
+      .card {
+        box-shadow: none;
+        border-color: #e2e8f0;
+      }
+
+      .cards {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      /* Ensure elements break sensibly across pages */
+      .card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .diagram-container {
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      h1,
+      .subtitle {
+        color: #0f172a;
+      }
+    }
+
+    /* ==========================================================
+       TOOLBAR (theme toggle + export menu)
+       ========================================================== */
+    .toolbar {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      display: flex;
+      gap: 0.5rem;
+      z-index: 100;
+    }
+
+    .toolbar button {
+      background: var(--toolbar-bg);
+      color: var(--toolbar-text);
+      border: 1px solid var(--toolbar-border);
+      padding: 0.5rem 0.875rem;
+      border-radius: 0.5rem;
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 500;
+      cursor: pointer;
+      backdrop-filter: blur(8px);
+      transition: background 0.15s, border-color 0.15s;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.375rem;
+    }
+
+    .toolbar button:hover {
+      background: var(--toolbar-hover);
+      border-color: var(--arrow);
+    }
+
+    .toolbar button:focus-visible {
+      outline: 2px solid var(--frontend-stroke);
+      outline-offset: 2px;
+    }
+
+    .toolbar .export-wrap {
+      position: relative;
+    }
+
+    .toolbar .export-menu {
+      position: absolute;
+      top: calc(100% + 0.375rem);
+      right: 0;
+      background: var(--toolbar-menu-bg);
+      border: 1px solid var(--toolbar-border);
+      border-radius: 0.5rem;
+      padding: 0.375rem;
+      min-width: 160px;
+      display: none;
+      flex-direction: column;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .toolbar .export-menu.open {
+      display: flex;
+    }
+
+    .toolbar .export-menu button {
+      background: transparent;
+      border: 0;
+      justify-content: space-between;
+      width: 100%;
+      text-align: left;
+      padding: 0.5rem 0.75rem;
+    }
+
+    .toolbar .export-menu button:hover {
+      background: var(--toolbar-hover);
+    }
+
+    .toolbar .export-menu .hint {
+      color: var(--text-faint);
+      font-size: 0.625rem;
+    }
+
+    .toolbar .export-menu hr {
+      border: 0;
+      border-top: 1px solid var(--toolbar-border);
+      margin: 0.25rem 0.375rem;
+      opacity: 0.5;
+    }
+
+    /* Toast — brief feedback for actions like "copied" */
+    .archify-toast {
+      position: fixed;
+      top: 1rem;
+      left: 50%;
+      transform: translateX(-50%) translateY(-8px);
+      background: var(--toolbar-menu-bg);
+      color: var(--text);
+      border: 1px solid var(--toolbar-border);
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      font-family: inherit;
+      font-size: 0.75rem;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 200;
+      pointer-events: none;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .archify-toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 1rem;
+      }
+
+      .toolbar {
+        position: static;
+        justify-content: flex-end;
+        margin-bottom: 1rem;
+      }
+
+      .header {
+        margin-bottom: 1.25rem;
+      }
+
+      .header-row {
+        gap: 0.75rem;
+        align-items: flex-start;
+      }
+
+      h1 {
+        font-size: 1.25rem;
+        line-height: 1.25;
+      }
+
+      .subtitle {
+        margin-left: 0;
+        font-size: 0.8125rem;
+        line-height: 1.55;
+      }
+
+      .diagram-container {
+        padding: 0.75rem;
+        border-radius: 0.75rem;
+      }
+
+      .cards {
+        grid-template-columns: 1fr;
+        margin-top: 1rem;
+      }
+    }
+
+    /* ==========================================================
+       SVG SEMANTIC CLASSES — use these instead of inline fill/stroke
+       ========================================================== */
+    .c-bg-rect { fill: var(--bg); }
+
+    .c-grid {
+      stroke: var(--grid);
+      fill: none;
+    }
+
+    .c-mask {
+      fill: var(--mask);
+      stroke: none;
+    }
+
+    .c-frontend {
+      fill: var(--frontend-fill);
+      stroke: var(--frontend-stroke);
+    }
+
+    .c-backend {
+      fill: var(--backend-fill);
+      stroke: var(--backend-stroke);
+    }
+
+    .c-security {
+      fill: var(--security-fill);
+      stroke: var(--security-stroke);
+    }
+
+    /* Text helpers */
+    .t-primary {
+      fill: var(--text);
+    }
+
+    .t-muted {
+      fill: var(--text-muted);
+    }
+
+    .t-dim {
+      fill: var(--text-dim);
+    }
+
+    .t-frontend {
+      fill: var(--frontend-stroke);
+    }
+
+    .t-security {
+      fill: var(--security-stroke);
+    }
+
+    /* Arrows */
+    .a-default {
+      stroke: var(--arrow);
+      fill: none;
+    }
+
+    .a-emphasis {
+      stroke: var(--arrow-emphasis);
+      fill: none;
+    }
+
+    .a-security {
+      stroke: var(--security-stroke);
+      fill: none;
+      stroke-dasharray: 5, 5;
+    }
+
+    /* Arrowhead markers reference these */
+    .m-default {
+      fill: var(--arrow-emphasis);
+    }
+
+    .dot-emphasis { fill: var(--arrow-emphasis); }
+    .dot-security { fill: var(--security-stroke); }
+
+    .m-emphasis {
+      fill: var(--arrow-emphasis);
+    }
+
+    .m-security {
+      fill: var(--security-stroke);
+    }
+
+    /* Animations — dashoffset 必须等于 dasharray 周期，否则循环会跳帧 */
+    @keyframes dash-flow {
+      to {
+        stroke-dashoffset: -10;
+      }
+    }
+
+    .dash-flow {
+      animation: dash-flow 0.5s linear infinite;
+    }
+
+    @keyframes dash-flow-box {
+      to {
+        stroke-dashoffset: -8;
+      }
+    }
+
+    .dash-flow-box {
+      animation: dash-flow-box 0.5s linear infinite;
+    }
+
+    /* Dashed boundary variants */
+    .c-security-group {
+      fill: transparent;
+      stroke: var(--security-stroke);
+      stroke-dasharray: 4, 4;
+    }
+
+    .c-region {
+      fill: rgba(251, 191, 36, 0.05);
+      stroke: var(--cloud-stroke);
+      stroke-dasharray: 8, 4;
+    }
+
+    .c-lane {
+      fill: var(--lane-fill);
+      stroke: var(--lane-stroke);
+      stroke-dasharray: 6, 6;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.01ms !important;
+      }
+    }
+    ]]>
+  </style>
+
+  <!-- Definitions -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="m-default" />
+    </marker>
+    <marker id="arrowhead-emphasis" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="m-emphasis" />
+    </marker>
+    <marker id="arrowhead-security" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" class="m-security" />
+    </marker>
+
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <path d="M 40 0 L 0 0 0 40" class="c-grid" stroke-width="0.5" />
+    </pattern>
+  </defs>
+
+  <!-- Background Grid -->
+  <rect class="c-bg-rect" x="10" y="0" width="780" height="100%"/>
+  <rect x="10" y="0" width="780" height="100%" fill="url(#grid)" />
+  <rect x="10" y="0" width="780" height="100%" fill="none" stroke="var(--frontend-stroke)" stroke-width="3" rx="6" />
+  <!-- Title -->
+  <text x="30" y="24" class="t-primary" font-size="14" font-weight="700">Use — 一键安装流程</text>
+  <text x="30" y="40" class="t-muted" font-size="10">全流程 · OS 分发 · pm → init.sh / init.ps1</text>
+  <!-- Legend -->
+  <text x="770" y="19" class="t-primary" font-size="9" font-weight="600" text-anchor="end">Legend</text>
+  <rect x="628" y="31" width="14" height="9" rx="2" class="c-frontend" stroke-width="1" />
+  <text x="624" y="39" class="t-muted" font-size="8" text-anchor="end">Frontend</text>
+  <rect x="692" y="31" width="14" height="9" rx="2" class="c-backend" stroke-width="1" />
+  <text x="688" y="39" class="t-muted" font-size="8" text-anchor="end">Backend</text>
+  <rect x="756" y="31" width="14" height="9" rx="2" class="c-security" stroke-width="1" />
+  <text x="752" y="39" class="t-muted" font-size="8" text-anchor="end">Security</text>
+  <line x1="0" y1="52" x2="800" y2="52" stroke="var(--frontend-stroke)" stroke-width="1.5" />
+  <g transform="translate(0, 42)">
+    <!-- Connection paths (before components for correct z-order) -->
+    <path id="ip1a" d="M 170 58 L 361 58 Q 373 58 373 70 L 373 126" class="a-emphasis"
+          stroke-width="1.2" marker-end="url(#arrowhead-emphasis)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="2s" repeatCount="indefinite">
+        <mpath href="#ip1a" />
+      </animateMotion>
+    </circle>
+    <path id="ip1b" d="M 630 58 L 439 58 Q 427 58 427 70 L 427 126" class="a-emphasis"
+          stroke-width="1.2" marker-end="url(#arrowhead-emphasis)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="2s" repeatCount="indefinite">
+        <mpath href="#ip1b" />
+      </animateMotion>
+    </circle>
+    <path id="ip2" d="M 480 154 L 670 154" class="a-security dash-flow" stroke-width="1.2"
+          marker-end="url(#arrowhead-security)" />
+    <circle r="3" class="dot-security">
+      <animateMotion dur="2s" repeatCount="indefinite">
+        <mpath href="#ip2" />
+      </animateMotion>
+    </circle>
+    <path id="ip3" d="M 400 182 L 400 222" class="a-emphasis" stroke-width="1.2"
+          marker-end="url(#arrowhead-emphasis)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="1.5s" repeatCount="indefinite">
+        <mpath href="#ip3" />
+      </animateMotion>
+    </circle>
+    <path id="ip4" d="M 320 250 L 98 250 Q 90 250 90 258 L 90 318" class="a-emphasis" stroke-width="1.2"
+          marker-end="url(#arrowhead-emphasis)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="2.5s" repeatCount="indefinite">
+        <mpath href="#ip4" />
+      </animateMotion>
+    </circle>
+    <path id="ip5" d="M 400 278 L 400 318" class="a-emphasis" stroke-width="1.2"
+          marker-end="url(#arrowhead-emphasis)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="1.5s" repeatCount="indefinite">
+        <mpath href="#ip5" />
+      </animateMotion>
+    </circle>
+    <path id="ip6" d="M 480 250 L 687 250 Q 695 250 695 258 L 695 318" class="a-emphasis" stroke-width="1.2"
+          marker-end="url(#arrowhead-emphasis)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="2.5s" repeatCount="indefinite">
+        <mpath href="#ip6" />
+      </animateMotion>
+    </circle>
+    <path id="ip7" d="M 90 374 L 90 386 Q 90 394 98 394 L 392 394 Q 400 394 400 402 L 400 414" class="a-default"
+          stroke-width="1.2" marker-end="url(#arrowhead)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="3s" repeatCount="indefinite">
+        <mpath href="#ip7" />
+      </animateMotion>
+    </circle>
+    <path id="ip8" d="M 400 374 L 400 414" class="a-default" stroke-width="1.2" marker-end="url(#arrowhead)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="1.5s" repeatCount="indefinite">
+        <mpath href="#ip8" />
+      </animateMotion>
+    </circle>
+    <path id="ip9" d="M 695 374 L 695 386 Q 695 394 687 394 L 408 394 Q 400 394 400 402 L 400 414" class="a-default"
+          stroke-width="1.2" marker-end="url(#arrowhead)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="3s" repeatCount="indefinite">
+        <mpath href="#ip9" />
+      </animateMotion>
+    </circle>
+    <path id="ip10" d="M 320 442 L 125.5 442 Q 117.5 442 117.5 450 L 117.5 510" class="a-emphasis" stroke-width="1.2"
+          marker-end="url(#arrowhead-emphasis)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="2.5s" repeatCount="indefinite">
+        <mpath href="#ip10" />
+      </animateMotion>
+    </circle>
+    <path id="ip11" d="M 480 442 L 674.5 442 Q 682.5 442 682.5 450 L 682.5 510" class="a-emphasis" stroke-width="1.2"
+          marker-end="url(#arrowhead-emphasis)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="2.5s" repeatCount="indefinite">
+        <mpath href="#ip11" />
+      </animateMotion>
+    </circle>
+    <path id="ip12" d="M 117.5 566 L 117.5 606" class="a-emphasis" stroke-width="1.2"
+          marker-end="url(#arrowhead-emphasis)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="1.5s" repeatCount="indefinite">
+        <mpath href="#ip12" />
+      </animateMotion>
+    </circle>
+    <path id="ip13" d="M 682.5 566 L 682.5 606" class="a-emphasis" stroke-width="1.2"
+          marker-end="url(#arrowhead-emphasis)" />
+    <circle r="3" class="dot-emphasis">
+      <animateMotion dur="1.5s" repeatCount="indefinite">
+        <mpath href="#ip13" />
+      </animateMotion>
+    </circle>
+
+    <!-- Components -->
+    <rect x="30" y="30" width="140" height="56" rx="6" class="c-mask" />
+    <rect x="30" y="30" width="140" height="56" rx="6" class="c-frontend" stroke-width="1.5" />
+    <text x="100" y="62" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">install.sh</text>
+
+    <rect x="630" y="30" width="140" height="56" rx="6" class="c-mask" />
+    <rect x="630" y="30" width="140" height="56" rx="6" class="c-frontend" stroke-width="1.5" />
+    <text x="700" y="62" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">install.ps1</text>
+
+    <rect x="320" y="126" width="160" height="56" rx="6" class="c-mask" />
+    <rect x="320" y="126" width="160" height="56" rx="6" class="c-security" stroke-width="1.5" />
+    <text x="400" y="158" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Operating
+      System</text>
+
+    <rect x="670" y="126" width="100" height="56" rx="6" class="c-mask" />
+    <rect x="670" y="126" width="100" height="56" rx="6" class="c-frontend" stroke-width="1.5" />
+    <text x="720" y="158" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">退出</text>
+
+    <rect x="320" y="222" width="160" height="56" rx="6" class="c-mask" />
+    <rect x="320" y="222" width="160" height="56" rx="6" class="c-security" stroke-width="1.5" />
+    <text x="400" y="254" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">克隆 use 仓库</text>
+
+    <rect x="30" y="318" width="120" height="56" rx="6" class="c-mask" />
+    <rect x="30" y="318" width="120" height="56" rx="6" class="c-backend" stroke-width="1.5" />
+    <text x="90" y="350" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">git clone</text>
+
+    <rect x="340" y="318" width="120" height="56" rx="6" class="c-mask" />
+    <rect x="340" y="318" width="120" height="56" rx="6" class="c-backend" stroke-width="1.5" />
+    <text x="400" y="344" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">fetch + reset</text>
+    <text x="400" y="360" class="t-muted" font-size="9" text-anchor="middle">--hard origin/main</text>
+
+    <rect x="620" y="318" width="150" height="56" rx="6" class="c-mask" />
+    <rect x="620" y="318" width="150" height="56" rx="6" class="c-backend" stroke-width="1.5" />
+    <text x="695" y="350" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">clone
+      use-&lt;date&gt;</text>
+
+    <rect x="320" y="414" width="160" height="56" rx="6" class="c-mask" />
+    <rect x="320" y="414" width="160" height="56" rx="6" class="c-security" stroke-width="1.5" />
+    <text x="400" y="446" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">~/Desktop/use</text>
+
+    <rect x="30" y="510" width="175" height="56" rx="6" class="c-mask" />
+    <rect x="30" y="510" width="175" height="56" rx="6" class="c-backend" stroke-width="1.5" />
+    <text x="117.5" y="536" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">brew-install
+      ustc</text>
+    <text x="117.5" y="552" class="t-muted" font-size="9" text-anchor="middle">安装包管理器</text>
+
+    <rect x="595" y="510" width="175" height="56" rx="6" class="c-mask" />
+    <rect x="595" y="510" width="175" height="56" rx="6" class="c-backend" stroke-width="1.5" />
+    <text x="682.5" y="536" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">scoop-install</text>
+    <text x="682.5" y="552" class="t-muted" font-size="9" text-anchor="middle">安装包管理器</text>
+
+    <rect x="30" y="606" width="175" height="56" rx="6" class="c-mask" />
+    <rect x="30" y="606" width="175" height="56" rx="6" class="c-frontend dash-flow-box" stroke-width="2"
+          stroke-dasharray="4,4" />
+    <text x="117.5" y="632" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">init.sh</text>
+    <text x="117.5" y="648" class="t-muted" font-size="9" text-anchor="middle">init 初始化流程</text>
+
+    <rect x="595" y="606" width="175" height="56" rx="6" class="c-mask" />
+    <rect x="595" y="606" width="175" height="56" rx="6" class="c-frontend dash-flow-box" stroke-width="2"
+          stroke-dasharray="4,4" />
+    <text x="682.5" y="632" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">init.ps1</text>
+    <text x="682.5" y="648" class="t-muted" font-size="9" text-anchor="middle">init 初始化流程</text>
+
+    <!-- Connection labels -->
+    <rect x="534.2" y="134" width="91.6" height="14" rx="3" class="c-mask" />
+    <text x="580" y="144" class="t-security" font-size="8" text-anchor="middle">不支持 / 脚本不符</text>
+    <rect x="385" y="190" width="30" height="14" rx="3" class="c-mask" />
+    <text x="400" y="200" class="t-frontend" font-size="8" text-anchor="middle">支持</text>
+    <rect x="160.6" y="230" width="38.8" height="14" rx="3" class="c-mask" />
+    <text x="180" y="240" class="t-frontend" font-size="8" text-anchor="middle">不存在</text>
+    <rect x="363.8" y="288" width="72.4" height="14" rx="3" class="c-mask" />
+    <text x="400" y="298" class="t-frontend" font-size="8" text-anchor="middle">同仓库 origin</text>
+    <rect x="571" y="230" width="58" height="14" rx="3" class="c-mask" />
+    <text x="600" y="240" class="t-frontend" font-size="8" text-anchor="middle">目录已占用</text>
+    <rect x="183" y="422" width="34" height="14" rx="3" class="c-mask" />
+    <text x="200" y="432" class="t-frontend" font-size="8" text-anchor="middle">macOS</text>
+    <rect x="573.2" y="422" width="43.6" height="14" rx="3" class="c-mask" />
+    <text x="595" y="432" class="t-frontend" font-size="8" text-anchor="middle">Windows</text>
+  </g>
+</svg>
