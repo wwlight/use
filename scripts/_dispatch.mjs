@@ -25,10 +25,7 @@ function exitStatus(result) {
 
 function runSubDispatch(relativePath, subTask, args = []) {
   const dispatchPath = path.join(__dirname, relativePath)
-  return exitStatus(spawnSync(process.execPath, [dispatchPath, subTask, ...args], {
-    stdio: 'inherit',
-    cwd: projectRoot,
-  }))
+  return exitStatus(spawnSync(process.execPath, [dispatchPath, subTask, ...args], { stdio: 'inherit', cwd: projectRoot }))
 }
 
 function requirePlatform() {
@@ -41,18 +38,14 @@ function requirePlatform() {
 }
 
 function requireWindows(platform) {
-  if (platform !== 'win') {
-    console.error(`[ERROR] ${task} 仅支持 Windows`)
+  if (platform !== 'windows') {
+    console.error(`[ERROR] ${task} 仅支持 windows`)
     process.exit(1)
   }
 }
 
-function runMacPm(args) {
-  return exitStatus(runBash(path.join(__dirname, 'mac/brew-install.sh'), args))
-}
-
 function runPlatformInit(platform) {
-  const initDir = path.join(__dirname, platform === 'mac' ? 'mac' : 'windows')
+  const initDir = path.join(__dirname, platform)
   const scriptPath = resolveScript(initDir, 'init')
   const result = isPowerShell() ? runPwsh(scriptPath, scriptArgs) : runBash(scriptPath, scriptArgs)
   return exitStatus(result)
@@ -60,18 +53,8 @@ function runPlatformInit(platform) {
 
 function runMacBackup() {
   return exitStatus(spawnSync('brew', [
-    'bundle', 'dump', '--no-vscode', '--no-npm', '--force', '--file=./configs/mac/Brewfile',
+    'bundle', 'dump', '--no-vscode', '--no-npm', '--force', '--file=./configs/macos/Brewfile',
   ], { stdio: 'inherit', cwd: projectRoot }))
-}
-
-function runMacSetup() {
-  return exitStatus(spawnSync('brew', [
-    'bundle', 'install', '--file=./configs/mac/Brewfile',
-  ], { stdio: 'inherit', cwd: projectRoot }))
-}
-
-function runMacSync(args) {
-  return runUnifiedSync('mac', args)
 }
 
 function runWinBackup() {
@@ -79,11 +62,7 @@ function runWinBackup() {
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
   const fullRel = manifest.scoopBackup || 'configs/windows/scoop_backup.json'
 
-  const exportStatus = exitStatus(spawnSync(`scoop export > ./${fullRel}`, {
-    stdio: 'inherit',
-    shell: true,
-    cwd: projectRoot,
-  }))
+  const exportStatus = exitStatus(spawnSync(`scoop export > ./${fullRel}`, { stdio: 'inherit', shell: true, cwd: projectRoot }))
   if (exportStatus !== 0) return exportStatus
 
   try {
@@ -213,8 +192,8 @@ async function runUnifiedSync(platform, args) {
   const syncArgs = [direction]
 
   try {
-    const status = platform === 'mac'
-      ? exitStatus(runBash(path.join(__dirname, 'mac/config-sync.sh'), syncArgs))
+    const status = platform === 'macos'
+      ? exitStatus(runBash(path.join(__dirname, 'macos/config-sync.sh'), syncArgs))
       : runSubDispatch('windows/_dispatch.mjs', 'sync', syncArgs)
 
     if (prompted && status === 0) {
@@ -229,32 +208,26 @@ async function runUnifiedSync(platform, args) {
   }
 }
 
-function runWinSetup() {
-  return exitStatus(spawnSync('scoop', ['import', './configs/windows/scoop_backup.json'], {
-    stdio: 'inherit',
-    cwd: projectRoot,
-    shell: true,
-  }))
-}
-
-function runWinSync(args) {
-  return runUnifiedSync('win', args)
-}
-
 async function runCrossPlatformTask(platform) {
   switch (task) {
     case 'pm':
-      return platform === 'mac'
-        ? runMacPm(scriptArgs)
+      return platform === 'macos'
+        ? exitStatus(runBash(path.join(__dirname, 'macos/brew-install.sh'), scriptArgs))
         : runSubDispatch('windows/_dispatch.mjs', 'scoop', scriptArgs)
     case 'init':
       return runPlatformInit(platform)
     case 'backup':
-      return platform === 'mac' ? runMacBackup() : runWinBackup()
+      return platform === 'macos' ? runMacBackup() : runWinBackup()
     case 'setup':
-      return platform === 'mac' ? runMacSetup() : runWinSetup()
+      return platform === 'macos'
+        ? exitStatus(spawnSync('brew', [
+            'bundle', 'install', '--file=./configs/macos/Brewfile',
+          ], { stdio: 'inherit', cwd: projectRoot }))
+        : exitStatus(spawnSync('scoop', [
+            'import', './configs/windows/scoop_backup.json',
+          ], { stdio: 'inherit', cwd: projectRoot, shell: true }))
     case 'sync':
-      return platform === 'mac' ? runMacSync(scriptArgs) : runWinSync(scriptArgs)
+      return runUnifiedSync(platform, scriptArgs)
     case 'zsh-plugin':
       return runSubDispatch('common/_dispatch.mjs', task, scriptArgs)
     default:

@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 export function readSyncPairLines(platform, scriptsDir) {
-  const scopes = platform === 'mac' ? ['mac', 'common'] : ['windows', 'common']
+  const scopes = platform === 'macos' ? ['macos', 'common'] : ['windows', 'common']
   const lines = []
 
   for (const scope of scopes) {

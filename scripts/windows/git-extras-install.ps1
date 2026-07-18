@@ -1,6 +1,8 @@
 ﻿$ScriptDir = Split-Path $PSScriptRoot -Parent
 . (Join-Path $ScriptDir 'lib/utils.ps1')
 
+Assert-TargetOs windows
+
 $manifest = Read-Manifest
 
 $workDir = Join-Path $env:USERPROFILE 'Desktop/git-extras'

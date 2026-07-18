@@ -32,7 +32,7 @@ detect_os() {
 OS=$(detect_os)
 
 info()  { printf "\033[32m[INFO] %s\033[0m\n" "$1"; }
-step()  { printf "\033[35m[INFO] %s\033[0m\n" "$1"; }
+step()  { printf "\033[34m[INFO] %s\033[0m\n" "$1"; }
 error() { printf "\033[31m[ERROR] %s\033[0m\n" "$1"; exit 1; }
 
 usage() {
@@ -104,7 +104,7 @@ ensure_repo() {
 
   if is_same_remote_repo "$target"; then
     INSTALL_DIR="$target"
-    info "检测到已有仓库 ${INSTALL_DIR}，正在强制同步到 origin/main ..."
+    info "检测到已有仓库 ${INSTALL_DIR}，正在同步到 origin/main ..."
     git -C "$INSTALL_DIR" fetch origin main || error "拉取远程失败"
     git -C "$INSTALL_DIR" reset --hard origin/main || error "重置本地失败"
     return
@@ -122,15 +122,15 @@ install_macos() {
   cd "$INSTALL_DIR"
 
   step "步骤 1/2: 安装包管理器 ..."
-  bash scripts/mac/brew-install.sh ustc
+  bash scripts/macos/brew-install.sh ustc
   # shellcheck disable=SC1090
   [ -f "${HOME}/.zprofile" ] && . "${HOME}/.zprofile"
 
   step "步骤 2/2: 系统初始化 ..."
   if [ -n "$profile" ]; then
-    bash scripts/mac/init.sh "$profile"
+    bash scripts/macos/init.sh "$profile"
   else
-    bash scripts/mac/init.sh
+    bash scripts/macos/init.sh
   fi
 
   info "安装完成！"
@@ -142,10 +142,10 @@ esac
 
 case "$OS" in
   windows)
-    error "检测到 Windows（含 Git Bash / MSYS / Cygwin）。请改用 PowerShell：
+    error "检测到 windows。请改用 PowerShell：
   irm https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex"
     ;;
-  linux) error "Linux 暂不支持" ;;
+  linux) error "检测到 linux，暂不支持" ;;
   unknown) error "不支持的操作系统: $(uname -s 2>/dev/null || echo unknown)" ;;
 esac
 

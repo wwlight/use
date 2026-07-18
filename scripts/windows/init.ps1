@@ -131,6 +131,7 @@ function Sync-Configurations {
 }
 
 Write-Info '===== Windows 系统配置脚本 ====='
+Assert-TargetOs windows
 
 $scoopProfile = Resolve-ScoopInstallProfile -Arg $InstallProfile
 

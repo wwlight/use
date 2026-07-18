@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
 
-init_manifest mac
+init_manifest macos
 
 usage() {
     cat <<EOF
@@ -23,25 +23,20 @@ usage() {
 EOF
 }
 
-# 解析安装配置档：lite | full → BREW_INSTALL_PROFILE
+# 解析安装配置档：lite | full（stdout 输出档位）
 resolve_brew_profile() {
     local arg="${1:-}"
-    BREW_INSTALL_PROFILE=""
 
     case "$arg" in
         "" )
             ;;
         full|--full)
-            BREW_INSTALL_PROFILE="full"
+            echo "full"
             return 0
             ;;
         lite|--lite)
-            BREW_INSTALL_PROFILE="lite"
+            echo "lite"
             return 0
-            ;;
-        -h|--help|help)
-            usage
-            exit 0
             ;;
         *)
             usage >&2
@@ -64,8 +59,8 @@ resolve_brew_profile() {
     fi
 
     case "$choice" in
-        1|lite) BREW_INSTALL_PROFILE="lite" ;;
-        2|full) BREW_INSTALL_PROFILE="full" ;;
+        1|lite) echo "lite" ;;
+        2|full) echo "full" ;;
         "")
             error "非交互环境请传入参数: lite 或 full（示例: vpr init -- lite）"
             ;;
@@ -77,19 +72,12 @@ resolve_brew_profile() {
 
 setup_directories() {
     step "步骤1/4: 正在创建目录结构..."
-    local directories_json
-    directories_json=$(manifest_directories)
-
-    node -e "
-        const dirs = JSON.parse(process.argv[1]);
-        for (const dir of dirs) {
-            console.log(dir);
-        }
-    " "$directories_json" | while IFS= read -r dir; do
-        local path
+    local dir path
+    while IFS= read -r dir; do
+        [ -z "$dir" ] && continue
         path=$(expand_path "$dir")
         mkdir -p "$path" || warn "目录创建失败或已存在: $path"
-    done
+    done < <(manifest_directories)
 }
 
 install_or_restore_brew() {
@@ -130,7 +118,7 @@ install_zsh_plugins() {
 sync_configurations() {
     local profile="$1"
     step "步骤4/4: 正在同步配置..."
-    local CONFIG_SCRIPT="$SCRIPT_DIR/mac/config-sync.sh"
+    local CONFIG_SCRIPT="$SCRIPT_DIR/macos/config-sync.sh"
     local BASE_SCRIPT="$SCRIPT_DIR/common/git-setup.sh"
 
     if [ -f "$CONFIG_SCRIPT" ]; then
@@ -148,12 +136,16 @@ sync_configurations() {
 
 main() {
     info "===== macOS 系统配置脚本 ====="
-    check_target_system "macOS"
+    check_target_os "macos"
 
     while [[ "${1:-}" == "--" ]]; do shift; done
 
-    resolve_brew_profile "${1:-}"
-    local profile="$BREW_INSTALL_PROFILE"
+    case "${1:-}" in
+        -h|--help|help) usage; exit 0 ;;
+    esac
+
+    local profile
+    profile=$(resolve_brew_profile "${1:-}") || exit $?
 
     setup_directories
     install_or_restore_brew "$profile"

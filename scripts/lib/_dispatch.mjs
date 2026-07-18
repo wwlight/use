@@ -6,8 +6,8 @@ const scriptsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '.
 
 export function detectPlatform() {
   const p = process.platform
-  if (p === 'darwin') return 'mac'
-  if (p === 'win32') return 'win'
+  if (p === 'darwin') return 'macos'
+  if (p === 'win32') return 'windows'
   return null
 }
 

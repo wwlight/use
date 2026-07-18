@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
 
-init_manifest mac
+init_manifest macos
 
 usage() {
     cat <<EOF
@@ -132,7 +132,7 @@ main() {
         *) usage >&2; error "未知参数: $1" ;;
     esac
 
-    check_target_system "macOS"
+    check_target_os "macos"
     install_homebrew "$mirror"
 }
 

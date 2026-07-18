@@ -1,6 +1,6 @@
 {
-  "brewfile": "configs/mac/Brewfile",
-  "brewfileLite": "configs/mac/Brewfile.lite",
+  "brewfile": "configs/macos/Brewfile",
+  "brewfileLite": "configs/macos/Brewfile.lite",
   "brewMirrors": {
     "official": {
       "installScript": "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
@@ -19,10 +19,10 @@
   },
   "sync": {
     "toRepo": [
-      { "local": "~/.zshrc", "repo": "configs/mac/.zshrc", "backup": true },
-      { "local": "~/.bashrc", "repo": "configs/mac/.bashrc" },
-      { "local": "~/.zsh/functions/utils.zsh", "repo": "configs/mac/utils.zsh" },
-      { "local": "~/.config/ghostty/config", "repo": "configs/mac/ghostty_config" },
+      { "local": "~/.zshrc", "repo": "configs/macos/.zshrc", "backup": true },
+      { "local": "~/.bashrc", "repo": "configs/macos/.bashrc" },
+      { "local": "~/.zsh/functions/utils.zsh", "repo": "configs/macos/utils.zsh" },
+      { "local": "~/.config/ghostty/config", "repo": "configs/macos/ghostty_config" },
       { "local": "~/Library/Application Support/mihomo-party/mihomo.yaml", "repo": "configs/common/mihomo.yaml", "lite": false }
     ]
   },

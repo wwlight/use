@@ -1,6 +1,8 @@
 ﻿$ScriptDir = Split-Path $PSScriptRoot -Parent
 . (Join-Path $ScriptDir 'lib/utils.ps1')
 
+Assert-TargetOs windows
+
 $manifest = Read-Manifest
 
 Write-Step '步骤1/4: 检查 scoop 安装...'

@@ -6,6 +6,8 @@
 $ScriptDir = Split-Path $PSScriptRoot -Parent
 . (Join-Path $ScriptDir 'lib/utils.ps1')
 
+Assert-TargetOs windows
+
 $directionArg = Resolve-SyncDirectionArg $SyncArgs
 Invoke-ManifestSync -Scope windows -DirectionArg $directionArg
 $global:LASTEXITCODE = 0

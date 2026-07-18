@@ -5,7 +5,7 @@ RED=$'\033[0;31m'
 GREEN=$'\033[0;32m'
 YELLOW=$'\033[0;33m'
 CYAN=$'\033[0;36m'
-MAGENTA=$'\033[0;35m'
+BLUE=$'\033[0;34m'
 NC=$'\033[0m'
 
 safe_echo() {
@@ -13,33 +13,41 @@ safe_echo() {
 }
 
 info() { safe_echo "${GREEN}[INFO] $1${NC}"; }
-step() { safe_echo "${MAGENTA}[INFO] $1${NC}"; }
+step() { safe_echo "${BLUE}[INFO] $1${NC}"; }
 backup_info() { safe_echo "${CYAN}[INFO] $1${NC}"; }
 warn() { safe_echo "${YELLOW}[WARN] $1${NC}"; }
 error() { safe_echo "${RED}[ERROR] $1${NC}"; exit 1; }
 
 # --- 系统环境检测 ---
-detect_system() {
-    if command -v uname &>/dev/null; then
-        case "$(uname -s)" in
-            Darwin*)  echo "macOS";;
-            Linux*)   [[ $(uname -r) == *microsoft* ]] && echo "WSL" || echo "Linux";;
-            CYGWIN*|MINGW*|MSYS*) echo "Windows";;
-            *)        echo "Unknown";;
-        esac
-    else
-        if [[ "$OSTYPE" == "win32" || "$OSTYPE" == "msys" ]]; then
-            echo "Windows"
-        else
-            echo "Unknown"
-        fi
-    fi
+detect_os() {
+    local uname_s
+    uname_s="$(uname -s 2>/dev/null || true)"
+    case "$uname_s" in
+        Darwin)  echo "macos" ;;
+        CYGWIN*|MINGW*|MSYS*) echo "windows" ;;
+        Linux)   echo "linux" ;;
+        *)
+            case "${OSTYPE:-}" in
+                msys*|cygwin*) echo "windows" ;;
+                darwin*) echo "macos" ;;
+                linux*) echo "linux" ;;
+                *)
+                    if [ "${OS:-}" = "Windows_NT" ] || [ -n "${WINDIR:-}" ]; then
+                        echo "windows"
+                    else
+                        echo "unknown"
+                    fi
+                    ;;
+            esac
+            ;;
+    esac
 }
 
-# --- 检查是否匹配目标系统 ---
-check_target_system() {
-    local current=$(detect_system)
-    [[ "$current" != "$1" ]] && error "本脚本仅支持 $1 系统，检测到当前系统为 $current"
+# 期望值: macos / windows / linux
+check_target_os() {
+    local current
+    current=$(detect_os)
+    [[ "$current" != "$1" ]] && error "本脚本仅支持 $1，检测到当前系统为 $current"
 }
 
 # --- 备份（支持自定义路径+日期序号+错误不中断） ---
@@ -184,7 +192,7 @@ sync_select_run() {
 init_manifest() {
     local scope="$1"
     if [[ -z "$scope" ]]; then
-        error "init_manifest 需要指定 scope: mac|windows|common"
+        error "init_manifest 需要指定 scope: macos|windows|common"
     fi
     local manifest_path="${PROJECT_ROOT}/scripts/${scope}/_manifest.json"
     if [[ ! -f "$manifest_path" ]]; then
@@ -230,7 +238,7 @@ manifest_directories() {
             error "请先调用 init_manifest"
         fi
         scopes=("$MANIFEST_SCOPE")
-        if [[ "$MANIFEST_SCOPE" == mac || "$MANIFEST_SCOPE" == windows ]]; then
+        if [[ "$MANIFEST_SCOPE" == macos || "$MANIFEST_SCOPE" == windows ]]; then
             scopes=("common" "$MANIFEST_SCOPE")
         fi
     fi
@@ -240,17 +248,15 @@ manifest_directories() {
         const projectRoot = process.argv[1];
         const scopes = process.argv.slice(2);
         const seen = new Set();
-        const dirs = [];
         for (const scope of scopes) {
             const m = require(path.join(projectRoot, 'scripts', scope, '_manifest.json'));
             for (const d of m.directories ?? []) {
                 if (!seen.has(d)) {
                     seen.add(d);
-                    dirs.push(d);
+                    console.log(d);
                 }
             }
         }
-        console.log(JSON.stringify(dirs));
     " "$PROJECT_ROOT" "${scopes[@]}"
 }
 
@@ -355,7 +361,7 @@ run_config_sync() {
     local invalid_direction_arg=""
     local sync_scopes=("$scope")
 
-    if [[ "$scope" == "mac" || "$scope" == "windows" ]]; then
+    if [[ "$scope" == "macos" || "$scope" == "windows" ]]; then
         sync_scopes+=("common")
     fi
 

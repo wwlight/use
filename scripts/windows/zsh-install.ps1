@@ -3,6 +3,8 @@
 $ScriptDir = Split-Path $PSScriptRoot -Parent
 . (Join-Path $ScriptDir 'lib/utils.ps1')
 
+Assert-TargetOs windows
+
 $manifest = Read-Manifest
 
 function Get-GitPath {

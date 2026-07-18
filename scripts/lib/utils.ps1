@@ -38,7 +38,7 @@ function Write-Info {
 
 function Write-Step {
     param([string]$Message)
-    Write-Host "[INFO] $Message" -ForegroundColor Magenta
+    Write-Host "[INFO] $Message" -ForegroundColor Blue
 }
 
 function Write-Backup {
@@ -75,6 +75,49 @@ function Write-ErrorAndExit {
     exit 1
 }
 
+# --- 系统环境检测 ---
+function Get-Os {
+    if (($env:OS -eq 'Windows_NT') -or (($null -ne (Get-Variable IsWindows -ErrorAction SilentlyContinue)) -and $IsWindows)) {
+        return 'windows'
+    }
+    if (($null -ne (Get-Variable IsMacOS -ErrorAction SilentlyContinue)) -and $IsMacOS) {
+        return 'macos'
+    }
+    if (($null -ne (Get-Variable IsLinux -ErrorAction SilentlyContinue)) -and $IsLinux) {
+        return 'linux'
+    }
+
+    $unameS = ''
+    try { $unameS = (& uname -s 2>$null) } catch { }
+
+    switch -Regex ($unameS) {
+        '^Darwin$' { return 'macos' }
+        '^(CYGWIN|MINGW|MSYS)' { return 'windows' }
+        '^Linux$' { return 'linux' }
+    }
+
+    if ($env:OSTYPE -match '^(msys|cygwin)') { return 'windows' }
+    if ($env:OSTYPE -match '^darwin') { return 'macos' }
+    if ($env:OSTYPE -match '^linux') { return 'linux' }
+    if ($env:WINDIR) { return 'windows' }
+
+    return 'unknown'
+}
+
+# 期望值: macos / windows / linux
+function Assert-TargetOs {
+    param(
+        [Parameter(Mandatory = $true)]
+        [ValidateSet('macos', 'windows', 'linux')]
+        [string]$Expected
+    )
+
+    $current = Get-Os
+    if ($current -ne $Expected) {
+        Write-ErrorAndExit "本脚本仅支持 $Expected，检测到当前系统为 $current"
+    }
+}
+
 # --- manifest 读取 ---
 function Get-ManifestDirectories {
     param([string]$Scope = 'windows')
@@ -107,7 +150,7 @@ function Get-SyncScopes {
     param([string]$Scope)
 
     $scopes = @($Scope)
-    if ($Scope -eq 'mac' -or $Scope -eq 'windows') {
+    if ($Scope -eq 'macos' -or $Scope -eq 'windows') {
         $scopes += 'common'
     }
     return $scopes
@@ -264,7 +307,7 @@ function Format-RepoDisplay {
     return "./$Repo"
 }
 
-function Get-SyncDirection {
+function Resolve-SyncDirection {
     param(
         [string]$DirectionArg,
         [string]$Example,
@@ -274,6 +317,10 @@ function Get-SyncDirection {
 
     if ($DirectionArg -eq '1' -or $DirectionArg -eq '2') {
         return $DirectionArg
+    }
+
+    if (Test-SyncDispatchMode) {
+        Write-ErrorAndExit "缺少同步方向参数`n$Example"
     }
 
     if (-not [string]::IsNullOrWhiteSpace($DirectionArg)) {
@@ -292,25 +339,6 @@ function Get-SyncDirection {
         Write-ErrorAndExit "非交互环境请传入方向参数: 1=备份到仓库, 2=应用到本地`n$Example"
     }
     return $choice
-}
-
-function Resolve-SyncDirection {
-    param(
-        [string]$DirectionArg,
-        [string]$Example,
-        [string]$Line1,
-        [string]$Line2
-    )
-
-    if ($DirectionArg -eq '1' -or $DirectionArg -eq '2') {
-        return $DirectionArg
-    }
-
-    if (Test-SyncDispatchMode) {
-        Write-ErrorAndExit "缺少同步方向参数`n$Example"
-    }
-
-    return Get-SyncDirection $DirectionArg $Example $Line1 $Line2
 }
 
 function Test-SyncDispatchMode {

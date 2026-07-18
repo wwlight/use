@@ -11,20 +11,40 @@ $Repo = 'https://github.com/wwlight/use.git'
 $InstallDir = "$env:USERPROFILE\Desktop\use"
 
 function Write-Info  { Write-Host "[INFO] $args" -ForegroundColor Green }
-function Write-Step  { Write-Host "[INFO] $args" -ForegroundColor Magenta }
+function Write-Step  { Write-Host "[INFO] $args" -ForegroundColor Blue }
 function Write-ErrorAndExit { Write-Host "[ERROR] $args" -ForegroundColor Red; throw "[ERROR] $args" }
 
-# 仅允许 Windows（PowerShell 5 / PowerShell 7+）
-$onWindows = ($env:OS -eq 'Windows_NT') -or (($null -ne (Get-Variable IsWindows -ErrorAction SilentlyContinue)) -and $IsWindows)
-if (-not $onWindows) {
-    Write-ErrorAndExit '仅支持 Windows。macOS 请使用: curl -fsSL https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash'
+# 返回值: macos / windows / linux / unknown
+function Get-Os {
+    if (($env:OS -eq 'Windows_NT') -or (($null -ne (Get-Variable IsWindows -ErrorAction SilentlyContinue)) -and $IsWindows)) {
+        return 'windows'
+    }
+    if (($null -ne (Get-Variable IsMacOS -ErrorAction SilentlyContinue)) -and $IsMacOS) {
+        return 'macos'
+    }
+    if (($null -ne (Get-Variable IsLinux -ErrorAction SilentlyContinue)) -and $IsLinux) {
+        return 'linux'
+    }
+
+    $unameS = ''
+    try { $unameS = (& uname -s 2>$null) } catch { }
+
+    switch -Regex ($unameS) {
+        '^Darwin$' { return 'macos' }
+        '^(CYGWIN|MINGW|MSYS)' { return 'windows' }
+        '^Linux$' { return 'linux' }
+    }
+
+    if ($env:OSTYPE -match '^(msys|cygwin)') { return 'windows' }
+    if ($env:OSTYPE -match '^darwin') { return 'macos' }
+    if ($env:OSTYPE -match '^linux') { return 'linux' }
+    if ($env:WINDIR) { return 'windows' }
+
+    return 'unknown'
 }
 
-switch -Regex ($InstallProfile) {
-    '^(--)?lite$' { $InstallProfile = 'lite' }
-    '^(--)?full$' { $InstallProfile = 'full' }
-    '^(-h|--help|help)$' {
-        Write-Host @'
+if ($InstallProfile -match '^(-h|--help|help)$') {
+    Write-Host @'
 用法: install.ps1 [lite|full]
 
   lite  尝鲜版
@@ -36,8 +56,17 @@ switch -Regex ($InstallProfile) {
   irm <url> | iex
   $env:USE_PROFILE='lite'; irm <url> | iex
 '@
-        return
-    }
+    return
+}
+
+$os = Get-Os
+if ($os -ne 'windows') {
+    Write-ErrorAndExit "检测到 $os。请改用: curl -fsSL https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash"
+}
+
+switch -Regex ($InstallProfile) {
+    '^(--)?lite$' { $InstallProfile = 'lite' }
+    '^(--)?full$' { $InstallProfile = 'full' }
     '^$' { }
     default { Write-ErrorAndExit "未知参数: $InstallProfile（使用 lite / full）" }
 }
@@ -83,7 +112,7 @@ if (-not (Test-Path $InstallDir)) {
   if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '克隆仓库失败' }
 }
 elseif (Test-SameRemoteRepo $InstallDir) {
-  Write-Info "检测到已有仓库 $InstallDir，正在强制同步到 origin/main ..."
+  Write-Info "检测到已有仓库 $InstallDir，正在同步到 origin/main ..."
   git -C $InstallDir fetch origin main
   if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '拉取远程失败' }
   git -C $InstallDir reset --hard origin/main

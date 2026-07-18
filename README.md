@@ -2,19 +2,19 @@
 
 ## 一键安装
 
-### mac · 交互选择
+### macos · 交互选择
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash
 ```
 
-### mac · lite
+### macos · 尝鲜版
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash -s -- lite
 ```
 
-### mac · full
+### macos · 完整版
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash -s -- full
@@ -32,13 +32,13 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 irm https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
 ```
 
-### windows · lite
+### windows · 尝鲜版
 
 ```powershell
 $env:USE_PROFILE='lite'; irm https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
 ```
 
-### windows · full
+### windows · 完整版
 
 ```powershell
 $env:USE_PROFILE='full'; irm https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
@@ -48,7 +48,7 @@ $env:USE_PROFILE='full'; irm https://raw.githubusercontent.com/wwlight/use/main/
 
 ## 安装 [vite.plus](https://viteplus.dev/)
 
-### mac
+### macos
 
 ```sh
 curl -fsSL https://vite.plus | bash
@@ -66,11 +66,11 @@ irm https://vite.plus/ps1 | iex
 
 ```sh
 vpr pm                            # 安装包管理器（brew / scoop）
-vpr pm -- ustc                    # mac 镜像：official | ustc | tuna
-vpr init                          # 初始化（交互选择 lite/full）
+vpr pm -- ustc                    # macos 镜像：official | ustc | tuna
+vpr init                          # 初始化
 vpr init -- lite                  # 尝鲜版
 vpr init -- full                  # 完整版
-vpr backup                        # 备份已装软件到仓库（win 同时更新尝鲜版）
+vpr backup                        # 备份已装软件到仓库
 vpr setup                         # 从仓库恢复完整软件清单
 vpr sync                          # 交互选择同步方向
 vpr sync 1                        # 本地配置 → 仓库
@@ -78,7 +78,8 @@ vpr sync 2                        # 仓库 → 本地配置
 vpr zsh-plugin                    # 安装/更新 zsh 插件
 ```
 
-> [!WARNING] zip 下载解压后需先解除脚本封锁
+> [!WARNING]
+> zip 下载解压后需先解除脚本封锁
 
 ```powershell
 Get-ChildItem scripts,configs -Recurse -Include *.ps1,*.psm1 | Unblock-File
@@ -86,18 +87,18 @@ Get-ChildItem scripts,configs -Recurse -Include *.ps1,*.psm1 | Unblock-File
 
 
 
-## mac
+## macos
 
 ```sh
 vpr pm                            # 官方源（默认）
 vpr pm -- ustc                    # 中科大镜像
 vpr pm -- tuna                    # 清华镜像
-vpr init                          # 初始化（需先装 brew，交互选择）
+vpr init                          # 初始化
 vpr init -- lite                  # 尝鲜版
 ```
 
 ```text
-configs/mac/
+configs/macos/
 |-- Brewfile                      # Homebrew 应用备份
 |-- Brewfile.lite                 # 尝鲜版最小依赖
 |-- .zshrc                        # zsh 平台配置
@@ -113,7 +114,7 @@ configs/mac/
 ```sh
 vpr hosts                         # 更新 GitHub hosts（需管理员）
 vpr pm                            # 安装 scoop
-vpr init                          # 初始化（需先装 scoop，交互选择）
+vpr init                          # 初始化
 vpr init -- lite                  # 尝鲜版
 ```
 
@@ -124,7 +125,6 @@ vpr zsh                           # 安装 zsh 到 git
 vpr git-setup                     # Git 全局配置
 vpr git-extras                    # 安装 git-extras
 vpr clink                         # 安装 clink 插件（cmd 扩展）
-vpr hosts                         # 更新 GitHub hosts（需管理员）
 ```
 
 ```text
@@ -173,7 +173,7 @@ scoop hold clink                  # 禁止更新
 
 ```text
 configs/common/
-|-- .zshrc_core                   # mac / windows 公共核心 zsh
+|-- .zshrc_core                   # macos / windows 公共核心 zsh
 |-- aliases.zsh                   # 公共别名
 |-- _eza                          # eza 补全
 |-- starship.toml                 # starship 配置
@@ -185,28 +185,33 @@ configs/common/
 
 ### 一键安装
 
-`install.sh` / `install.ps1` → 落盘仓库 → 装包管理器 → `init`（lite/full 在此生效）。
+`install.sh` / `install.ps1`：判 OS → 读 lite/full → 落盘仓库 → 装包管理器 → `init`。
 
 ```mermaid
 flowchart TD
-  A["install.sh / install.ps1"] --> B["解析安装档<br/>参数 lite / full，省略则稍后交互"]
-  B --> C{"~/Desktop/use"}
-  C -->|不存在| D["git clone"]
-  C -->|同仓库 origin| E["fetch + reset --hard origin/main"]
-  C -->|目录已占用| F["clone 到 use-时间戳"]
-  D --> G{"OS"}
-  E --> G
-  F --> G
-  G -->|mac| H["brew-install ustc"]
-  G -->|win| I["scoop-install"]
-  H --> J["init + 安装档"]
-  I --> J
-  J -->|lite| K["Brewfile.lite / scoop_backup.lite.json"]
-  J -->|full| L["Brewfile / scoop_backup.json"]
-  J -->|省略| M["交互选择 lite / full"]
-  K --> N["完成"]
-  L --> N
-  M --> N
+  A["install.sh / install.ps1"] --> B{"OS"}
+  B -->|不支持 / 脚本不符| X["退出"]
+  B -->|通过| C["lite / full<br/>省略则稍后交互"]
+  C --> D{"~/Desktop/use"}
+
+  D -->|不存在| E["git clone"]
+  D -->|同仓库 origin| F["fetch + reset --hard origin/main"]
+  D -->|目录已占用| G["clone 到 use-时间戳"]
+
+  E --> H{"macos / windows"}
+  F --> H
+  G --> H
+  H -->|macos| I["brew-install ustc"]
+  H -->|windows| J["scoop-install"]
+  I --> K["init"]
+  J --> K
+
+  K -->|lite| L["Brewfile.lite / scoop_backup.lite.json"]
+  K -->|full| M["Brewfile / scoop_backup.json"]
+  K -->|省略| N["交互选择 lite / full"]
+  L --> O["完成"]
+  M --> O
+  N --> O
 ```
 
 ### vpr 分发
@@ -219,10 +224,10 @@ flowchart TD
   D --> T{"任务"}
 
   T -->|通用| P{"平台"}
-  T -->|仅 win| W["win 专属"]
+  T -->|仅 windows| W["windows 专属"]
 
-  P -->|mac| M["pm → brew-install<br/>init / backup / setup / sync"]
-  P -->|win| N["pm → scoop-install<br/>init / backup / setup / sync"]
+  P -->|macos| M["pm → brew-install<br/>init / backup / setup / sync"]
+  P -->|windows| N["pm → scoop-install<br/>init / backup / setup / sync"]
   P -->|两端| C["zsh-plugin → common/_dispatch"]
 
   W --> W1["zsh · git-extras · clink · hosts<br/>→ windows/_dispatch"]
@@ -236,10 +241,10 @@ flowchart TD
 ```mermaid
 flowchart TD
   A["vpr init"] --> B{"lite / full / 交互选择"}
-  B --> C["1. 创建目录结构"]
+  B --> C["创建目录结构"]
   C --> D{"平台"}
-  D -->|mac| E["brew bundle<br/>Brewfile / Brewfile.lite"]
-  D -->|win| F["scoop import<br/>scoop_backup(.lite).json"]
+  D -->|macos| E["brew bundle<br/>Brewfile / Brewfile.lite"]
+  D -->|windows| F["scoop import<br/>scoop_backup(.lite).json"]
   E --> G["zsh-plugins-install"]
   F --> H["zsh-install + zsh-plugins-install"]
   G --> I["config-sync 2 + git-setup"]

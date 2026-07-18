@@ -1,5 +1,5 @@
 #!/bin/zsh
-# ~/.zshrc — mac
+# ~/.zshrc — macos
 
 # docker compose
 export COMPOSE_FILE=$HOME/.docker/compose.yml
