@@ -6,9 +6,9 @@ import { execSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import readline from 'node:readline'
-import tty from 'node:tty'
 import { fileURLToPath } from 'node:url'
 import { formatLocalDisplay, formatRepoDisplay } from './sync-pairs.mjs'
+import { openTerminal, restoreFrame } from './tty-term.mjs'
 
 function parseItems(rawLines) {
   return rawLines.map((line) => {
@@ -21,67 +21,6 @@ function writeResult(lines, outPath) {
   const content = `${lines.join('\n')}\n`
   if (outPath) fs.writeFileSync(outPath, content)
   else process.stdout.write(content)
-}
-
-function openWindowsConsole() {
-  try {
-    const fdIn = fs.openSync('CONIN$', 'r')
-    const fdOut = fs.openSync('CONOUT$', 'w')
-    return {
-      input: new tty.ReadStream(fdIn),
-      output: new tty.WriteStream(fdOut),
-      owned: true,
-      close() {
-        if (!this.input.destroyed) this.input.destroy()
-        if (!this.output.destroyed) this.output.destroy()
-      },
-    }
-  }
-  catch {
-    return null
-  }
-}
-
-function openTerminal() {
-  if (process.stdin.isTTY && process.stdout.isTTY) {
-    return {
-      input: process.stdin,
-      output: process.stdout,
-      owned: false,
-      close() {},
-    }
-  }
-
-  if (process.platform === 'win32') {
-    if (process.env.SYNC_INTERACTIVE === '1') {
-      return openWindowsConsole()
-    }
-    if (process.stdin.isTTY) {
-      return {
-        input: process.stdin,
-        output: process.stdout,
-        owned: false,
-        close() {},
-      }
-    }
-    return null
-  }
-
-  try {
-    const fd = fs.openSync('/dev/tty', 'r+')
-    return {
-      input: new tty.ReadStream(fd),
-      output: new tty.WriteStream(fd),
-      owned: true,
-      close() {
-        if (!this.input.destroyed) this.input.destroy()
-        if (!this.output.destroyed) this.output.destroy()
-      },
-    }
-  }
-  catch {
-    return null
-  }
 }
 
 function columns(output) {
@@ -102,16 +41,6 @@ function truncate(text, max) {
   const head = Math.floor((max - 1) / 2)
   const tail = max - 1 - head
   return `${text.slice(0, head)}…${text.slice(-tail)}`
-}
-
-function frameLines(frame) {
-  if (!frame) return 0
-  return Math.max(0, frame.split('\n').length - 1)
-}
-
-function restoreFrame(output, frame) {
-  const up = frameLines(frame)
-  if (up > 0) output.write(`\x1B[${up}A\r`)
 }
 
 function isToggleKey(str, key) {
@@ -182,12 +111,13 @@ function createMultiselect({ message, choices, input, output }) {
       return
     }
 
+    readline.emitKeypressEvents(input)
     rl = readline.createInterface({
       input,
+      output,
       terminal: true,
       prompt: '',
     })
-    rl.prompt()
 
     const close = () => {
       input.removeListener('keypress', onKeypress)

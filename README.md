@@ -73,8 +73,8 @@ vpr init -- full                  # 完整版
 vpr backup                        # 备份已装软件到仓库
 vpr setup                         # 从仓库恢复完整软件清单
 vpr sync                          # 交互选择同步方向
-vpr sync 1                        # 本地配置 → 仓库
-vpr sync 2                        # 仓库 → 本地配置
+vpr sync 1                        # 备份配置 → 仓库
+vpr sync 2                        # 恢复配置 → 本地
 vpr zsh-plugin                    # 安装/更新 zsh 插件
 vpr git-setup                     # Git 全局配置
 ```
@@ -100,12 +100,12 @@ vpr init -- lite                  # 尝鲜版
 
 ```text
 configs/macos/
-|-- Brewfile                      # Homebrew 应用备份
-|-- Brewfile.lite                 # 尝鲜版最小依赖
-|-- .zshrc                        # zsh 平台配置
-|-- .bashrc                       # bash 配置
-|-- utils.zsh                     # zsh 自定义函数
-`-- ghostty_config                # Ghostty 终端配置
+├── .bashrc                       # bash 配置
+├── .zshrc                        # zsh 平台配置
+├── Brewfile                      # Homebrew 应用备份
+├── Brewfile.lite                 # 尝鲜版最小依赖
+├── ghostty_config                # Ghostty 终端配置
+└── utils.zsh                     # zsh 自定义函数
 ```
 
 
@@ -129,17 +129,17 @@ vpr clink                         # 安装 clink 插件（cmd 扩展）
 
 ```text
 configs/windows/
-|-- scoop_backup.json             # Scoop 应用备份
-|-- scoop_backup.lite.json        # 尝鲜版最小依赖
-|-- .zshrc                        # zsh 平台配置
-|-- .bashrc                       # bash 配置
-|-- utils.zsh                     # 自定义函数
-|-- aliases.zsh                   # windows 专属别名
-|-- pwsh5_profile.ps1             # Windows PowerShell 5 profile
-|-- pwsh7_profile.ps1             # PowerShell 7 profile
-|-- services-manifest.json        # scoop services 服务注册配置
-|-- scoop_services.zsh            # 扩展 scoop services（WinSW）
-`-- starship.lua                  # cmd 下 clink + starship
+├── .bashrc                       # bash 配置
+├── .zshrc                        # zsh 平台配置
+├── aliases.zsh                   # windows 专属别名
+├── pwsh5_profile.ps1             # Windows PowerShell 5 profile
+├── pwsh7_profile.ps1             # PowerShell 7 profile
+├── scoop_backup.json             # Scoop 应用备份
+├── scoop_backup.lite.json        # 尝鲜版最小依赖
+├── scoop_services.zsh            # 扩展 scoop services（WinSW）
+├── services-manifest.json        # scoop services 服务注册配置
+├── starship.lua                  # cmd 下 clink + starship
+└── utils.zsh                     # 自定义函数
 ```
 
 ### scoop services
@@ -173,12 +173,12 @@ scoop hold clink                  # 禁止更新
 
 ```text
 configs/common/
-|-- .zshrc_core                   # macos / windows 公共核心 zsh
-|-- aliases.zsh                   # 公共别名
-|-- _eza                          # eza 补全
-|-- starship.toml                 # starship 配置
-|-- opencode.jsonc                # OpenCode 配置
-`-- mihomo.yaml                   # Mihomo 配置
+├── _eza                          # eza 补全
+├── .zshrc_core                   # macos / windows 公共核心 zsh
+├── aliases.zsh                   # 公共别名
+├── mihomo.yaml                   # Mihomo 配置
+├── opencode.jsonc                # OpenCode 配置
+└── starship.toml                 # starship 配置
 ```
 
 ## 脚本逻辑

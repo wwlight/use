@@ -39,20 +39,19 @@ function Resolve-ScoopInstallProfile {
         }
     }
 
-    Write-Host '请选择 Scoop 安装范围:'
-    Write-Host '1) 尝鲜版'
-    Write-Host '2) 完整版'
-
     if (-not (Test-InteractivePrompt)) {
-        Write-ErrorAndExit '非交互环境请传入参数: lite 或 full（示例: vpr init -- lite）'
+        Write-ErrorAndExit '非交互环境请传入参数: lite 或 full（示例: $env:USE_PROFILE=''lite''; irm ... | iex）'
     }
 
-    $choice = Read-Host
-    switch ($choice) {
-        { $_ -in @('1', 'lite') } { return 'lite' }
-        { $_ -in @('2', 'full') } { return 'full' }
-        default { Write-ErrorAndExit "无效选择: $choice（请使用 1/lite 或 2/full）" }
+    $menuScript = Join-Path $ScriptDir 'lib/menu-select.mjs'
+    $choice = & node $menuScript '请选择 Scoop 安装范围' 'lite) 尝鲜版' 'full) 完整版'
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($choice)) {
+        Write-ErrorAndExit '非交互环境请传入参数: lite 或 full（示例: $env:USE_PROFILE=''lite''; irm ... | iex）'
     }
+
+    $choice = "$choice".Trim()
+    if ($choice -in @('lite', 'full')) { return $choice }
+    Write-ErrorAndExit "无效选择: $choice"
 }
 
 function Setup-Directories {
@@ -130,11 +129,11 @@ function Sync-Configurations {
     }
 }
 
-Write-Info '===== Windows 系统配置脚本 ====='
 Assert-TargetOs windows
 
 $scoopProfile = Resolve-ScoopInstallProfile -Arg $InstallProfile
 
+Write-Info '===== Windows 系统配置脚本 ====='
 Setup-Directories
 Install-OrRestoreScoop -ScoopProfile $scoopProfile
 Install-Zsh

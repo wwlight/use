@@ -29,19 +29,22 @@ setup_git() {
         return
     fi
 
-    if [ ! -t 0 ]; then
+    local skip_config username email
+    if ! skip_config=$(read_tty "是否跳过 git 用户名和邮箱配置？(y/n) [默认 n]: "); then
         info '非交互环境，跳过 git 用户名和邮箱配置'
         return
     fi
-
-    read -p "是否跳过 git 用户名和邮箱配置？(y/n) [默认 n]: " skip_config
     skip_config=${skip_config:-n}
 
     if [[ "$skip_config" != "y" && "$skip_config" != "Y" ]]; then
-        read -p "请输入 Git 用户名: " username
+        username=$(read_tty "请输入 Git 用户名: ") || error "未输入 Git 用户名"
+        username=${username//$'\r'/}
+        [ -n "$username" ] || error "未输入 Git 用户名"
         git config --global user.name "$username"
 
-        read -p "请输入 Git 邮箱: " email
+        email=$(read_tty "请输入 Git 邮箱: ") || error "未输入 Git 邮箱"
+        email=${email//$'\r'/}
+        [ -n "$email" ] || error "未输入 Git 邮箱"
         git config --global user.email "$email"
     fi
 }

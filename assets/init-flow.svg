@@ -815,7 +815,7 @@
     <rect x="320" y="446" width="160" height="56" rx="6" class="c-frontend dash-flow-box" stroke-width="2"
           stroke-dasharray="4,4" />
     <text x="400" y="470" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">config-sync 2</text>
-    <text x="400" y="486" class="t-muted" font-size="9" text-anchor="middle">仓库配置同步本地</text>
+    <text x="400" y="486" class="t-muted" font-size="9" text-anchor="middle">恢复配置 → 本地</text>
 
     <rect x="620" y="446" width="150" height="56" rx="6" class="c-mask" />
     <rect x="620" y="446" width="150" height="56" rx="6" class="c-backend" stroke-width="1.5" />

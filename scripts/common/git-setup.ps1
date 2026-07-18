@@ -28,9 +28,15 @@ else {
 
     if ($skipConfig -ne 'y' -and $skipConfig -ne 'Y') {
         $username = Read-Host '请输入 Git 用户名'
+        if ([string]::IsNullOrWhiteSpace($username)) {
+            Write-ErrorAndExit '未输入 Git 用户名'
+        }
         git config --global user.name $username
 
         $email = Read-Host '请输入 Git 邮箱'
+        if ([string]::IsNullOrWhiteSpace($email)) {
+            Write-ErrorAndExit '未输入 Git 邮箱'
+        }
         git config --global user.email $email
     }
 }

@@ -56,10 +56,10 @@ function Write-SyncProgressHint {
     if ($env:SYNC_FROM_DISPATCH -eq '1') { return }
 
     if ($Direction -eq '1') {
-        Write-Info "正在备份 $Total 个文件到仓库..."
+        Write-Step "正在备份 $Total 个文件到仓库..."
     }
     else {
-        Write-Info "正在恢复 $Total 个文件到本地..."
+        Write-Step "正在恢复 $Total 个文件到本地..."
     }
     [Console]::Out.Flush()
 }
@@ -310,9 +310,7 @@ function Format-RepoDisplay {
 function Resolve-SyncDirection {
     param(
         [string]$DirectionArg,
-        [string]$Example,
-        [string]$Line1,
-        [string]$Line2
+        [string]$Example = '示例: vpr sync 2'
     )
 
     if ($DirectionArg -eq '1' -or $DirectionArg -eq '2') {
@@ -327,16 +325,20 @@ function Resolve-SyncDirection {
         Write-ErrorAndExit "无效的同步方向: 请使用 1 或 2`n$Example"
     }
 
-    if (-not (Test-InteractivePrompt)) {
-        Write-ErrorAndExit "非交互环境请传入方向参数: 1=备份到仓库, 2=应用到本地`n$Example"
+    $dirScript = Join-Path $PSScriptRoot 'sync-direction.mjs'
+    $hint = (& node $dirScript --hint 2>$null)
+    if ([string]::IsNullOrWhiteSpace($hint)) {
+        $hint = '1=备份配置→仓库, 2=恢复配置→本地'
     }
 
-    Write-Host "请选择拷贝方向:"
-    Write-Host $Line1
-    Write-Host $Line2
-    $choice = Read-Host
-    if ([string]::IsNullOrWhiteSpace($choice)) {
-        Write-ErrorAndExit "非交互环境请传入方向参数: 1=备份到仓库, 2=应用到本地`n$Example"
+    if (-not (Test-InteractivePrompt)) {
+        Write-ErrorAndExit "非交互环境请传入方向参数: $hint`n$Example"
+    }
+
+    $choice = & node $dirScript
+    $choice = "$choice".Trim()
+    if ($LASTEXITCODE -ne 0 -or ($choice -ne '1' -and $choice -ne '2')) {
+        Write-ErrorAndExit "非交互环境请传入方向参数: $hint`n$Example"
     }
     return $choice
 }
@@ -454,16 +456,7 @@ function Invoke-ManifestSync {
     $scopes = Get-SyncScopes $Scope
 
     $example = '示例: vpr sync 2'
-    if ($scopes.Count -gt 1) {
-        $line1 = '1) 备份本地配置 -> 仓库'
-        $line2 = '2) 从仓库恢复配置 -> 本地'
-    }
-    else {
-        $line1 = "1) 备份本地配置 -> 仓库 configs/$Scope/"
-        $line2 = '2) 从仓库恢复配置 -> 本地'
-    }
-
-    $direction = Resolve-SyncDirection $DirectionArg $example $line1 $line2
+    $direction = Resolve-SyncDirection -DirectionArg $DirectionArg -Example $example
     $items = Get-SyncItemsFiltered -Scopes $scopes -Direction $direction -DirectionArg $DirectionArg
     $total = $items.Count
 
@@ -481,7 +474,7 @@ function Invoke-ManifestSync {
                     New-Item -ItemType Directory -Path $repoDir -Force | Out-Null
                 }
                 Copy-FileDataOnly $local $repo
-                Write-Info "[$i/$total] 已备份 $(Format-RepoDisplay $item.repo)"
+                Write-Backup "[$i/$total] 已备份 $(Format-RepoDisplay $item.repo)"
             }
             Write-Info '配置已备份到仓库'
         }
@@ -502,7 +495,7 @@ function Invoke-ManifestSync {
                     New-Item -ItemType Directory -Path $localDir -Force | Out-Null
                 }
                 Copy-FileDataOnly $repo $local
-                Write-Info "[$i/$total] 已恢复 $(Format-LocalDisplay $item.local)"
+                Write-Backup "[$i/$total] 已恢复 $(Format-LocalDisplay $item.local)"
             }
             Write-Info '配置已恢复到本地'
         }
@@ -510,9 +503,5 @@ function Invoke-ManifestSync {
             Write-Host '无效选择'
             exit 1
         }
-    }
-
-    if ([string]::IsNullOrWhiteSpace($DirectionArg) -and -not (Test-SyncDispatchMode)) {
-        Write-Info "下次可直接运行：vpr sync $direction 跳过交互选择"
     }
 }

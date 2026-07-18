@@ -45,27 +45,20 @@ resolve_brew_profile() {
     esac
 
     local choice=""
-
-    {
-        echo "请选择 Homebrew 安装范围:"
-        echo "1) 尝鲜版"
-        echo "2) 完整版"
-    } >&2
-
-    if [ -r /dev/tty ]; then
-        read -r choice < /dev/tty || choice=""
-    elif [ -t 0 ]; then
-        read -r choice || choice=""
-    fi
+    choice=$(node "$SCRIPT_DIR/lib/menu-select.mjs" \
+        "请选择 Homebrew 安装范围" \
+        "lite) 尝鲜版" \
+        "full) 完整版") || choice=""
+    choice=${choice//$'\r'/}
+    choice=${choice//$'\n'/}
 
     case "$choice" in
-        1|lite) echo "lite" ;;
-        2|full) echo "full" ;;
+        lite|full) echo "$choice" ;;
         "")
-            error "非交互环境请传入参数: lite 或 full（示例: vpr init -- lite）"
+            error "非交互环境请传入参数: lite 或 full（示例: curl ... | bash -s -- lite）"
             ;;
         *)
-            error "无效选择: ${choice}（请使用 1/lite 或 2/full）"
+            error "无效选择: ${choice}"
             ;;
     esac
 }
@@ -135,7 +128,6 @@ sync_configurations() {
 }
 
 main() {
-    info "===== macOS 系统配置脚本 ====="
     check_target_os "macos"
 
     while [[ "${1:-}" == "--" ]]; do shift; done
@@ -147,6 +139,7 @@ main() {
     local profile
     profile=$(resolve_brew_profile "${1:-}") || exit $?
 
+    info "===== macOS 系统配置脚本 ====="
     setup_directories
     install_or_restore_brew "$profile"
     install_zsh_plugins

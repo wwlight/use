@@ -12,11 +12,41 @@ safe_echo() {
     printf '%s\n' "$1"
 }
 
-info() { safe_echo "${GREEN}[INFO] $1${NC}"; }
-step() { safe_echo "${BLUE}[INFO] $1${NC}"; }
-backup_info() { safe_echo "${CYAN}[INFO] $1${NC}"; }
-warn() { safe_echo "${YELLOW}[WARN] $1${NC}"; }
-error() { safe_echo "${RED}[ERROR] $1${NC}"; exit 1; }
+# 日志走 stderr，避免在 $(...) 中被吞掉；数据结果仍用 stdout
+info() { safe_echo "${GREEN}[INFO] $1${NC}" >&2; }
+step() { safe_echo "${BLUE}[INFO] $1${NC}" >&2; }
+backup_info() { safe_echo "${CYAN}[INFO] $1${NC}" >&2; }
+warn() { safe_echo "${YELLOW}[WARN] $1${NC}" >&2; }
+error() { safe_echo "${RED}[ERROR] $1${NC}" >&2; exit 1; }
+
+# 是否存在可用的控制终端（curl|bash 时 stdin 非 tty，但 /dev/tty 仍可能可用）
+has_tty() {
+    [ -t 0 ] && return 0
+    { true </dev/tty; } 2>/dev/null
+}
+
+# 从控制终端读一行（curl|bash 时 stdin 是管道，必须用 /dev/tty）
+# 用法: answer=$(read_tty "提示: ") || error "非交互环境"
+read_tty() {
+    local prompt="${1:-}"
+    local line=""
+
+    if [ -n "$prompt" ]; then
+        printf '%s' "$prompt" >&2
+    fi
+
+    if { read -r line < /dev/tty; } 2>/dev/null; then
+        printf '%s\n' "$line"
+        return 0
+    fi
+
+    if [ -t 0 ] && read -r line; then
+        printf '%s\n' "$line"
+        return 0
+    fi
+
+    return 1
+}
 
 # --- 系统环境检测 ---
 detect_os() {
@@ -85,12 +115,11 @@ backup_file() {
 }
 
 # --- 解析 config-sync 方向参数 ---
-# 用法: direction=$(prompt_sync_direction "$1" "示例: vpr sync 2" "1) ..." "2) ...")
+# 用法: direction=$(prompt_sync_direction "$1" "示例: vpr sync 2")
 prompt_sync_direction() {
     local arg="$1"
-    local example="$2"
-    local line1="$3"
-    local line2="$4"
+    local example="${2:-示例: vpr sync 2}"
+    local hint
 
     if [ "$arg" = "1" ] || [ "$arg" = "2" ]; then
         echo "$arg"
@@ -104,28 +133,13 @@ $example${NC}" >&2
     fi
 
     local choice=""
-    local tty_path=""
+    choice=$(node "${SCRIPT_DIR}/lib/sync-direction.mjs") || choice=""
+    choice=${choice//$'\r'/}
+    choice=${choice//$'\n'/}
 
-    tty_path=$(tty 2>/dev/null) || tty_path=""
-
-    if [ -n "$tty_path" ]; then
-        {
-            echo "请选择拷贝方向:"
-            echo "$line1"
-            echo "$line2"
-        } > "$tty_path"
-        read -r choice < "$tty_path" || choice=""
-    fi
-
-    if [ -z "$choice" ] && [ -t 0 ]; then
-        echo "请选择拷贝方向:"
-        echo "$line1"
-        echo "$line2"
-        read -r choice
-    fi
-
-    if [ -z "$choice" ]; then
-        safe_echo "${RED}[ERROR] 非交互环境请传入方向参数: 1=备份到仓库, 2=应用到本地
+    if [ "$choice" != "1" ] && [ "$choice" != "2" ]; then
+        hint=$(node "${SCRIPT_DIR}/lib/sync-direction.mjs" --hint 2>/dev/null) || hint="1=备份配置→仓库, 2=恢复配置→本地"
+        safe_echo "${RED}[ERROR] 非交互环境请传入方向参数: ${hint}
 $example${NC}" >&2
         return 1
     fi
@@ -174,7 +188,7 @@ sync_select_run() {
     local node_script="${SCRIPT_DIR}/lib/sync-select.mjs"
     local rc=0
 
-    if [ -t 0 ] || [ -n "$(tty 2>/dev/null)" ]; then
+    if has_tty; then
         SYNC_INTERACTIVE=1 node "$node_script" "$direction" "$pairs_file" "$filtered_file" || rc=$?
     else
         node "$node_script" "$direction" "$pairs_file" "$filtered_file" || rc=$?
@@ -292,11 +306,7 @@ manifest_sync_pairs() {
 
 should_skip_sync_select() {
     [ "$SYNC_SELECT_ALL" = "1" ] && return 0
-    local tty_path
-    tty_path=$(tty 2>/dev/null) || tty_path=""
-    if [ -n "$tty_path" ] || [ -t 0 ]; then
-        return 1
-    fi
+    has_tty && return 1
     return 0
 }
 
@@ -312,9 +322,9 @@ sync_progress_hint() {
     is_sync_dispatch_mode && return 0
 
     if [ "$direction" = "1" ]; then
-        info "正在备份 $total 个文件到仓库..."
+        step "正在备份 $total 个文件到仓库..."
     else
-        info "正在恢复 $total 个文件到本地..."
+        step "正在恢复 $total 个文件到本地..."
     fi
 }
 
@@ -384,19 +394,7 @@ run_config_sync() {
         error "缺少同步方向参数: $example"
     fi
 
-    local line1 line2
-    if [[ ${#sync_scopes[@]} -gt 1 ]]; then
-        line1="1) 备份本地配置 -> 仓库"
-        line2="2) 从仓库恢复配置 -> 本地"
-    else
-        line1="1) 备份本地配置 -> 仓库 configs/$scope/"
-        line2="2) 从仓库恢复配置 -> 本地"
-    fi
-
-    direction=$(prompt_sync_direction "$direction_input" \
-        "$example" \
-        "$line1" \
-        "$line2") || exit 1
+    direction=$(prompt_sync_direction "$direction_input" "$example") || exit 1
 
     sync_pairs=()
     while IFS= read -r line; do
@@ -417,7 +415,7 @@ run_config_sync() {
                 mkdir -p "$(dirname "$repo_abs")" || error "无法创建目录: $(format_repo_display "$(dirname "$repo_path")")"
                 cp "$local_abs" "$repo_abs" || error "备份失败: $local_path -> $repo_display"
                 i=$((i + 1))
-                info "[$i/$total] 已备份 $repo_display"
+                backup_info "[$i/$total] 已备份 $repo_display"
             done
 
             info "配置已备份到仓库"
@@ -437,7 +435,7 @@ run_config_sync() {
                 fi
                 mkdir -p "$(dirname "$local_abs")" || error "无法创建目录: $(dirname "$local_path")"
                 cp "$repo_abs" "$local_abs" || error "恢复失败: $repo_display -> $local_path"
-                info "[$i/$total] 已恢复 $(format_local_display "$local_path")"
+                backup_info "[$i/$total] 已恢复 $(format_local_display "$local_path")"
             done
 
             info "配置已恢复到本地"
@@ -446,8 +444,4 @@ run_config_sync() {
             error "无效选择"
             ;;
     esac
-
-    if [ -z "$direction_arg" ] && ! is_sync_dispatch_mode; then
-        info "下次可直接运行：vpr sync $direction 跳过交互选择"
-    fi
 }

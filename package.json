@@ -14,7 +14,8 @@
     "git-setup": "node ./scripts/_dispatch.mjs git-setup",
     "git-extras": "node ./scripts/_dispatch.mjs git-extras",
     "clink": "node ./scripts/_dispatch.mjs clink",
-    "hosts": "node ./scripts/_dispatch.mjs hosts"
+    "hosts": "node ./scripts/_dispatch.mjs hosts",
+    "test": "node ./scripts/lib/menu-select.test.mjs"
   },
   "author": "",
   "license": "ISC",
