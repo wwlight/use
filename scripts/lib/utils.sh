@@ -19,6 +19,51 @@ backup_info() { safe_echo "${CYAN}[INFO] $1${NC}" >&2; }
 warn() { safe_echo "${YELLOW}[WARN] $1${NC}" >&2; }
 error() { safe_echo "${RED}[ERROR] $1${NC}" >&2; exit 1; }
 
+# 全局步骤计数（跨子进程，专用前缀避免脏环境干扰）
+#   USE_STEP_CHAIN=1  由 install 入口设置，表示续接父进度
+#   USE_STEP_TOTAL    总步数
+#   USE_STEP_CURRENT  当前已完成步数
+_use_step_is_uint() {
+    case "${1:-}" in
+        ''|*[!0-9]*) return 1 ;;
+        *) return 0 ;;
+    esac
+}
+
+# 用法: next_step "正在创建目录结构..."
+next_step() {
+    local current=0
+    if _use_step_is_uint "${USE_STEP_CURRENT:-}"; then
+        current=$USE_STEP_CURRENT
+    fi
+    current=$((current + 1))
+    export USE_STEP_CURRENT=$current
+
+    if _use_step_is_uint "${USE_STEP_TOTAL:-}" && [ "$USE_STEP_TOTAL" -gt 0 ]; then
+        step "步骤 ${current}/${USE_STEP_TOTAL}: $1"
+    else
+        step "$1"
+    fi
+}
+
+# 用法: init_step_progress 4
+# - 无 USE_STEP_CHAIN=1：始终按本脚本步数重置（忽略残留环境变量）
+# - 有链式标记：总数 = 已完成 + 本脚本步数（以本脚本为准，防止与入口漂移）
+init_step_progress() {
+    local local_steps="${1:?}"
+    if [ "${USE_STEP_CHAIN:-}" = "1" ]; then
+        local current=0
+        if _use_step_is_uint "${USE_STEP_CURRENT:-}"; then
+            current=$USE_STEP_CURRENT
+        fi
+        export USE_STEP_CURRENT=$current
+        export USE_STEP_TOTAL=$((current + local_steps))
+        return
+    fi
+    export USE_STEP_TOTAL=$local_steps
+    export USE_STEP_CURRENT=0
+}
+
 # 是否存在可用的控制终端（curl|bash 时 stdin 非 tty，但 /dev/tty 仍可能可用）
 has_tty() {
     [ -t 0 ] && return 0

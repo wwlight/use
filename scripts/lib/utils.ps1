@@ -41,6 +41,55 @@ function Write-Step {
     Write-Host "[INFO] $Message" -ForegroundColor Blue
 }
 
+# 全局步骤计数（跨子进程，专用前缀避免脏环境干扰）
+#   USE_STEP_CHAIN=1  由 install 入口设置，表示续接父进度
+#   USE_STEP_TOTAL    总步数
+#   USE_STEP_CURRENT  当前已完成步数
+function Test-UseStepUInt {
+    param([string]$Value)
+    return ($Value -match '^\d+$')
+}
+
+# 用法: Write-NextStep '正在创建目录结构...'
+function Write-NextStep {
+    param([string]$Message)
+
+    $current = 0
+    if (Test-UseStepUInt $env:USE_STEP_CURRENT) { $current = [int]$env:USE_STEP_CURRENT }
+    $current++
+    $env:USE_STEP_CURRENT = "$current"
+
+    $total = 0
+    if ((Test-UseStepUInt $env:USE_STEP_TOTAL) -and ([int]$env:USE_STEP_TOTAL -gt 0)) {
+        $total = [int]$env:USE_STEP_TOTAL
+    }
+
+    if ($total -gt 0) {
+        Write-Step "步骤 ${current}/${total}: $Message"
+    }
+    else {
+        Write-Step $Message
+    }
+}
+
+# 用法: Initialize-StepProgress 4
+# - 无 USE_STEP_CHAIN=1：始终按本脚本步数重置（忽略残留环境变量）
+# - 有链式标记：总数 = 已完成 + 本脚本步数（以本脚本为准，防止与入口漂移）
+function Initialize-StepProgress {
+    param([int]$LocalSteps)
+
+    if ($env:USE_STEP_CHAIN -eq '1') {
+        $current = 0
+        if (Test-UseStepUInt $env:USE_STEP_CURRENT) { $current = [int]$env:USE_STEP_CURRENT }
+        $env:USE_STEP_CURRENT = "$current"
+        $env:USE_STEP_TOTAL = "$($current + $LocalSteps)"
+        return
+    }
+
+    $env:USE_STEP_TOTAL = "$LocalSteps"
+    $env:USE_STEP_CURRENT = '0'
+}
+
 function Write-Backup {
     param([string]$Message)
     Write-Host "[INFO] $Message" -ForegroundColor Cyan

@@ -75,7 +75,7 @@ function createMultiselect({ message, choices, input, output }) {
 
   function renderSubmitFrame() {
     const picked = choices.filter((c) => c.selected)
-    return `${message}\n\n已选 ${picked.length} 项\n`
+    return `${message}\n已选 ${picked.length} 项\n`
   }
 
   function render() {
@@ -111,17 +111,13 @@ function createMultiselect({ message, choices, input, output }) {
       return
     }
 
-    readline.emitKeypressEvents(input)
-    rl = readline.createInterface({
-      input,
-      output,
-      terminal: true,
-      prompt: '',
-    })
+    // 勿绑 output / terminal:true，否则回车时 readline 会多写换行，restoreFrame 错位
+    rl = readline.createInterface({ input })
+    readline.emitKeypressEvents(input, rl)
 
-    const close = () => {
+    const close = ({ endLine = true } = {}) => {
       input.removeListener('keypress', onKeypress)
-      output.write('\n')
+      if (endLine) output.write('\n')
       output.write('\x1B[?25h')
       if (typeof input.setRawMode === 'function') {
         input.setRawMode(false)
@@ -152,7 +148,7 @@ function createMultiselect({ message, choices, input, output }) {
         error = ''
         state = 'submit'
         render()
-        close()
+        close({ endLine: false })
         resolve(picked)
         return
       }

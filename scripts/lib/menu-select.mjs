@@ -30,7 +30,7 @@ function createSelect({ message, choices, input, output }) {
   }
 
   function renderSubmitFrame() {
-    return `${message}\n\n❯ ${choices[cursor].label}\n`
+    return `${message}\n❯ ${choices[cursor].label}\n`
   }
 
   function render() {
@@ -60,14 +60,9 @@ function createSelect({ message, choices, input, output }) {
       return
     }
 
-    // output 必须绑到 tty，避免 $(node ...) 时污染 stdout
-    readline.emitKeypressEvents(input)
-    rl = readline.createInterface({
-      input,
-      output,
-      terminal: true,
-      prompt: '',
-    })
+    // 勿绑 output / terminal:true，否则回车时 readline 会多写换行，restoreFrame 错位
+    rl = readline.createInterface({ input })
+    readline.emitKeypressEvents(input, rl)
 
     const close = ({ endLine = true } = {}) => {
       input.removeListener('keypress', onKeypress)

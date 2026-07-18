@@ -79,7 +79,7 @@ vpr zsh-plugin                    # 安装/更新 zsh 插件
 vpr git-setup                     # Git 全局配置
 ```
 
-> [!WARNING]
+> [!TIP]
 > zip 下载解压后需先解除脚本封锁
 
 ```powershell

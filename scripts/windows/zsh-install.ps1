@@ -121,8 +121,6 @@ function Install-ZshForGit {
     Write-Info 'zsh 安装完成！'
 }
 
-Write-Info '===== zsh for Git 安装脚本 ====='
-
 $gitPath = Get-GitPath
 $zshAlreadyInstalled = Test-ZshInstalled $gitPath
 

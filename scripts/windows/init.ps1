@@ -55,7 +55,7 @@ function Resolve-ScoopInstallProfile {
 }
 
 function Setup-Directories {
-    Write-Step '步骤1/4: 正在创建目录结构...'
+    Write-NextStep '正在创建目录结构...'
     foreach ($dir in (Get-ManifestDirectories)) {
         $path = Get-ExpandedPath $dir
         try {
@@ -71,7 +71,7 @@ function Install-OrRestoreScoop {
     param([string]$ScoopProfile)
 
     $label = if ($ScoopProfile -eq 'lite') { '尝鲜版' } else { '完整版' }
-    Write-Step "步骤2/4: 正在安装/恢复 scoop 应用（${label}）..."
+    Write-NextStep "正在安装/恢复 scoop 应用（${label}）..."
     $backupKey = if ($ScoopProfile -eq 'lite') { 'scoopBackupLite' } else { 'scoopBackup' }
     $scoopBackup = Join-Path $Script:ProjectRoot $manifest.$backupKey
 
@@ -90,7 +90,7 @@ function Install-OrRestoreScoop {
 }
 
 function Install-Zsh {
-    Write-Step '步骤3/4: 正在安装 zsh 及插件...'
+    Write-NextStep '正在安装 zsh 及插件...'
     $zshScript = Join-Path $PSScriptRoot 'zsh-install.ps1'
     & $zshScript
     if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'zsh 安装失败' }
@@ -103,7 +103,7 @@ function Install-Zsh {
 function Sync-Configurations {
     param([string]$ScoopProfile)
 
-    Write-Step '步骤4/4: 正在同步配置...'
+    Write-NextStep '正在同步配置...'
 
     $configScript = Join-Path $PSScriptRoot 'config-sync.ps1'
     $baseScript = Join-Path $ScriptDir 'common/git-setup.ps1'
@@ -133,7 +133,10 @@ Assert-TargetOs windows
 
 $scoopProfile = Resolve-ScoopInstallProfile -Arg $InstallProfile
 
-Write-Info '===== Windows 系统配置脚本 ====='
+# 须与 install.ps1 中 $initSteps 保持一致
+$InitStepCount = 4
+Initialize-StepProgress $InitStepCount
+
 Setup-Directories
 Install-OrRestoreScoop -ScoopProfile $scoopProfile
 Install-Zsh

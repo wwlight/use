@@ -64,7 +64,7 @@ resolve_brew_profile() {
 }
 
 setup_directories() {
-    step "步骤1/4: 正在创建目录结构..."
+    next_step "正在创建目录结构..."
     local dir path
     while IFS= read -r dir; do
         [ -z "$dir" ] && continue
@@ -77,7 +77,7 @@ install_or_restore_brew() {
     local profile="$1"
     local label="完整版"
     [ "$profile" = "lite" ] && label="尝鲜版"
-    step "步骤2/4: 正在恢复 Homebrew 依赖（${label}）..."
+    next_step "正在恢复 Homebrew 依赖（${label}）..."
 
     local brewfile_key="brewfile"
     if [ "$profile" = "lite" ]; then
@@ -104,13 +104,13 @@ install_or_restore_brew() {
 }
 
 install_zsh_plugins() {
-    step "步骤3/4: 正在安装 zsh 插件..."
+    next_step "正在安装 zsh 插件..."
     bash "$SCRIPT_DIR/common/zsh-plugins-install.sh" || error "zsh 插件安装失败！"
 }
 
 sync_configurations() {
     local profile="$1"
-    step "步骤4/4: 正在同步配置..."
+    next_step "正在同步配置..."
     local CONFIG_SCRIPT="$SCRIPT_DIR/macos/config-sync.sh"
     local BASE_SCRIPT="$SCRIPT_DIR/common/git-setup.sh"
 
@@ -139,7 +139,10 @@ main() {
     local profile
     profile=$(resolve_brew_profile "${1:-}") || exit $?
 
-    info "===== macOS 系统配置脚本 ====="
+    # 须与 install.sh 中 init_steps 保持一致
+    local INIT_STEP_COUNT=4
+    init_step_progress "$INIT_STEP_COUNT"
+
     setup_directories
     install_or_restore_brew "$profile"
     install_zsh_plugins

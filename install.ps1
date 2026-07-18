@@ -129,10 +129,14 @@ Set-Location $InstallDir
 
 $pwsh = if ($PSVersionTable.PSEdition -eq 'Core') { 'pwsh.exe' } else { 'powershell.exe' }
 
-Write-Step '步骤 1/2: 安装包管理器 ...'
+# 进度：入口完成第 1 步；init.ps1 内 LocalSteps=4，总数由其校正
+$initSteps = 4
+$env:USE_STEP_CHAIN = '1'
+$env:USE_STEP_CURRENT = '1'
+$env:USE_STEP_TOTAL = "$([int]$env:USE_STEP_CURRENT + $initSteps)"
+Write-Step "步骤 $($env:USE_STEP_CURRENT)/$($env:USE_STEP_TOTAL): 安装包管理器 ..."
 & $pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/scoop-install.ps1
 
-Write-Step '步骤 2/2: 系统初始化 ...'
 if ($InstallProfile) {
   & $pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/init.ps1 $InstallProfile
 } else {

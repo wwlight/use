@@ -121,12 +121,16 @@ install_macos() {
   ensure_repo
   cd "$INSTALL_DIR"
 
-  step "步骤 1/2: 安装包管理器 ..."
+  # 进度：入口完成第 1 步；init.sh 内 INIT_STEP_COUNT=4，总数由其校正
+  local init_steps=4
+  export USE_STEP_CHAIN=1
+  export USE_STEP_CURRENT=1
+  export USE_STEP_TOTAL=$((USE_STEP_CURRENT + init_steps))
+  step "步骤 ${USE_STEP_CURRENT}/${USE_STEP_TOTAL}: 安装包管理器 ..."
   bash scripts/macos/brew-install.sh ustc
   # shellcheck disable=SC1090
   [ -f "${HOME}/.zprofile" ] && . "${HOME}/.zprofile"
 
-  step "步骤 2/2: 系统初始化 ..."
   if [ -n "$profile" ]; then
     bash scripts/macos/init.sh "$profile"
   else
