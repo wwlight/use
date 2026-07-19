@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 0 780 356" role="img" aria-label="vpr dispatch workflow">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="10 0 780 356" role="img" aria-label="Use — 命令分发流程">
+  <title>Use — 命令分发流程</title>
   <style>
-    <![CDATA[@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
-    /* ==========================================================
+    <![CDATA[/* ==========================================================
        THEME — dark default; light via prefers-color-scheme / data-theme
        (archify dual-theme SVG pattern for GitHub README)
        ========================================================== */
     :root,
     svg {
-      --bg: transparent;
+      --bg: #282c34;
       --grid: #21252b;
       --text: #ffffff;
       --text-muted: #94a3b8;
@@ -48,6 +48,7 @@
       --toolbar-text: #e2e8f0;
       --toolbar-hover: rgba(15, 23, 42, 0.95);
       --toolbar-menu-bg: #0f172a;
+      --header-mask: rgba(33, 37, 43, 0.92);
     }
 
     @media (prefers-color-scheme: light) {
@@ -90,6 +91,7 @@
       --toolbar-text: #334155;
       --toolbar-hover: #ffffff;
       --toolbar-menu-bg: #ffffff;
+      --header-mask: transparent;
       }
     }
 
@@ -132,11 +134,12 @@
       --toolbar-text: #334155;
       --toolbar-hover: #ffffff;
       --toolbar-menu-bg: #ffffff;
+      --header-mask: transparent;
     }
 
     svg[data-theme="dark"],
     [data-theme="dark"] {
-      --bg: transparent;
+      --bg: #282c34;
       --grid: #21252b;
       --text: #ffffff;
       --text-muted: #94a3b8;
@@ -176,12 +179,17 @@
       --toolbar-text: #e2e8f0;
       --toolbar-hover: rgba(15, 23, 42, 0.95);
       --toolbar-menu-bg: #0f172a;
+      --header-mask: rgba(33, 37, 43, 0.92);
     }
 
 * {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+    }
+
+    svg, text, tspan {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', 'Noto Sans Mono CJK SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
     }
 
     body {
@@ -361,6 +369,7 @@
         --text-dim: #94a3b8;
         --text-faint: #64748b;
         --mask: #ffffff;
+        --header-mask: transparent;
         --lane-fill: rgba(248, 250, 252, 0.65);
         --lane-stroke: #cbd5e1;
         --arrow: #34d399;
@@ -586,6 +595,11 @@
       fill: none;
     }
 
+    .c-header-mask {
+      fill: var(--header-mask);
+      stroke: none;
+    }
+
     .c-mask {
       fill: var(--mask);
       stroke: none;
@@ -680,6 +694,11 @@
     @media (prefers-reduced-motion: reduce) {
       * {
         animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+      .dot-emphasis,
+      .dot-security {
+        display: none;
       }
     }
     ]]>
@@ -698,6 +717,7 @@
   <!-- Background Grid -->
   <rect class="c-bg-rect" x="10" y="0" width="780" height="100%"/>
   <rect x="10" y="0" width="780" height="100%" fill="url(#grid)" />
+  <rect x="10" y="0" width="780" height="52" class="c-header-mask" />
   <rect x="10" y="0" width="780" height="100%" fill="none" stroke="var(--frontend-stroke)" stroke-width="3" rx="6" />
   <!-- Title -->
   <text x="30" y="24" class="t-primary" font-size="14" font-weight="700">Use — 命令分发流程</text>
@@ -710,7 +730,7 @@
   <text x="688" y="39" class="t-muted" font-size="8" text-anchor="end">Backend</text>
   <rect x="756" y="31" width="14" height="9" rx="2" class="c-security" stroke-width="1" />
   <text x="752" y="39" class="t-muted" font-size="8" text-anchor="end">Security</text>
-  <line x1="0" y1="52" x2="800" y2="52" stroke="var(--frontend-stroke)" stroke-width="1.5" />
+  <line x1="10" y1="52" x2="790" y2="52" stroke="var(--frontend-stroke)" stroke-width="1.5" />
   <g transform="translate(0, 42)">
     <!-- Boundaries (behind everything) -->
 

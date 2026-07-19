@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="10 0 780 638" role="img" aria-label="Use — sync 同步流程">
+  <title>Use — sync 同步流程</title>
   <style>
-    <![CDATA[@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&display=swap');
-    /* ==========================================================
+    <![CDATA[/* ==========================================================
        THEME — dark default; light via prefers-color-scheme / data-theme
        (archify dual-theme SVG pattern for GitHub README)
        ========================================================== */
     :root,
     svg {
-      --bg: transparent;
+      --bg: #282c34;
       --grid: #21252b;
       --text: #ffffff;
       --text-muted: #94a3b8;
@@ -25,8 +25,7 @@
       --frontend-stroke: #34d399;
       --backend-fill: rgba(8, 51, 68, 0.4);
       --backend-stroke: #22d3ee;
-      --security-fill: rgba(180, 70, 20, 0.35);
-      --security-stroke: #f97316;
+      --header-mask: rgba(33, 37, 43, 0.92);
     }
 
     @media (prefers-color-scheme: light) {
@@ -49,8 +48,7 @@
       --frontend-stroke: #059669;
       --backend-fill: rgba(34, 211, 238, 0.15);
       --backend-stroke: #0891b2;
-      --security-fill: rgba(249, 115, 22, 0.15);
-      --security-stroke: #e11d48;
+      --header-mask: transparent;
       }
     }
 
@@ -73,13 +71,12 @@
       --frontend-stroke: #059669;
       --backend-fill: rgba(34, 211, 238, 0.15);
       --backend-stroke: #0891b2;
-      --security-fill: rgba(249, 115, 22, 0.15);
-      --security-stroke: #e11d48;
+      --header-mask: transparent;
     }
 
     svg[data-theme="dark"],
     [data-theme="dark"] {
-      --bg: transparent;
+      --bg: #282c34;
       --grid: #21252b;
       --text: #ffffff;
       --text-muted: #94a3b8;
@@ -96,8 +93,7 @@
       --frontend-stroke: #34d399;
       --backend-fill: rgba(8, 51, 68, 0.4);
       --backend-stroke: #22d3ee;
-      --security-fill: rgba(180, 70, 20, 0.35);
-      --security-stroke: #f97316;
+      --header-mask: rgba(33, 37, 43, 0.92);
     }
 
 * {
@@ -106,11 +102,45 @@
       box-sizing: border-box;
     }
 
+    svg, text, tspan {
+      font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, 'DejaVu Sans Mono', 'Liberation Mono', 'Noto Sans Mono CJK SC', 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', monospace;
+    }
+
+    @media print {
+      :root,
+      [data-theme="dark"],
+      [data-theme="light"] {
+        --bg: #ffffff;
+        --grid: transparent;
+        --panel: #ffffff;
+        --panel-border: #e2e8f0;
+        --text: #0f172a;
+        --text-muted: #475569;
+        --text-dim: #94a3b8;
+        --text-faint: #64748b;
+        --mask: #ffffff;
+        --header-mask: transparent;
+        --lane-fill: rgba(248, 250, 252, 0.65);
+        --lane-stroke: #cbd5e1;
+        --arrow: #34d399;
+        --arrow-emphasis: #059669;
+        --frontend-fill: rgba(52, 211, 153, 0.18);
+        --frontend-stroke: #059669;
+        --backend-fill: rgba(34, 211, 238, 0.15);
+        --backend-stroke: #0891b2;
+      }
+    }
+
     .c-bg-rect { fill: var(--bg); }
 
     .c-grid {
       stroke: var(--grid);
       fill: none;
+    }
+
+    .c-header-mask {
+      fill: var(--header-mask);
+      stroke: none;
     }
 
     .c-mask {
@@ -126,11 +156,6 @@
     .c-backend {
       fill: var(--backend-fill);
       stroke: var(--backend-stroke);
-    }
-
-    .c-security {
-      fill: var(--security-fill);
-      stroke: var(--security-stroke);
     }
 
     .t-primary {
@@ -160,7 +185,6 @@
     }
 
     .dot-emphasis { fill: var(--arrow-emphasis); }
-    .dot-security { fill: var(--security-stroke); }
 
     .m-emphasis {
       fill: var(--arrow-emphasis);
@@ -189,6 +213,10 @@
     @media (prefers-reduced-motion: reduce) {
       * {
         animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+      }
+      .dot-emphasis {
+        display: none;
       }
     }
     ]]>
@@ -208,6 +236,7 @@
 
   <rect class="c-bg-rect" x="10" y="0" width="780" height="100%"/>
   <rect x="10" y="0" width="780" height="100%" fill="url(#grid)" />
+  <rect x="10" y="0" width="780" height="52" class="c-header-mask" />
   <rect x="10" y="0" width="780" height="100%" fill="none" stroke="var(--frontend-stroke)" stroke-width="3" rx="6" />
   <text x="30" y="24" class="t-primary" font-size="14" font-weight="700">Use — sync 同步流程</text>
   <text x="30" y="40" class="t-muted" font-size="10">方向选择 · 同步项 · 配置拷贝</text>
@@ -216,7 +245,7 @@
   <text x="682" y="39" class="t-muted" font-size="8" text-anchor="end">Frontend</text>
   <rect x="756" y="31" width="14" height="9" rx="2" class="c-backend" stroke-width="1" />
   <text x="752" y="39" class="t-muted" font-size="8" text-anchor="end">Backend</text>
-  <line x1="0" y1="52" x2="800" y2="52" stroke="var(--frontend-stroke)" stroke-width="1.5" />
+  <line x1="10" y1="52" x2="790" y2="52" stroke="var(--frontend-stroke)" stroke-width="1.5" />
   <g transform="translate(0, 42)">
 
     <path id="sp1" d="M 400 86 L 400 126" class="a-emphasis" stroke-width="1.2" marker-end="url(#arrowhead-emphasis)" />
