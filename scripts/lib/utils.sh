@@ -172,6 +172,7 @@ prompt_sync_direction() {
     fi
 
     if [ -n "$arg" ]; then
+        # 不可用 error()：本函数经 $(...) 调用，exit 只会结束子 shell
         safe_echo "${RED}[ERROR] 无效的同步方向: 请使用 1 或 2
 $example${NC}" >&2
         return 1

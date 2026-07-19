@@ -3,6 +3,9 @@
     [string]$InstallProfile = ''
 )
 
+# 切换控制台为 UTF-8 代码页，确保中文正常显示
+& chcp 65001 > $null
+
 $ScriptDir = Split-Path $PSScriptRoot -Parent
 . (Join-Path $ScriptDir 'lib/utils.ps1')
 
@@ -142,4 +145,4 @@ Install-OrRestoreScoop -ScoopProfile $scoopProfile
 Install-Zsh
 Sync-Configurations -ScoopProfile $scoopProfile
 
-Write-Info '🎉 所有操作完成！系统已准备就绪。'
+Write-Info '所有操作完成！系统已准备就绪。'

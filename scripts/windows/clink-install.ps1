@@ -36,13 +36,12 @@ foreach ($plugin in $manifest.clinkPlugins) {
     $targetPath = Join-Path $scriptsPath $plugin.name
     if (-not (Test-Path $targetPath)) {
         Write-Info "正在下载插件: $($plugin.name)..."
-        try {
-            git clone $plugin.repo $targetPath
-            Write-Info "$($plugin.name) 下载完成"
-        }
-        catch {
+        git clone $plugin.repo $targetPath
+        if ($LASTEXITCODE -ne 0) {
             Write-Warn "$($plugin.name) 下载失败，跳过此插件"
+            continue
         }
+        Write-Info "$($plugin.name) 下载完成"
     }
     else {
         Write-Info "插件 $($plugin.name) 已存在，跳过"
@@ -68,6 +67,8 @@ clink autorun install -- --quiet
 if ($LASTEXITCODE -ne 0) {
     Write-Warn 'clink 自动运行启用失败'
 }
-Write-Info 'clink 自动运行已启用'
+else {
+    Write-Info 'clink 自动运行已启用'
+}
 
-Write-Info '🎉 所有配置已完成！'
+Write-Info '所有配置已完成！'

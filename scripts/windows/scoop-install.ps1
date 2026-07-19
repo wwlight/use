@@ -17,28 +17,32 @@ else {
         New-Item -ItemType Directory -Path $softwareAppsDir -Force | Out-Null
     }
 
-    $ErrorActionPreference = 'Stop'
     $env:SCOOP = $scoopDir
     [Environment]::SetEnvironmentVariable('SCOOP', $env:SCOOP, 'User')
 
-    if (Test-Administrator) {
-        iex "& {$(irm get.scoop.sh)} -RunAsAdmin"
+    try {
+        $ErrorActionPreference = 'Stop'
+        if (Test-Administrator) {
+            iex "& {$(irm get.scoop.sh)} -RunAsAdmin"
+        }
+        else {
+            Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+        }
     }
-    else {
-        Invoke-RestMethod -Uri https://get.scoop.sh | Invoke-Expression
+    catch {
+        Write-ErrorAndExit "scoop 安装失败: $($_.Exception.Message)"
     }
 
     $env:PATH = "$scoopDir\shims;$env:PATH"
 
-    if (Get-Command scoop -ErrorAction SilentlyContinue) {
-        Write-Info 'scoop 安装成功'
-        Write-Info '正在安装 git...'
-        scoop install git
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warn 'git 安装失败'
-        }
+    if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
+        Write-ErrorAndExit 'scoop 安装后当前会话仍无法识别命令，请新开终端后重新运行安装'
     }
-    else {
-        Write-Warn 'scoop 已安装，但当前 shell 未识别 scoop 命令，请重新打开终端'
+
+    Write-Info 'scoop 安装成功'
+    Write-Info '正在安装 git...'
+    scoop install git
+    if ($LASTEXITCODE -ne 0) {
+        Write-ErrorAndExit 'git 安装失败'
     }
 }

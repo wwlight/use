@@ -148,7 +148,7 @@ main() {
     install_zsh_plugins
     sync_configurations "$profile"
 
-    info "🎉 所有操作完成！系统已准备就绪。"
+    info "所有操作完成！系统已准备就绪。"
 }
 
 main "$@"

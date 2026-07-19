@@ -12,7 +12,24 @@ $InstallDir = "$env:USERPROFILE\Desktop\use"
 
 function Write-Info  { Write-Host "[INFO] $args" -ForegroundColor Green }
 function Write-Step  { Write-Host "[INFO] $args" -ForegroundColor Blue }
-function Write-ErrorAndExit { Write-Host "[ERROR] $args" -ForegroundColor Red; throw "[ERROR] $args" }
+
+# irm|iex 跑在当前 host：打印后 throw，由顶层 catch return，避免 exit 关掉会话、也避免未捕获堆栈
+function Write-ErrorAndExit {
+    Write-Host "[ERROR] $args" -ForegroundColor Red
+    throw 'USE_FATAL'
+}
+
+function Complete-UseFatal {
+    param($ErrorRecord)
+    if ("$($ErrorRecord.Exception.Message)" -ne 'USE_FATAL') {
+        Write-Host "[ERROR] $($ErrorRecord.Exception.Message)" -ForegroundColor Red
+    }
+    $global:LASTEXITCODE = 1
+    # -File 调用时退出进程；iex 时仅终止脚本（仍带上退出码供调用方读取）
+    if (-not [string]::IsNullOrEmpty($PSCommandPath)) {
+        exit 1
+    }
+}
 
 # 返回值: macos / windows / linux / unknown
 function Get-Os {
@@ -59,10 +76,15 @@ if ($InstallProfile -match '^(-h|--help|help)$') {
     return
 }
 
+try {
+
 $os = Get-Os
 if ($os -ne 'windows') {
     Write-ErrorAndExit "检测到 $os。请改用: curl -fsSL https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash"
 }
+
+# 切换控制台为 UTF-8 代码页，确保中文正常显示
+& chcp 65001 > $null
 
 switch -Regex ($InstallProfile) {
     '^(--)?lite$' { $InstallProfile = 'lite' }
@@ -135,12 +157,26 @@ $env:USE_STEP_CHAIN = '1'
 $env:USE_STEP_CURRENT = '1'
 $env:USE_STEP_TOTAL = "$([int]$env:USE_STEP_CURRENT + $initSteps)"
 Write-Step "步骤 $($env:USE_STEP_CURRENT)/$($env:USE_STEP_TOTAL): 安装包管理器 ..."
-& $pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/scoop-install.ps1
+
+if (Get-Command scoop -ErrorAction SilentlyContinue) {
+    Write-Info 'scoop 已安装，跳过'
+}
+else {
+    & $pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/scoop-install.ps1
+    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '包管理器安装失败' }
+}
+
+$env:SYNC_INTERACTIVE = '1'
 
 if ($InstallProfile) {
   & $pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/init.ps1 $InstallProfile
 } else {
   & $pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/init.ps1
 }
+if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '初始化失败' }
 
 Write-Info '安装完成！'
+
+} catch {
+    Complete-UseFatal $_
+}

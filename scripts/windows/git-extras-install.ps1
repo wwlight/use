@@ -15,7 +15,14 @@ Write-Step '步骤2/5: 进入 git-extras 目录...'
 Set-Location $workDir
 
 Write-Step '步骤3/5: 检出最新版本...'
-$latestTag = git describe --tags (git rev-list --tags --max-count=1)
+$latestCommit = git rev-list --tags --max-count=1
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($latestCommit)) {
+    Write-ErrorAndExit '无法解析最新标签提交'
+}
+$latestTag = git describe --tags $latestCommit
+if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($latestTag)) {
+    Write-ErrorAndExit '无法解析最新标签'
+}
 git checkout $latestTag
 if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '检出最新标签失败' }
 Write-Info "已检出版本: $latestTag"
@@ -46,4 +53,4 @@ Write-Info '安装验证成功'
 Write-Info '清理临时文件...'
 Set-Location (Join-Path $env:USERPROFILE 'Desktop')
 Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
-Write-Info '🎉 git-extras 安装完成!'
+Write-Info 'git-extras 安装完成!'

@@ -23,7 +23,19 @@ function Test-InteractivePrompt {
     }
 
     try {
-        return -not [Console]::IsInputRedirected
+        if (-not [Console]::IsInputRedirected) {
+            return $true
+        }
+    }
+    catch {
+        return $false
+    }
+
+    # stdin 被重定向（irm|iex）时，仍可走控制台设备（对齐 bash /dev/tty）
+    try {
+        $conin = [System.IO.File]::Open('CONIN$', [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+        $conin.Dispose()
+        return $true
     }
     catch {
         return $false
@@ -281,7 +293,7 @@ function Copy-FileDataOnly {
             }
 
             if ($tempDir) {
-                Move-Item (Join-Path $tempDir $sourceName) $destination -Force
+                Move-Item (Join-Path $tempDir $sourceName) $destination -Force -ErrorAction Stop
             }
         }
         finally {
@@ -289,9 +301,13 @@ function Copy-FileDataOnly {
                 Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
             }
         }
+
+        if (-not (Test-Path $destination)) {
+            throw "复制后目标不存在: $destination"
+        }
     }
     else {
-        Copy-Item $source $destination -Force
+        Copy-Item $source $destination -Force -ErrorAction Stop
     }
 }
 
@@ -522,7 +538,11 @@ function Invoke-ManifestSync {
                 if (-not (Test-Path $repoDir)) {
                     New-Item -ItemType Directory -Path $repoDir -Force | Out-Null
                 }
-                Copy-FileDataOnly $local $repo
+                try {
+                    Copy-FileDataOnly $local $repo
+                } catch {
+                    Write-ErrorAndExit $_.Exception.Message
+                }
                 Write-Backup "[$i/$total] 已备份 $(Format-RepoDisplay $item.repo)"
             }
             Write-Info '配置已备份到仓库'
@@ -543,14 +563,17 @@ function Invoke-ManifestSync {
                 if (-not (Test-Path $localDir)) {
                     New-Item -ItemType Directory -Path $localDir -Force | Out-Null
                 }
-                Copy-FileDataOnly $repo $local
+                try {
+                    Copy-FileDataOnly $repo $local
+                } catch {
+                    Write-ErrorAndExit $_.Exception.Message
+                }
                 Write-Backup "[$i/$total] 已恢复 $(Format-LocalDisplay $item.local)"
             }
             Write-Info '配置已恢复到本地'
         }
         default {
-            Write-Host '无效选择'
-            exit 1
+            Write-ErrorAndExit '无效选择'
         }
     }
 }
