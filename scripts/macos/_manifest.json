@@ -1,20 +1,29 @@
 {
   "brewfile": "configs/macos/Brewfile",
   "brewfileLite": "configs/macos/Brewfile.lite",
+  "profileArtifacts": {
+    "lite": "brewfileLite",
+    "full": "brewfile"
+  },
   "brewMirrors": {
     "official": {
+      "label": "官方源（默认）",
       "installScript": "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
     },
+    "ustc": {
+      "label": "中科大镜像",
+      "helpUrl": "https://mirrors.ustc.edu.cn/help/brew.git.html",
+      "apiDomain": "https://mirrors.ustc.edu.cn/homebrew-bottles/api",
+      "bottleDomain": "https://mirrors.ustc.edu.cn/homebrew-bottles",
+      "brewGitRemote": "https://mirrors.ustc.edu.cn/brew.git",
+      "installScript": "https://mirrors.ustc.edu.cn/misc/brew-install.sh"
+    },
     "tuna": {
+      "label": "清华大学镜像",
       "apiDomain": "https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api",
       "bottleDomain": "https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles",
       "brewGitRemote": "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git",
       "installGitRepo": "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/install.git"
-    },
-    "ustc": {
-      "apiDomain": "https://mirrors.ustc.edu.cn/homebrew-bottles/api",
-      "bottleDomain": "https://mirrors.ustc.edu.cn/homebrew-bottles",
-      "brewGitRemote": "https://mirrors.ustc.edu.cn/brew.git"
     }
   },
   "sync": {

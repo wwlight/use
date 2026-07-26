@@ -6,6 +6,11 @@
     "~/.zsh/functions",
     "~/.config/starship"
   ],
+  "zshPluginsDir": "~/.zsh/plugins",
+  "profiles": {
+    "lite": { "label": "尝鲜版" },
+    "full": { "label": "完整版" }
+  },
   "git": {
     "credentialHelper": "store",
     "defaultBranch": "main",

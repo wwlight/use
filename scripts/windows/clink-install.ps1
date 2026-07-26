@@ -34,18 +34,7 @@ Write-Host $clinkPath
 Write-Step '步骤3/4: 处理插件...'
 foreach ($plugin in $manifest.clinkPlugins) {
     $targetPath = Join-Path $scriptsPath $plugin.name
-    if (-not (Test-Path $targetPath)) {
-        Write-Info "正在下载插件: $($plugin.name)..."
-        git clone $plugin.repo $targetPath
-        if ($LASTEXITCODE -ne 0) {
-            Write-Warn "$($plugin.name) 下载失败，跳过此插件"
-            continue
-        }
-        Write-Info "$($plugin.name) 下载完成"
-    }
-    else {
-        Write-Info "插件 $($plugin.name) 已存在，跳过"
-    }
+    Sync-GitRepoPlugin -Repo $plugin.repo -TargetPath $targetPath -Name $plugin.name -Update
 }
 
 Write-Info '复制 starship.lua 启动插件...'

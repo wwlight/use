@@ -69,9 +69,9 @@ if ($InstallProfile -match '^(-h|--help|help)$') {
   （省略则初始化时交互选择）
 
 示例:
-  Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
   irm <url> | iex
   $env:USE_PROFILE='lite'; irm <url> | iex
+  $env:USE_PROFILE='full'; irm <url> | iex
 '@
     return
 }
@@ -93,9 +93,11 @@ switch -Regex ($InstallProfile) {
     default { Write-ErrorAndExit "未知参数: $InstallProfile（使用 lite / full）" }
 }
 
+# 规范化 git remote，便于比较是否同一仓库
 function Normalize-RepoUrl {
   param([string]$Url)
-  $u = $Url.TrimEnd('/')
+  $u = $Url
+  while ($u.EndsWith('/')) { $u = $u.TrimEnd('/') }
   if ($u.EndsWith('.git')) { $u = $u.Substring(0, $u.Length - 4) }
   foreach ($prefix in @('https://', 'http://', 'ssh://git@', 'git@')) {
     if ($u.StartsWith($prefix)) {
@@ -103,8 +105,7 @@ function Normalize-RepoUrl {
       break
     }
   }
-  $u = $u -replace ':', '/'
-  return $u
+  return ($u -replace ':', '/')
 }
 
 function Test-SameRemoteRepo {
@@ -151,7 +152,7 @@ Set-Location $InstallDir
 
 $pwsh = if ($PSVersionTable.PSEdition -eq 'Core') { 'pwsh.exe' } else { 'powershell.exe' }
 
-# 进度：入口完成第 1 步；init.ps1 内 LocalSteps=4，总数由其校正
+# 进度：入口完成第 1 步，总数含后续 init 步数
 $initSteps = 4
 $env:USE_STEP_CHAIN = '1'
 $env:USE_STEP_CURRENT = '1'

@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# 引入公共函数库（基于脚本绝对路径，支持在任意目录执行）
 SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -8,59 +7,57 @@ source "$SCRIPT_DIR/lib/utils.sh"
 
 init_manifest macos
 
+MANIFEST_CONFIG="$SCRIPT_DIR/lib/manifest-config.mjs"
+
 usage() {
-    cat <<EOF
-用法: $(basename "$0") [lite|full]
-
-  lite  尝鲜版
-  full  完整版
-
-示例:
-  bash $(basename "$0")
-  bash $(basename "$0") lite
-  vpr init -- lite
-  vpr init -- full
-EOF
+    node "$MANIFEST_CONFIG" usage-init
 }
 
-# 解析安装配置档：lite | full（stdout 输出档位）
+# 解析安装配置档（stdout 输出档位）
 resolve_brew_profile() {
     local arg="${1:-}"
+    local profile=""
 
     case "$arg" in
-        "" )
-            ;;
-        full|--full)
-            echo "full"
-            return 0
-            ;;
-        lite|--lite)
-            echo "lite"
-            return 0
-            ;;
-        *)
+        "" ) ;;
+        --*) profile="${arg#--}" ;;
+        *) profile="$arg" ;;
+    esac
+
+    if [[ -n "$profile" ]]; then
+        node "$MANIFEST_CONFIG" has-profile "$profile" || {
             usage >&2
             error "未知参数: $arg"
-            ;;
-    esac
+        }
+        echo "$profile"
+        return 0
+    fi
+
+    if ! has_tty; then
+        error "非交互环境请传入参数（示例: vpr init -- lite）"
+    fi
+
+    local menu_args=()
+    while IFS= read -r line; do
+        [ -z "$line" ] && continue
+        menu_args+=("$line")
+    done < <(node "$MANIFEST_CONFIG" menu-profiles)
 
     local choice=""
     choice=$(node "$SCRIPT_DIR/lib/menu-select.mjs" \
         "请选择 Homebrew 安装范围" \
-        "lite) 尝鲜版" \
-        "full) 完整版") || choice=""
+        "${menu_args[@]}") || choice=""
     choice=${choice//$'\r'/}
     choice=${choice//$'\n'/}
 
-    case "$choice" in
-        lite|full) echo "$choice" ;;
-        "")
-            error "非交互环境请传入参数: lite 或 full（示例: curl ... | bash -s -- lite）"
-            ;;
-        *)
-            error "无效选择: ${choice}"
-            ;;
-    esac
+    if [[ -z "$choice" ]]; then
+        error "非交互环境请传入参数（示例: vpr init -- lite）"
+    fi
+
+    node "$MANIFEST_CONFIG" has-profile "$choice" || {
+        error "无效选择: ${choice}"
+    }
+    echo "$choice"
 }
 
 setup_directories() {
@@ -75,17 +72,11 @@ setup_directories() {
 
 install_or_restore_brew() {
     local profile="$1"
-    local label="完整版"
-    [ "$profile" = "lite" ] && label="尝鲜版"
+    local label brewfile
+    label=$(node "$MANIFEST_CONFIG" profile-label "$profile")
     next_step "正在恢复 Homebrew 依赖（${label}）..."
 
-    local brewfile_key="brewfile"
-    if [ "$profile" = "lite" ]; then
-        brewfile_key="brewfileLite"
-    fi
-
-    local brewfile
-    brewfile=$(manifest_get "$brewfile_key")
+    brewfile=$(node "$MANIFEST_CONFIG" profile-artifact macos "$profile")
     local BREWFILE="$PROJECT_ROOT/$brewfile"
 
     if ! command -v brew &> /dev/null; then
@@ -139,7 +130,6 @@ main() {
     local profile
     profile=$(resolve_brew_profile "${1:-}") || exit $?
 
-    # 须与 install.sh 中 init_steps 保持一致
     local INIT_STEP_COUNT=4
     init_step_progress "$INIT_STEP_COUNT"
 

@@ -1,8 +1,7 @@
 {
   "name": "use",
   "version": "1.0.0",
-  "description": "",
-  "main": "",
+  "description": "A tool for managing my development environment",
   "scripts": {
     "pm": "node ./scripts/_dispatch.mjs pm",
     "init": "node ./scripts/_dispatch.mjs init",
@@ -15,9 +14,9 @@
     "git-extras": "node ./scripts/_dispatch.mjs git-extras",
     "clink": "node ./scripts/_dispatch.mjs clink",
     "hosts": "node ./scripts/_dispatch.mjs hosts",
-    "test": "node ./scripts/lib/menu-select.test.mjs"
+    "test": "node ./scripts/lib/menu-select.test.mjs && node ./scripts/lib/manifest-config.test.mjs"
   },
-  "author": "",
+  "author": "wwlight",
   "license": "ISC",
   "packageManager": "pnpm@10.12.4"
 }

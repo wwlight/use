@@ -10,51 +10,53 @@ $ScriptDir = Split-Path $PSScriptRoot -Parent
 . (Join-Path $ScriptDir 'lib/utils.ps1')
 
 $manifest = Read-Manifest
+$ManifestConfig = Join-Path $ScriptDir 'lib/manifest-config.mjs'
 
 function Show-InitUsage {
-    Write-Host @'
-用法: init.ps1 [lite|full]
-
-  lite  尝鲜版
-  full  完整版
-
-示例:
-  vpr init
-  vpr init -- lite
-  vpr init -- full
-'@
+    & node $ManifestConfig usage-init
+    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '无法生成用法说明' }
 }
 
 function Resolve-ScoopInstallProfile {
     param([string]$Arg)
 
-    switch ($Arg) {
-        { $_ -in @('full', '--full') } { return 'full' }
-        { $_ -in @('lite', '--lite') } { return 'lite' }
-        { $_ -in @('-h', '--help', 'help') } {
-            Show-InitUsage
-            exit 0
-        }
-        '' { }
-        default {
+    if ($Arg -in @('-h', '--help', 'help')) {
+        Show-InitUsage
+        exit 0
+    }
+
+    $profileName = $Arg
+    if ($profileName -match '^--(.+)$') { $profileName = $Matches[1] }
+
+    if ($profileName -ne '') {
+        & node $ManifestConfig has-profile $profileName
+        if ($LASTEXITCODE -ne 0) {
             Show-InitUsage
             Write-ErrorAndExit "未知参数: $Arg"
         }
+        return $profileName
     }
 
     if (-not (Test-InteractivePrompt)) {
-        Write-ErrorAndExit '非交互环境请传入参数: lite 或 full（示例: $env:USE_PROFILE=''lite''; irm ... | iex）'
+        Write-ErrorAndExit '非交互环境请传入参数（示例: vpr init -- lite）'
     }
 
+    $menuLines = & node $ManifestConfig menu-profiles
+    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '无法读取安装档位' }
+    $menuArgs = @('请选择 Scoop 安装范围') + @($menuLines | Where-Object { $_ })
+
     $menuScript = Join-Path $ScriptDir 'lib/menu-select.mjs'
-    $choice = & node $menuScript '请选择 Scoop 安装范围' 'lite) 尝鲜版' 'full) 完整版'
+    $choice = & node $menuScript @menuArgs
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($choice)) {
-        Write-ErrorAndExit '非交互环境请传入参数: lite 或 full（示例: $env:USE_PROFILE=''lite''; irm ... | iex）'
+        Write-ErrorAndExit '非交互环境请传入参数（示例: vpr init -- lite）'
     }
 
     $choice = "$choice".Trim()
-    if ($choice -in @('lite', 'full')) { return $choice }
-    Write-ErrorAndExit "无效选择: $choice"
+    & node $ManifestConfig has-profile $choice
+    if ($LASTEXITCODE -ne 0) {
+        Write-ErrorAndExit "无效选择: $choice"
+    }
+    return $choice
 }
 
 function Setup-Directories {
@@ -73,10 +75,15 @@ function Setup-Directories {
 function Install-OrRestoreScoop {
     param([string]$ScoopProfile)
 
-    $label = if ($ScoopProfile -eq 'lite') { '尝鲜版' } else { '完整版' }
+    $label = & node $ManifestConfig profile-label $ScoopProfile
+    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit "未知 profile: $ScoopProfile" }
     Write-NextStep "正在安装/恢复 scoop 应用（${label}）..."
-    $backupKey = if ($ScoopProfile -eq 'lite') { 'scoopBackupLite' } else { 'scoopBackup' }
-    $scoopBackup = Join-Path $Script:ProjectRoot $manifest.$backupKey
+
+    $rel = & node $ManifestConfig profile-artifact windows $ScoopProfile
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($rel)) {
+        Write-ErrorAndExit "无法解析 profile 产物: $ScoopProfile"
+    }
+    $scoopBackup = Join-Path $Script:ProjectRoot "$rel".Trim()
 
     if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
         Write-ErrorAndExit 'scoop 未安装！请先运行: vpr pm'
@@ -136,7 +143,6 @@ Assert-TargetOs windows
 
 $scoopProfile = Resolve-ScoopInstallProfile -Arg $InstallProfile
 
-# 须与 install.ps1 中 $initSteps 保持一致
 $InitStepCount = 4
 Initialize-StepProgress $InitStepCount
 

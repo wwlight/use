@@ -31,7 +31,7 @@ function Test-InteractivePrompt {
         return $false
     }
 
-    # stdin 被重定向（irm|iex）时，仍可走控制台设备（对齐 bash /dev/tty）
+    # stdin 被重定向（irm|iex）时，仍可走控制台设备
     try {
         $conin = [System.IO.File]::Open('CONIN$', [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
         $conin.Dispose()
@@ -40,6 +40,33 @@ function Test-InteractivePrompt {
     catch {
         return $false
     }
+}
+
+# 规范化 git remote，便于比较是否同一仓库
+function Normalize-RepoUrl {
+    param([string]$Url)
+    $u = $Url
+    while ($u.EndsWith('/')) { $u = $u.TrimEnd('/') }
+    if ($u.EndsWith('.git')) { $u = $u.Substring(0, $u.Length - 4) }
+    foreach ($prefix in @('https://', 'http://', 'ssh://git@', 'git@')) {
+        if ($u.StartsWith($prefix)) {
+            $u = $u.Substring($prefix.Length)
+            break
+        }
+    }
+    return ($u -replace ':', '/')
+}
+
+function Test-SameRemoteRepo {
+    param(
+        [string]$Dir,
+        [string]$ExpectedRepo
+    )
+    $gitDir = Join-Path $Dir '.git'
+    if (-not (Test-Path $gitDir)) { return $false }
+    $remote = git -C $Dir remote get-url origin 2>$null
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($remote)) { return $false }
+    return (Normalize-RepoUrl $remote) -eq (Normalize-RepoUrl $ExpectedRepo)
 }
 
 # --- 打印方法 ---
@@ -128,6 +155,80 @@ function Write-SyncProgressHint {
 function Write-Warn {
     param([string]$Message)
     Write-Host "[WARN] $Message" -ForegroundColor Yellow
+}
+
+# 安装或更新 git 仓库型插件
+# - 目录不存在：clone
+# - 已存在且 -Update：同 remote 则 pull，否则删了重装
+# - 已存在且无 -Update：跳过
+function Update-GitRepoToLatest {
+    param([string]$Dir)
+
+    git -C $Dir fetch --prune origin
+    if ($LASTEXITCODE -ne 0) { return $false }
+
+    $branch = (git -C $Dir rev-parse --abbrev-ref HEAD 2>$null).Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($branch)) { return $false }
+
+    if ($branch -eq 'HEAD') {
+        $originHead = (git -C $Dir symbolic-ref -q --short refs/remotes/origin/HEAD 2>$null)
+        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($originHead)) { return $false }
+        $branch = ($originHead.Trim() -replace '^origin/', '')
+        if ([string]::IsNullOrWhiteSpace($branch)) { return $false }
+    }
+
+    git -C $Dir reset --hard "origin/$branch"
+    return ($LASTEXITCODE -eq 0)
+}
+
+function Install-GitRepoClone {
+    param(
+        [string]$Repo,
+        [string]$TargetPath,
+        [string]$Name
+    )
+
+    Write-Info "正在下载插件: $Name..."
+    git clone $Repo $TargetPath
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warn "$Name 下载失败，跳过此插件"
+        return
+    }
+    Write-Info "$Name 下载完成"
+}
+
+function Sync-GitRepoPlugin {
+    param(
+        [string]$Repo,
+        [string]$TargetPath,
+        [string]$Name,
+        [switch]$Update
+    )
+
+    if (-not (Test-Path $TargetPath -PathType Container)) {
+        Install-GitRepoClone -Repo $Repo -TargetPath $TargetPath -Name $Name
+        return
+    }
+
+    if (-not $Update) {
+        Write-Info "插件 $Name 已存在，跳过"
+        return
+    }
+
+    if (Test-SameRemoteRepo -Dir $TargetPath -ExpectedRepo $Repo) {
+        Write-Info "插件 $Name 已是线上仓库，正在拉取最新..."
+        if (Update-GitRepoToLatest -Dir $TargetPath) {
+            Write-Info "$Name 已更新到最新"
+        }
+        else {
+            Write-Warn "$Name 拉取最新失败，跳过此插件"
+        }
+        return
+    }
+
+    Write-Info "插件 $Name 同名但非目标仓库，正在删除并重新克隆..."
+    Remove-Item $TargetPath -Recurse -Force -ErrorAction SilentlyContinue
+    Install-GitRepoClone -Repo $Repo -TargetPath $TargetPath -Name $Name
 }
 
 function Write-ErrorAndExit {

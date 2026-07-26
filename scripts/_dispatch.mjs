@@ -56,15 +56,19 @@ function runPlatformInit(platform) {
   return exitStatus(result)
 }
 
+function readManifest(scope) {
+  return JSON.parse(fs.readFileSync(path.join(__dirname, `${scope}/_manifest.json`), 'utf8'))
+}
+
 function runMacBackup() {
+  const { brewfile } = readManifest('macos')
   return exitStatus(spawnSync('brew', [
-    'bundle', 'dump', '--no-vscode', '--no-npm', '--force', '--file=./configs/macos/Brewfile',
+    'bundle', 'dump', '--no-vscode', '--no-npm', '--force', `--file=./${brewfile}`,
   ], { stdio: 'inherit', cwd: projectRoot }))
 }
 
 function runWinBackup() {
-  const manifestPath = path.join(__dirname, 'windows/_manifest.json')
-  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
+  const manifest = readManifest('windows')
   const fullRel = manifest.scoopBackup || 'configs/windows/scoop_backup.json'
 
   const exportStatus = exitStatus(spawnSync(`scoop export > ./${fullRel}`, { stdio: 'inherit', shell: true, cwd: projectRoot }))
@@ -211,13 +215,19 @@ async function runCrossPlatformTask(platform) {
     case 'backup':
       return platform === 'macos' ? runMacBackup() : runWinBackup()
     case 'setup':
-      return platform === 'macos'
-        ? exitStatus(spawnSync('brew', [
-            'bundle', 'install', '--file=./configs/macos/Brewfile',
-          ], { stdio: 'inherit', cwd: projectRoot }))
-        : exitStatus(spawnSync('scoop', [
-            'import', './configs/windows/scoop_backup.json',
-          ], { stdio: 'inherit', cwd: projectRoot, shell: true }))
+      if (platform === 'macos') {
+        const { brewfile } = readManifest('macos')
+        return exitStatus(spawnSync('brew', [
+          'bundle', 'install', `--file=./${brewfile}`,
+        ], { stdio: 'inherit', cwd: projectRoot }))
+      }
+      {
+        const manifest = readManifest('windows')
+        const scoopBackup = manifest.scoopBackup || 'configs/windows/scoop_backup.json'
+        return exitStatus(spawnSync('scoop', [
+          'import', `./${scoopBackup}`,
+        ], { stdio: 'inherit', cwd: projectRoot, shell: true }))
+      }
     case 'sync':
       return runUnifiedSync(platform, scriptArgs)
     case 'zsh-plugin':

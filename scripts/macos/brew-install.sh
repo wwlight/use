@@ -1,6 +1,5 @@
 #!/bin/bash
 
-# 引入公共函数库（基于脚本绝对路径，支持在任意目录执行）
 SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -8,19 +7,10 @@ source "$SCRIPT_DIR/lib/utils.sh"
 
 init_manifest macos
 
+MANIFEST_CONFIG="$SCRIPT_DIR/lib/manifest-config.mjs"
+
 usage() {
-    cat <<EOF
-用法: $(basename "$0") [official|ustc|tuna]
-
-  official  官方源（默认）
-  ustc      中科大镜像 https://mirrors.ustc.edu.cn/help/brew.git.html
-  tuna      清华大学镜像
-
-示例:
-  bash $(basename "$0")
-  bash $(basename "$0") ustc
-  vpr pm -- ustc
-EOF
+    node "$MANIFEST_CONFIG" usage-pm
 }
 
 mirror_exports() {
@@ -30,13 +20,7 @@ mirror_exports() {
         const mirror = process.argv[2];
         const cfg = m.brewMirrors[mirror] || {};
         const lines = [];
-        if (mirror === 'official') {
-            lines.push('# Homebrew 镜像配置（官方源，未启用镜像）');
-        } else if (mirror === 'ustc') {
-            lines.push('# Homebrew 镜像配置 - 中科大镜像源');
-        } else if (mirror === 'tuna') {
-            lines.push('# Homebrew 镜像配置 - 清华大学镜像源');
-        }
+        if (cfg.label) lines.push('# Homebrew 镜像配置 - ' + cfg.label);
         if (cfg.brewGitRemote) lines.push('export HOMEBREW_BREW_GIT_REMOTE=\"' + cfg.brewGitRemote + '\"');
         if (cfg.bottleDomain) lines.push('export HOMEBREW_BOTTLE_DOMAIN=\"' + cfg.bottleDomain + '\"');
         if (cfg.apiDomain) lines.push('export HOMEBREW_API_DOMAIN=\"' + cfg.apiDomain + '\"');
@@ -68,14 +52,12 @@ persist_zprofile() {
 
 run_install_script() {
     local mirror="$1"
+    local mode url
 
-    if [[ "$mirror" == "tuna" ]]; then
-        local install_git_repo
-        install_git_repo=$(node -e "
-            const m = require(process.argv[1]);
-            process.stdout.write(m.brewMirrors.tuna.installGitRepo);
-        " "$MANIFEST_PATH")
-        git clone --depth=1 "$install_git_repo" brew-install || {
+    IFS=$'\t' read -r mode url < <(node "$MANIFEST_CONFIG" mirror-install "$mirror")
+
+    if [[ "$mode" == "git" ]]; then
+        git clone --depth=1 "$url" brew-install || {
             error "Homebrew 安装脚本下载失败！"
         }
         /bin/bash brew-install/install.sh || {
@@ -84,12 +66,7 @@ run_install_script() {
         }
         rm -rf brew-install
     else
-        local install_script
-        install_script=$(node -e "
-            const m = require(process.argv[1]);
-            process.stdout.write(m.brewMirrors.official.installScript);
-        " "$MANIFEST_PATH")
-        /bin/bash -c "$(curl -fsSL "$install_script")" || {
+        /bin/bash -c "$(curl -fsSL "$url")" || {
             error "Homebrew 安装失败！"
         }
     fi
@@ -124,13 +101,15 @@ install_homebrew() {
 main() {
     while [[ "${1:-}" == "--" ]]; do shift; done
 
-    local mirror="official"
-
     case "${1:-}" in
-        ""|official|ustc|tuna) mirror="${1:-official}" ;;
         -h|--help|help) usage; exit 0 ;;
-        *) usage >&2; error "未知参数: $1" ;;
     esac
+
+    local mirror="${1:-official}"
+    node "$MANIFEST_CONFIG" has-mirror "$mirror" || {
+        usage >&2
+        error "未知参数: $mirror"
+    }
 
     check_target_os "macos"
     install_homebrew "$mirror"

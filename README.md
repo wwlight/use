@@ -96,6 +96,7 @@ vpr pm -- ustc                    # 中科大镜像
 vpr pm -- tuna                    # 清华镜像
 vpr init                          # 初始化
 vpr init -- lite                  # 尝鲜版
+vpr init -- full                  # 完整版
 ```
 
 ```text
@@ -117,6 +118,7 @@ vpr hosts                         # 更新 GitHub hosts（需管理员）
 vpr pm                            # 安装 scoop
 vpr init                          # 初始化
 vpr init -- lite                  # 尝鲜版
+vpr init -- full                  # 完整版
 ```
 
 ### windows 专属命令

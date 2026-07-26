@@ -70,6 +70,93 @@ has_tty() {
     { true </dev/tty; } 2>/dev/null
 }
 
+# 规范化 git remote，便于比较是否同一仓库
+normalize_repo_url() {
+    local u="$1"
+    while [ "${u%/}" != "$u" ]; do u="${u%/}"; done
+    case "$u" in
+        *.git) u="${u%.git}" ;;
+    esac
+    u="${u#https://}"
+    u="${u#http://}"
+    u="${u#ssh://git@}"
+    u="${u#git@}"
+    u="${u//://}"
+    printf '%s' "$u"
+}
+
+# 用法: is_same_remote_repo <dir> <expected-url>
+is_same_remote_repo() {
+    local dir="$1"
+    local expected="$2"
+    [ -d "$dir/.git" ] || return 1
+    local remote
+    remote=$(git -C "$dir" remote get-url origin 2>/dev/null) || return 1
+    [ "$(normalize_repo_url "$remote")" = "$(normalize_repo_url "$expected")" ]
+}
+
+# 安装或更新 git 仓库型插件
+# 用法: sync_git_repo_plugin <repo> <target_dir> <name> [1]
+# 第 4 参为 1：已存在则更新；否则跳过
+update_git_repo_to_latest() {
+    local dir="$1"
+    git -C "$dir" fetch --prune origin || return 1
+
+    local branch
+    branch=$(git -C "$dir" rev-parse --abbrev-ref HEAD 2>/dev/null) || return 1
+    if [ "$branch" = "HEAD" ]; then
+        branch=$(git -C "$dir" symbolic-ref -q --short refs/remotes/origin/HEAD 2>/dev/null)
+        branch="${branch#origin/}"
+        [ -n "$branch" ] || return 1
+    fi
+
+    git -C "$dir" reset --hard "origin/$branch"
+}
+
+install_git_repo_clone() {
+    local repo="$1"
+    local target_dir="$2"
+    local plugin_name="$3"
+
+    info "正在下载插件: $plugin_name..."
+    git clone "$repo" "$target_dir" || {
+        warn "$plugin_name 下载失败，跳过此插件"
+        return 1
+    }
+    info "$plugin_name 下载完成"
+}
+
+sync_git_repo_plugin() {
+    local repo="$1"
+    local target_dir="$2"
+    local plugin_name="$3"
+    local update="${4:-0}"
+
+    if [ ! -d "$target_dir" ]; then
+        install_git_repo_clone "$repo" "$target_dir" "$plugin_name"
+        return
+    fi
+
+    if [ "$update" != "1" ]; then
+        info "插件 $plugin_name 已存在，跳过"
+        return
+    fi
+
+    if is_same_remote_repo "$target_dir" "$repo"; then
+        info "插件 $plugin_name 已是线上仓库，正在拉取最新..."
+        if update_git_repo_to_latest "$target_dir"; then
+            info "$plugin_name 已更新到最新"
+        else
+            warn "$plugin_name 拉取最新失败，跳过此插件"
+        fi
+        return
+    fi
+
+    info "插件 $plugin_name 同名但非目标仓库，正在删除并重新克隆..."
+    rm -rf "$target_dir"
+    install_git_repo_clone "$repo" "$target_dir" "$plugin_name"
+}
+
 # 从控制终端读一行（curl|bash 时 stdin 是管道，必须用 /dev/tty）
 # 用法: answer=$(read_tty "提示: ") || error "非交互环境"
 read_tty() {

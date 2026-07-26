@@ -46,6 +46,7 @@ usage() {
 示例:
   curl -fsSL <url> | bash
   curl -fsSL <url> | bash -s -- lite
+  curl -fsSL <url> | bash -s -- full
 EOF
 }
 
@@ -60,14 +61,18 @@ resolve_profile() {
   esac
 }
 
+# 规范化 git remote，便于比较是否同一仓库
 normalize_repo_url() {
-  local u="${1%.git}"
-  u="${u%/}"
+  local u="$1"
+  while [ "${u%/}" != "$u" ]; do u="${u%/}"; done
+  case "$u" in
+    *.git) u="${u%.git}" ;;
+  esac
   u="${u#https://}"
   u="${u#http://}"
   u="${u#ssh://git@}"
   u="${u#git@}"
-  u="${u/://}"
+  u="${u//://}"
   printf '%s' "$u"
 }
 
@@ -121,7 +126,7 @@ install_macos() {
   ensure_repo
   cd "$INSTALL_DIR"
 
-  # 进度：入口完成第 1 步；init.sh 内 INIT_STEP_COUNT=4，总数由其校正
+  # 进度：入口完成第 1 步，总数含后续 init 步数
   local init_steps=4
   export USE_STEP_CHAIN=1
   export USE_STEP_CURRENT=1

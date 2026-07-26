@@ -12,6 +12,10 @@
   "githubHostsUrl": "https://raw.hellogithub.com/hosts",
   "scoopBackup": "configs/windows/scoop_backup.json",
   "scoopBackupLite": "configs/windows/scoop_backup.lite.json",
+  "profileArtifacts": {
+    "lite": "scoopBackupLite",
+    "full": "scoopBackup"
+  },
   "scoopLiteApps": [
     "7zip",
     "eza",
