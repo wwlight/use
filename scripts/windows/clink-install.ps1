@@ -39,19 +39,25 @@ foreach ($plugin in $manifest.clinkPlugins) {
 
 Write-Info '复制 starship.lua 启动插件...'
 $starshipSrc = Join-Path $Script:ProjectRoot 'configs/windows/starship.lua'
-Copy-Item $starshipSrc (Join-Path $scriptsPath 'starship.lua') -Force -Verbose
+Copy-Item $starshipSrc (Join-Path $scriptsPath 'starship.lua') -Force
 
-Write-Info "注册插件: $scriptsPath..."
-clink installscripts $scriptsPath
-if ($LASTEXITCODE -ne 0) {
-    Write-Warn "$scriptsPath 注册失败"
-}
-else {
-    Write-Info "$scriptsPath 注册成功"
+Write-Info '注册 Clink 脚本...'
+foreach ($path in @($scriptsPath) + @($manifest.clinkPlugins | ForEach-Object { Join-Path $scriptsPath $_.name })) {
+    Write-Info "注册: $path"
+    clink installscripts $path
+    if ($LASTEXITCODE -ne 0) {
+        Write-Warn "$path 注册失败"
+    }
+    else {
+        Write-Info "$path 注册成功"
+    }
 }
 
 Write-Step '步骤4/4: 启用 clink 自动运行...'
 clink set tips.enable false
+if ($LASTEXITCODE -ne 0) {
+    Write-Warn 'tips.enable 设置失败'
+}
 clink autorun install -- --quiet
 if ($LASTEXITCODE -ne 0) {
     Write-Warn 'clink 自动运行启用失败'

@@ -143,6 +143,10 @@ install_macos() {
   fi
 
   info "安装完成！"
+  # curl | bash 在子 shell 中执行，cd 无法影响父终端；通过 /dev/tty 进入交互 shell
+  if [[ -c /dev/tty ]] && [[ -t 2 ]]; then
+    exec "${SHELL:-/bin/zsh}" -l </dev/tty >/dev/tty 2>/dev/tty
+  fi
 }
 
 case "${1:-}" in
