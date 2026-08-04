@@ -43,7 +43,7 @@ function _clone() {
     mkdir -p "$base_dir" || { echo "无法创建目录: $base_dir"; return 1; }
 
     echo "正在克隆到: $target_dir"
-    if git clone "$repo" "$target_dir"; then
+    if _git_clone_accel "$repo" "$target_dir"; then
         echo "✅ 成功克隆到: $target_dir"
     else
         echo "克隆仓库失败: $repo"

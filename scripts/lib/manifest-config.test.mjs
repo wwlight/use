@@ -6,6 +6,7 @@ import {
   hasProfile,
   loadManifest,
   mirrorInstallMode,
+  mirrorMenuItems,
   profileLabel,
   profileMenuItems,
   resolveProfileArtifact,
@@ -37,6 +38,11 @@ assert.equal(hasMirror('official', macos), true)
 assert.equal(hasMirror('ustc', macos), true)
 assert.equal(hasMirror('tuna', macos), true)
 assert.equal(hasMirror('nope', macos), false)
+assert.deepEqual(mirrorMenuItems(macos), [
+  'official) 官方源',
+  'ustc) 中科大镜像',
+  'tuna) 清华大学镜像',
+])
 
 const pmUsage = formatPmUsage(macos)
 assert.match(pmUsage, /vpr pm \[official\|ustc\|tuna\]/)

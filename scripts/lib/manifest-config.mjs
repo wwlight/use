@@ -45,6 +45,10 @@ export function hasMirror(name, macos = loadManifest('macos')) {
   return Boolean(macos.brewMirrors?.[name])
 }
 
+export function mirrorMenuItems(macos = loadManifest('macos')) {
+  return Object.entries(macos.brewMirrors).map(([k, v]) => `${k}) ${v.label}`)
+}
+
 export function formatPmUsage(macos = loadManifest('macos')) {
   const keys = Object.keys(macos.brewMirrors)
   const pad = Math.max(...keys.map((k) => k.length))
@@ -103,6 +107,9 @@ function main(argv) {
     case 'menu-profiles':
       process.stdout.write(`${profileMenuItems().join('\n')}\n`)
       break
+    case 'menu-mirrors':
+      process.stdout.write(`${mirrorMenuItems().join('\n')}\n`)
+      break
     case 'has-mirror':
       process.exit(hasMirror(args[0]) ? 0 : 1)
       break
@@ -120,7 +127,7 @@ function main(argv) {
       break
     }
     default:
-      console.error(`用法: manifest-config.mjs <usage-init|usage-pm|has-profile|profile-label|menu-profiles|has-mirror|profile-artifact|zsh-plugins-dir|mirror-install>`)
+      console.error(`用法: manifest-config.mjs <usage-init|usage-pm|has-profile|profile-label|menu-profiles|menu-mirrors|has-mirror|profile-artifact|zsh-plugins-dir|mirror-install>`)
       process.exit(1)
   }
 }

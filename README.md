@@ -8,16 +8,40 @@
 curl -fsSL https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash
 ```
 
+```sh
+curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash
+```
+
+```sh
+curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash
+```
+
 ### macos · 尝鲜版
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash -s -- lite
 ```
 
+```sh
+curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash -s -- lite
+```
+
+```sh
+curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash -s -- lite
+```
+
 ### macos · 完整版
 
 ```sh
 curl -fsSL https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash -s -- full
+```
+
+```sh
+curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash -s -- full
+```
+
+```sh
+curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash -s -- full
 ```
 
 ### windows · 执行策略
@@ -32,10 +56,26 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 irm https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
 ```
 
+```powershell
+irm https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
+```
+
+```powershell
+irm https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
+```
+
 ### windows · 尝鲜版
 
 ```powershell
 $env:USE_PROFILE='lite'; irm https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
+```
+
+```powershell
+$env:USE_PROFILE='lite'; irm https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
+```
+
+```powershell
+$env:USE_PROFILE='lite'; irm https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
 ```
 
 ### windows · 完整版
@@ -44,9 +84,19 @@ $env:USE_PROFILE='lite'; irm https://raw.githubusercontent.com/wwlight/use/main/
 $env:USE_PROFILE='full'; irm https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
 ```
 
+```powershell
+$env:USE_PROFILE='full'; irm https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
+```
+
+```powershell
+$env:USE_PROFILE='full'; irm https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
+```
+
 
 
 ## 安装 [vite.plus](https://viteplus.dev/)
+
+仓库：https://github.com/voidzero-dev/vite-plus
 
 ### macos
 
@@ -54,10 +104,26 @@ $env:USE_PROFILE='full'; irm https://raw.githubusercontent.com/wwlight/use/main/
 curl -fsSL https://vite.plus | bash
 ```
 
-### windows
+```sh
+curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.sh | bash
+```
 
 ```sh
+curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.sh | bash
+```
+
+### windows
+
+```powershell
 irm https://vite.plus/ps1 | iex
+```
+
+```powershell
+irm https://ghfast.top/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.ps1 | iex
+```
+
+```powershell
+irm https://gh-proxy.com/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.ps1 | iex
 ```
 
 
@@ -65,8 +131,7 @@ irm https://vite.plus/ps1 | iex
 ## 通用命令
 
 ```sh
-vpr pm                            # 安装包管理器（brew / scoop）
-vpr pm -- ustc                    # macos 镜像：official | ustc | tuna
+vpr pm                            # 安装包管理器（brew / scoop），交互选镜像
 vpr init                          # 初始化
 vpr init -- lite                  # 尝鲜版
 vpr init -- full                  # 完整版
@@ -91,9 +156,10 @@ Get-ChildItem scripts,configs -Recurse -Include *.ps1,*.psm1 | Unblock-File
 ## macos
 
 ```sh
-vpr pm                            # 官方源（默认）
+vpr pm                            # 安装 brew，交互选镜像
 vpr pm -- ustc                    # 中科大镜像
 vpr pm -- tuna                    # 清华镜像
+vpr pm -- official                # 官方源
 vpr init                          # 初始化
 vpr init -- lite                  # 尝鲜版
 vpr init -- full                  # 完整版
@@ -115,11 +181,17 @@ configs/macos/
 
 ```sh
 vpr hosts                         # 更新 GitHub hosts（需管理员）
-vpr pm                            # 安装 scoop
-vpr init                          # 初始化
+vpr pm                            # 安装 scoop，交互选加速镜像
+vpr pm -- ghfast                  # ghfast.top 加速镜像
+vpr pm -- ghproxy                 # gh-proxy.com 加速镜像
+vpr pm -- official                # 官方源
+vpr init                          # 初始化（会启用已选加速）
 vpr init -- lite                  # 尝鲜版
 vpr init -- full                  # 完整版
 ```
+
+> [!NOTE]
+> `vpr pm` / `vpr init` 会配置 GitHub URL 镜像与 aria2 多线程下载。
 
 ### windows 专属命令
 

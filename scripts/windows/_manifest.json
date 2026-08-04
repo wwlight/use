@@ -18,6 +18,7 @@
   },
   "scoopLiteApps": [
     "7zip",
+    "aria2",
     "eza",
     "FiraCode-NF-Mono",
     "fzf",
@@ -26,6 +27,25 @@
     "winsw-pre",
     "zoxide"
   ],
+  "scoopAccel": {
+    "installScript": "https://raw.githubusercontent.com/ScoopInstaller/Install/master/install.ps1",
+    "scoopRepo": "https://github.com/ScoopInstaller/Scoop",
+    "githubHosts": [
+      "github.com",
+      "raw.githubusercontent.com",
+      "objects.githubusercontent.com",
+      "release-assets.githubusercontent.com",
+      "codeload.github.com"
+    ],
+    "aria2": {
+      "enabled": true,
+      "warningEnabled": false,
+      "retryWait": 2,
+      "split": 16,
+      "maxConnectionPerServer": 16,
+      "minSplitSize": "1M"
+    }
+  },
   "scoopDir": "D:\\SoftwareApps\\Scoop",
   "softwareAppsDir": "D:/SoftwareApps",
   "sync": {

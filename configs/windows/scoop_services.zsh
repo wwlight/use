@@ -19,6 +19,12 @@ winsw() {
   winsw.exe "$@"
 }
 
+_scoop_ensure_mirror_accel() {
+  local p="${SCOOP}/config/mirror-accel.ps1"
+  [[ -f "$p" ]] || return 0
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$p" -RepairHook
+}
+
 scoop() {
   [[ -n "$SCOOP" ]] || { echo "scoop: \$SCOOP is not set" >&2; return 1 }
 
@@ -41,6 +47,11 @@ scoop() {
   elif [[ "$1" == "services" ]]; then
     shift
     _scoop_services "$@"
+  elif [[ "$1" == "update" ]]; then
+    command scoop "$@"
+    local ec=$?
+    _scoop_ensure_mirror_accel
+    return $ec
   else
     command scoop "$@"
   fi

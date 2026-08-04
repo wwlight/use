@@ -13,6 +13,55 @@ usage() {
     node "$MANIFEST_CONFIG" usage-pm
 }
 
+# 解析 Homebrew 镜像（stdout 输出 id）
+resolve_brew_mirror() {
+    local arg="${1:-}"
+    local mirror=""
+
+    case "$arg" in
+        "" ) ;;
+        --*) mirror="${arg#--}" ;;
+        *) mirror="$arg" ;;
+    esac
+
+    if [[ -n "$mirror" ]]; then
+        node "$MANIFEST_CONFIG" has-mirror "$mirror" || {
+            usage >&2
+            error "未知参数: $arg"
+        }
+        echo "$mirror"
+        return 0
+    fi
+
+    if ! has_tty; then
+        usage >&2
+        error "非交互环境请传入参数（示例: vpr pm -- official）"
+    fi
+
+    local menu_args=()
+    while IFS= read -r line; do
+        [ -z "$line" ] && continue
+        menu_args+=("$line")
+    done < <(node "$MANIFEST_CONFIG" menu-mirrors)
+
+    local choice=""
+    choice=$(node "$SCRIPT_DIR/lib/menu-select.mjs" \
+        "请选择 Homebrew 镜像" \
+        "${menu_args[@]}") || choice=""
+    choice=${choice//$'\r'/}
+    choice=${choice//$'\n'/}
+
+    if [[ -z "$choice" ]]; then
+        usage >&2
+        error "非交互环境请传入参数（示例: vpr pm -- official）"
+    fi
+
+    node "$MANIFEST_CONFIG" has-mirror "$choice" || {
+        error "无效选择: ${choice}"
+    }
+    echo "$choice"
+}
+
 mirror_exports() {
     local mirror="$1"
     node -e "
@@ -105,13 +154,9 @@ main() {
         -h|--help|help) usage; exit 0 ;;
     esac
 
-    local mirror="${1:-official}"
-    node "$MANIFEST_CONFIG" has-mirror "$mirror" || {
-        usage >&2
-        error "未知参数: $mirror"
-    }
-
     check_target_os "macos"
+    local mirror
+    mirror=$(resolve_brew_mirror "${1:-}")
     install_homebrew "$mirror"
 }
 

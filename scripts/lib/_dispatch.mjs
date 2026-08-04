@@ -1,8 +1,5 @@
 import { spawnSync } from 'node:child_process'
 import path from 'node:path'
-import { fileURLToPath } from 'node:url'
-
-const scriptsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 
 export function detectPlatform() {
   const p = process.platform
@@ -22,22 +19,13 @@ export function isPowerShell() {
     || (process.env.ComSpec || '').toLowerCase().includes('pwsh')
 }
 
-export function unblockPowerShellScripts() {
-  const command = `Get-ChildItem -LiteralPath '${scriptsDir.replace(/'/g, "''")}' -Recurse -Include *.ps1,*.psm1 | Unblock-File -ErrorAction SilentlyContinue`
-  const options = { stdio: 'ignore' }
-  const pwsh = spawnSync('pwsh', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command], options)
-  if (pwsh.error?.code === 'ENOENT') {
-    spawnSync('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', command], options)
-  }
-}
-
 /** Strip npm/vpr `--` arg separators (e.g. `vpr pm -- ustc`). */
 export function stripArgSeparator(args = []) {
   return args.filter((arg) => arg !== '--')
 }
 
 export function runPwsh(scriptPath, args = []) {
-  unblockPowerShellScripts()
+  // 已用 -ExecutionPolicy Bypass，不再每次递归 Unblock-File（会慢数秒）
   const cleanArgs = stripArgSeparator(args)
 
   const pwsh = spawnSync('pwsh', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, ...cleanArgs], {

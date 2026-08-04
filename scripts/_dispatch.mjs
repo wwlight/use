@@ -52,6 +52,9 @@ function requireWindows(platform) {
 function runPlatformInit(platform) {
   const initDir = path.join(__dirname, platform)
   const scriptPath = resolveScript(initDir, 'init')
+  if (process.stdin.isTTY || process.stdout.isTTY) {
+    process.env.SYNC_INTERACTIVE = '1'
+  }
   const result = isPowerShell() ? runPwsh(scriptPath, scriptArgs) : runBash(scriptPath, scriptArgs)
   return exitStatus(result)
 }

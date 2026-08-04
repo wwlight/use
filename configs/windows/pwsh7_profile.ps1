@@ -55,6 +55,12 @@ function winsw {
   & "winsw.exe" $args
 }
 
+function _scoop_ensure_mirror_accel {
+  $p = "$env:SCOOP\config\mirror-accel.ps1"
+  if (-not (Test-Path $p)) { return }
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p -RepairHook
+}
+
 function scoop {
   if (-not $env:SCOOP) { $host.ui.WriteErrorLine("scoop: `$env:SCOOP is not set"); return 1 }
   if ($args.Count -ge 1) {
@@ -83,6 +89,11 @@ function scoop {
     }
   }
   & $__scoop @args
+  $ec = $LASTEXITCODE
+  if ($args.Count -ge 1 -and $args[0] -eq 'update') {
+    _scoop_ensure_mirror_accel
+  }
+  return $ec
 }
 
 function _scoop_apps {

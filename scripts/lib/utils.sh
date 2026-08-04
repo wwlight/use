@@ -72,7 +72,8 @@ has_tty() {
 
 # 规范化 git remote，便于比较是否同一仓库
 normalize_repo_url() {
-    local u="$1"
+    local u
+    u=$(strip_github_accel_prefix "$1")
     while [ "${u%/}" != "$u" ]; do u="${u%/}"; done
     case "$u" in
         *.git) u="${u%.git}" ;;
@@ -83,6 +84,117 @@ normalize_repo_url() {
     u="${u#git@}"
     u="${u//://}"
     printf '%s' "$u"
+}
+
+_github_accel_load() {
+    if [ -n "${GITHUB_ACCEL_LOADED:-}" ]; then
+        return 0
+    fi
+    GITHUB_ACCEL_LOADED=1
+    GITHUB_ACCEL_DEFAULT_PREFIX=""
+    GITHUB_ACCEL_PREFIXES=()
+
+    local common_manifest="${PROJECT_ROOT}/scripts/common/_manifest.json"
+    [ -f "$common_manifest" ] || return 0
+
+    local data
+    data=$(node -e "
+        const m = require(process.argv[1]);
+        const cfg = m.githubAccel || {};
+        const mirrors = Array.isArray(cfg.mirrors) ? cfg.mirrors : [];
+        const def = String(cfg.default || '');
+        let defaultPrefix = '';
+        const prefixes = [];
+        for (const item of mirrors) {
+            let p = String(item?.prefix || '');
+            if (!p) continue;
+            if (!p.endsWith('/')) p += '/';
+            prefixes.push(p);
+            if (def && String(item?.id || '') === def) defaultPrefix = p;
+        }
+        if (!defaultPrefix && prefixes.length) defaultPrefix = prefixes[0];
+        process.stdout.write(defaultPrefix + '\n' + prefixes.join('\n'));
+    " "$common_manifest" 2>/dev/null) || return 0
+
+    local line i=0
+    while IFS= read -r line || [ -n "$line" ]; do
+        if [ "$i" -eq 0 ]; then
+            GITHUB_ACCEL_DEFAULT_PREFIX="$line"
+        elif [ -n "$line" ]; then
+            GITHUB_ACCEL_PREFIXES+=("$line")
+        fi
+        i=$((i + 1))
+    done <<< "$data"
+}
+
+strip_github_accel_prefix() {
+    _github_accel_load
+    local url="$1"
+    local p
+    for p in "${GITHUB_ACCEL_PREFIXES[@]}"; do
+        [ -n "$p" ] || continue
+        case "$url" in
+            "$p"*) printf '%s' "${url#"$p"}"; return 0 ;;
+        esac
+    done
+    printf '%s' "$url"
+}
+
+is_github_http_url() {
+    local bare
+    bare=$(strip_github_accel_prefix "$1")
+    case "$bare" in
+        https://github.com/*|https://raw.githubusercontent.com/*) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+github_accel_url() {
+    local url="$1"
+    if ! is_github_http_url "$url"; then
+        printf '%s' "$url"
+        return 0
+    fi
+    _github_accel_load
+    local bare
+    bare=$(strip_github_accel_prefix "$url")
+    if [ -n "$GITHUB_ACCEL_DEFAULT_PREFIX" ]; then
+        printf '%s%s' "$GITHUB_ACCEL_DEFAULT_PREFIX" "$bare"
+    else
+        printf '%s' "$bare"
+    fi
+}
+
+# 输出候选 URL 列表（默认加速 → 其它加速 → 官方）
+github_accel_url_candidates() {
+    local url="$1"
+    if ! is_github_http_url "$url"; then
+        printf '%s\n' "$url"
+        return 0
+    fi
+    _github_accel_load
+    local bare
+    bare=$(strip_github_accel_prefix "$url")
+    local seen=$'\n'
+    local p candidate
+    if [ -n "$GITHUB_ACCEL_DEFAULT_PREFIX" ]; then
+        candidate="${GITHUB_ACCEL_DEFAULT_PREFIX}${bare}"
+        printf '%s\n' "$candidate"
+        seen="${seen}${candidate}"$'\n'
+    fi
+    for p in "${GITHUB_ACCEL_PREFIXES[@]}"; do
+        [ -n "$p" ] || continue
+        candidate="${p}${bare}"
+        case "$seen" in
+            *$'\n'"$candidate"$'\n'*) continue ;;
+        esac
+        printf '%s\n' "$candidate"
+        seen="${seen}${candidate}"$'\n'
+    done
+    case "$seen" in
+        *$'\n'"$bare"$'\n'*) ;;
+        *) printf '%s\n' "$bare" ;;
+    esac
 }
 
 # 用法: is_same_remote_repo <dir> <expected-url>
@@ -117,12 +229,22 @@ install_git_repo_clone() {
     local repo="$1"
     local target_dir="$2"
     local plugin_name="$3"
+    local url ok=0
 
     info "正在下载插件: $plugin_name..."
-    git clone "$repo" "$target_dir" || {
+    while IFS= read -r url; do
+        [ -n "$url" ] || continue
+        rm -rf "$target_dir"
+        if git clone "$url" "$target_dir"; then
+            ok=1
+            break
+        fi
+    done < <(github_accel_url_candidates "$repo")
+
+    if [ "$ok" -ne 1 ]; then
         warn "$plugin_name 下载失败，跳过此插件"
         return 1
-    }
+    fi
     info "$plugin_name 下载完成"
 }
 
@@ -144,10 +266,24 @@ sync_git_repo_plugin() {
 
     if is_same_remote_repo "$target_dir" "$repo"; then
         info "插件 $plugin_name 已是线上仓库，正在拉取最新..."
+        local accel
+        accel=$(github_accel_url "$repo")
+        local current
+        current=$(git -C "$target_dir" remote get-url origin 2>/dev/null || true)
+        if [ -n "$accel" ] && [ "$current" != "$accel" ]; then
+            git -C "$target_dir" remote set-url origin "$accel" 2>/dev/null || true
+        fi
         if update_git_repo_to_latest "$target_dir"; then
             info "$plugin_name 已更新到最新"
         else
-            warn "$plugin_name 拉取最新失败，跳过此插件"
+            local bare
+            bare=$(strip_github_accel_prefix "$repo")
+            git -C "$target_dir" remote set-url origin "$bare" 2>/dev/null || true
+            if update_git_repo_to_latest "$target_dir"; then
+                info "$plugin_name 已更新到最新（官方源）"
+            else
+                warn "$plugin_name 拉取最新失败，跳过此插件"
+            fi
         fi
         return
     fi

@@ -1,4 +1,4 @@
-﻿param(
+param(
     [Parameter(Position = 0)]
     [string]$InstallProfile = ''
 )
@@ -46,12 +46,24 @@ function Resolve-ScoopInstallProfile {
     $menuArgs = @('请选择 Scoop 安装范围') + @($menuLines | Where-Object { $_ })
 
     $menuScript = Join-Path $ScriptDir 'lib/menu-select.mjs'
-    $choice = & node $menuScript @menuArgs
-    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($choice)) {
+    $outFile = [System.IO.Path]::GetTempFileName()
+    try {
+        $env:MENU_SELECT_OUT = $outFile
+        # 不捕获 stdout，保留 TTY，菜单才能在 Cursor 终端显示
+        & node $menuScript @menuArgs
+        if ($LASTEXITCODE -ne 0) {
+            Write-ErrorAndExit '非交互环境请传入参数（示例: vpr init -- lite）'
+        }
+        $choice = (Get-Content -LiteralPath $outFile -Raw -Encoding UTF8 -ErrorAction SilentlyContinue)
+        $choice = "$choice".Trim()
+    }
+    finally {
+        Remove-Item Env:MENU_SELECT_OUT -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $outFile -Force -ErrorAction SilentlyContinue
+    }
+    if ([string]::IsNullOrWhiteSpace($choice)) {
         Write-ErrorAndExit '非交互环境请传入参数（示例: vpr init -- lite）'
     }
-
-    $choice = "$choice".Trim()
     & node $ManifestConfig has-profile $choice
     if ($LASTEXITCODE -ne 0) {
         Write-ErrorAndExit "无效选择: $choice"
@@ -88,6 +100,9 @@ function Install-OrRestoreScoop {
     if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
         Write-ErrorAndExit 'scoop 未安装！请先运行: vpr pm'
     }
+
+    . (Join-Path $PSScriptRoot 'scoop-accel.ps1')
+    Enable-ScoopAccel -Manifest $manifest
 
     if (Test-Path $scoopBackup) {
         Write-Info "正在从 $(Split-Path $scoopBackup -Leaf) 恢复依赖..."

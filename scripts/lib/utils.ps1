@@ -1,4 +1,4 @@
-﻿$Script:ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
+$Script:ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 
 # --- 平台特有（Windows） ---
 function Test-Administrator {
@@ -31,21 +31,15 @@ function Test-InteractivePrompt {
         return $false
     }
 
-    # stdin 被重定向（irm|iex）时，仍可走控制台设备
-    try {
-        $conin = [System.IO.File]::Open('CONIN$', [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
-        $conin.Dispose()
-        return $true
-    }
-    catch {
-        return $false
-    }
+    # 不在此打开 CONIN$：在 node/zsh 调度、stdin 重定向时可能长时间阻塞。
+    # 需要交互时由上层设置 SYNC_INTERACTIVE=1。
+    return $false
 }
 
 # 规范化 git remote，便于比较是否同一仓库
 function Normalize-RepoUrl {
     param([string]$Url)
-    $u = $Url
+    $u = Strip-GithubAccelPrefix -Url $Url
     while ($u.EndsWith('/')) { $u = $u.TrimEnd('/') }
     if ($u.EndsWith('.git')) { $u = $u.Substring(0, $u.Length - 4) }
     foreach ($prefix in @('https://', 'http://', 'ssh://git@', 'git@')) {
@@ -55,6 +49,126 @@ function Normalize-RepoUrl {
         }
     }
     return ($u -replace ':', '/')
+}
+
+function Get-GithubAccelMirrors {
+    if ($null -ne $script:GithubAccelMirrors) {
+        return $script:GithubAccelMirrors
+    }
+
+    $cfg = (Read-Manifest -Scope common).githubAccel
+    if (-not $cfg) {
+        Write-ErrorAndExit 'common manifest 缺少 githubAccel'
+    }
+
+    $mirrors = @()
+    foreach ($item in @($cfg.mirrors)) {
+        if ($null -eq $item) { continue }
+        $id = [string]$item.id
+        $p = [string]$item.prefix
+        if ([string]::IsNullOrWhiteSpace($id) -or [string]::IsNullOrWhiteSpace($p)) { continue }
+        if (-not $p.EndsWith('/')) { $p += '/' }
+        $mirrors += [pscustomobject]@{ id = $id; prefix = $p }
+    }
+
+    if ($mirrors.Count -eq 0) {
+        Write-ErrorAndExit 'common githubAccel.mirrors 为空，请至少配置一个加速镜像'
+    }
+
+    $script:GithubAccelMirrors = $mirrors
+    return $script:GithubAccelMirrors
+}
+
+function Get-GithubAccelPrefixes {
+    if ($null -ne $script:GithubAccelPrefixes) {
+        return $script:GithubAccelPrefixes
+    }
+
+    $prefixes = @(
+        foreach ($item in (Get-GithubAccelMirrors)) {
+            [string]$item.prefix
+        }
+    )
+    $script:GithubAccelPrefixes = $prefixes
+    return $script:GithubAccelPrefixes
+}
+
+function Get-GithubAccelSelectionMap {
+    $map = [ordered]@{}
+    foreach ($item in (Get-GithubAccelMirrors)) {
+        $id = [string]$item.id
+        if ([string]::IsNullOrWhiteSpace($id)) { continue }
+        if (-not $map.Contains($id)) { $map[$id] = [string]$item.prefix }
+    }
+    $map['official'] = ''
+    return $map
+}
+
+function Get-GithubAccelDefaultPrefix {
+    if ($null -ne $script:GithubAccelDefaultPrefix) {
+        return $script:GithubAccelDefaultPrefix
+    }
+
+    $cfg = (Read-Manifest -Scope common).githubAccel
+    $defaultId = [string]$cfg.default
+    $prefix = ''
+    foreach ($item in (Get-GithubAccelMirrors)) {
+        if ($defaultId -and ([string]$item.id -eq $defaultId)) {
+            $prefix = [string]$item.prefix
+            break
+        }
+    }
+    if ([string]::IsNullOrWhiteSpace($prefix)) {
+        $prefix = [string](Get-GithubAccelMirrors)[0].prefix
+    }
+
+    $script:GithubAccelDefaultPrefix = $prefix
+    return $script:GithubAccelDefaultPrefix
+}
+
+function Strip-GithubAccelPrefix {
+    param([string]$Url)
+    if ([string]::IsNullOrWhiteSpace($Url)) { return $Url }
+    foreach ($p in @(Get-GithubAccelPrefixes)) {
+        if ($p -and $Url.StartsWith($p, [StringComparison]::OrdinalIgnoreCase)) {
+            return $Url.Substring($p.Length)
+        }
+    }
+    return $Url
+}
+
+function Test-GithubHttpUrl {
+    param([string]$Url)
+    $bare = Strip-GithubAccelPrefix -Url $Url
+    return $bare -match '^https://(github\.com|raw\.githubusercontent\.com)/'
+}
+
+function ConvertTo-GithubAccelUrl {
+    param([string]$Url)
+    if (-not (Test-GithubHttpUrl -Url $Url)) { return $Url }
+    $bare = Strip-GithubAccelPrefix -Url $Url
+    $prefix = Get-GithubAccelDefaultPrefix
+    if ([string]::IsNullOrWhiteSpace($prefix)) { return $bare }
+    return ($prefix + $bare)
+}
+
+function Get-GithubAccelUrlCandidates {
+    param([string]$Url)
+    if (-not (Test-GithubHttpUrl -Url $Url)) {
+        return @($Url)
+    }
+
+    $bare = Strip-GithubAccelPrefix -Url $Url
+    $candidates = @()
+    $default = Get-GithubAccelDefaultPrefix
+    if ($default) { $candidates += ($default + $bare) }
+    foreach ($p in (Get-GithubAccelPrefixes)) {
+        if (-not $p) { continue }
+        $candidate = $p + $bare
+        if ($candidates -notcontains $candidate) { $candidates += $candidate }
+    }
+    if ($candidates -notcontains $bare) { $candidates += $bare }
+    return $candidates
 }
 
 function Test-SameRemoteRepo {
@@ -189,8 +303,22 @@ function Install-GitRepoClone {
     )
 
     Write-Info "正在下载插件: $Name..."
-    git clone $Repo $TargetPath
-    if ($LASTEXITCODE -ne 0) {
+    $candidates = @(Get-GithubAccelUrlCandidates -Url $Repo)
+    $ok = $false
+    foreach ($url in $candidates) {
+        if (Test-Path $TargetPath) {
+            Remove-Item $TargetPath -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        git clone $url $TargetPath
+        if ($LASTEXITCODE -eq 0) {
+            $ok = $true
+            if ($url -ne $Repo -and $url -ne (Strip-GithubAccelPrefix -Url $Repo)) {
+                Write-Info "$Name 已通过加速源克隆"
+            }
+            break
+        }
+    }
+    if (-not $ok) {
         Write-Warn "$Name 下载失败，跳过此插件"
         return
     }
@@ -217,11 +345,24 @@ function Sync-GitRepoPlugin {
 
     if (Test-SameRemoteRepo -Dir $TargetPath -ExpectedRepo $Repo) {
         Write-Info "插件 $Name 已是线上仓库，正在拉取最新..."
+        $accelUrl = ConvertTo-GithubAccelUrl -Url $Repo
+        $current = (git -C $TargetPath remote get-url origin 2>$null)
+        if ($accelUrl -and $current -and ($current.Trim() -ne $accelUrl)) {
+            git -C $TargetPath remote set-url origin $accelUrl 2>$null
+        }
         if (Update-GitRepoToLatest -Dir $TargetPath) {
             Write-Info "$Name 已更新到最新"
         }
         else {
-            Write-Warn "$Name 拉取最新失败，跳过此插件"
+            # 加速源失败时回退官方 remote 再试一次
+            $bare = Strip-GithubAccelPrefix -Url $Repo
+            git -C $TargetPath remote set-url origin $bare 2>$null
+            if (Update-GitRepoToLatest -Dir $TargetPath) {
+                Write-Info "$Name 已更新到最新（官方源）"
+            }
+            else {
+                Write-Warn "$Name 拉取最新失败，跳过此插件"
+            }
         }
         return
     }

@@ -7,7 +7,7 @@
   },
   "brewMirrors": {
     "official": {
-      "label": "官方源（默认）",
+      "label": "官方源",
       "installScript": "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
     },
     "ustc": {

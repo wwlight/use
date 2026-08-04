@@ -4,9 +4,22 @@
  * 用法: node menu-select.mjs <标题> <value) 说明> [value) 说明 ...]
  */
 import path from 'node:path'
+import fs from 'node:fs'
 import readline from 'node:readline'
 import { fileURLToPath } from 'node:url'
-import { openTerminal, restoreFrame } from './tty-term.mjs'
+import { frameLines, openTerminal, restoreFrame } from './tty-term.mjs'
+
+function clearPreviousFrame(output, frame) {
+  const lines = frameLines(frame)
+  if (lines <= 0) return
+  restoreFrame(output, frame)
+  for (let i = 0; i < lines; i++) {
+    output.write('\x1B[2K')
+    if (i < lines - 1) output.write('\n')
+  }
+  if (lines > 1) output.write(`\x1B[${lines - 1}A\r`)
+  else output.write('\r')
+}
 
 function createSelect({ message, choices, input, output }) {
   let cursor = 0
@@ -38,8 +51,8 @@ function createSelect({ message, choices, input, output }) {
     if (frame === prevFrame) return
 
     if (prevFrame) {
-      restoreFrame(output, prevFrame)
-      output.write('\x1B[J')
+      // 只清菜单区域，避免 \x1B[J 清空整屏
+      clearPreviousFrame(output, prevFrame)
     }
     else {
       output.write('\x1B[?25l')
@@ -156,7 +169,14 @@ if (isCli) {
   try {
     const choices = rawChoices.map(parseChoice)
     const value = await runMenuSelect({ message, choices })
-    process.stdout.write(`${String(value).trim()}\n`)
+    const text = `${String(value).trim()}\n`
+    const outFile = process.env.MENU_SELECT_OUT
+    if (outFile) {
+      fs.writeFileSync(outFile, text, 'utf8')
+    }
+    else {
+      process.stdout.write(text)
+    }
   }
   catch (err) {
     if (err.code === 'CANCELLED') process.exit(130)

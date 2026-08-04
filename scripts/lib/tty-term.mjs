@@ -23,8 +23,8 @@ function openWindowsConsole() {
       output: new tty.WriteStream(fdOut),
       owned: true,
       close() {
+        // 只关输入；destroy CONOUT$ 易导致控制台被清空/错乱
         if (!this.input.destroyed) this.input.destroy()
-        if (!this.output.destroyed) this.output.destroy()
       },
     }
   }
@@ -33,10 +33,15 @@ function openWindowsConsole() {
   }
 }
 
+function isVsCodeConPty() {
+  const term = String(process.env.TERM_PROGRAM || '').toLowerCase()
+  return term === 'vscode' || term === 'cursor' || Boolean(process.env.VSCODE_INJECTION)
+}
+
 /**
  * @param {{ allowWindowsConsole?: boolean }} [options]
- * - allowWindowsConsole: Windows 下 stdout 非 TTY 时是否打开 CONIN$/CONOUT$
- *   默认跟随 SYNC_INTERACTIVE=1（与 sync-select 一致）
+ * - allowWindowsConsole: Windows 下是否允许 CONIN$/CONOUT$
+ *   默认跟随 SYNC_INTERACTIVE=1；Cursor/VS Code ConPTY 下禁用（菜单不可见会假死）
  */
 export function openTerminal(options = {}) {
   const allowWindowsConsole = options.allowWindowsConsole
@@ -51,15 +56,26 @@ export function openTerminal(options = {}) {
     }
   }
 
+  // PowerShell `$x = & node ...` 会捕获 stdout；stderr 仍常是 TTY，菜单应画在这里
+  if (process.stdin.isTTY && process.stderr.isTTY) {
+    return {
+      input: process.stdin,
+      output: process.stderr,
+      owned: false,
+      close() {},
+    }
+  }
+
   if (process.platform === 'win32') {
-    if (allowWindowsConsole) {
+    // Cursor/VS Code 的 ConPTY 下 CONOUT$ 不可见、CONIN$ 收不到按键 → 表现为卡住
+    if (allowWindowsConsole && !isVsCodeConPty()) {
       const cons = openWindowsConsole()
       if (cons) return cons
     }
     if (process.stdin.isTTY) {
       return {
         input: process.stdin,
-        output: process.stdout,
+        output: process.stderr.isTTY ? process.stderr : process.stdout,
         owned: false,
         close() {},
       }
