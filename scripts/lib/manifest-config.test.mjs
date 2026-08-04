@@ -39,15 +39,16 @@ assert.equal(hasMirror('ustc', macos), true)
 assert.equal(hasMirror('tuna', macos), true)
 assert.equal(hasMirror('nope', macos), false)
 assert.deepEqual(mirrorMenuItems(macos), [
-  'official) 官方源',
   'ustc) 中科大镜像',
   'tuna) 清华大学镜像',
+  'official) 官方源',
 ])
 
 const pmUsage = formatPmUsage(macos)
-assert.match(pmUsage, /vpr pm \[official\|ustc\|tuna\]/)
-assert.match(pmUsage, /vpr pm -- official/)
+assert.match(pmUsage, /vpr pm \[ustc\|tuna\|official\]/)
 assert.match(pmUsage, /vpr pm -- ustc/)
+assert.match(pmUsage, /vpr pm -- tuna/)
+assert.match(pmUsage, /vpr pm -- official/)
 assert.match(pmUsage, /中科大镜像/)
 
 assert.deepEqual(

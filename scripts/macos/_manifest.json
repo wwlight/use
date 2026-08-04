@@ -6,13 +6,8 @@
     "full": "brewfile"
   },
   "brewMirrors": {
-    "official": {
-      "label": "官方源",
-      "installScript": "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
-    },
     "ustc": {
       "label": "中科大镜像",
-      "helpUrl": "https://mirrors.ustc.edu.cn/help/brew.git.html",
       "apiDomain": "https://mirrors.ustc.edu.cn/homebrew-bottles/api",
       "bottleDomain": "https://mirrors.ustc.edu.cn/homebrew-bottles",
       "brewGitRemote": "https://mirrors.ustc.edu.cn/brew.git",
@@ -24,6 +19,10 @@
       "bottleDomain": "https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles",
       "brewGitRemote": "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git",
       "installGitRepo": "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/install.git"
+    },
+    "official": {
+      "label": "官方源",
+      "installScript": "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
     }
   },
   "sync": {

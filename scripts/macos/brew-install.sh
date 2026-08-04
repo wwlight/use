@@ -35,7 +35,7 @@ resolve_brew_mirror() {
 
     if ! has_tty; then
         usage >&2
-        error "非交互环境请传入参数（示例: vpr pm -- official）"
+        error "非交互环境请传入参数（示例: vpr pm -- ustc）"
     fi
 
     local menu_args=()
@@ -53,7 +53,7 @@ resolve_brew_mirror() {
 
     if [[ -z "$choice" ]]; then
         usage >&2
-        error "非交互环境请传入参数（示例: vpr pm -- official）"
+        error "非交互环境请传入参数（示例: vpr pm -- ustc）"
     fi
 
     node "$MANIFEST_CONFIG" has-mirror "$choice" || {
@@ -122,7 +122,7 @@ run_install_script() {
 }
 
 install_homebrew() {
-    local mirror="${1:-official}"
+    local mirror="${1:-ustc}"
 
     if command -v brew &> /dev/null; then
         persist_zprofile "$mirror"

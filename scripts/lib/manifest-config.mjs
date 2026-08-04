@@ -55,11 +55,7 @@ export function formatPmUsage(macos = loadManifest('macos')) {
   return [
     `用法: vpr pm [${keys.join('|')}]`,
     '',
-    ...keys.map((k) => {
-      const cfg = macos.brewMirrors[k]
-      const desc = cfg.helpUrl ? `${cfg.label} ${cfg.helpUrl}` : cfg.label
-      return `  ${k.padEnd(pad)}  ${desc}`
-    }),
+    ...keys.map((k) => `  ${k.padEnd(pad)}  ${macos.brewMirrors[k].label}`),
     '',
     '示例:',
     '  vpr pm',
