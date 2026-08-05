@@ -1,7 +1,7 @@
 load(io.popen('starship init cmd'):read("*a"))()
--- 获取 HOME 环境变量
+-- Read the HOME environment variable.
 local home = os.getenv("HOME")
--- 构造路径
+-- Build the path.
 local starship_config = home.."\\.config\\starship\\starship.toml"
--- 设置环境变量
+-- Set the environment variable.
 os.setenv("STARSHIP_CONFIG", starship_config)

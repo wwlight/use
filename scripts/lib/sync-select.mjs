@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * 终端多选 — 交互模式参考 @clack/core（vite-plus prompts 底层），仅用 Node 内置模块。
+ * Terminal multi-select using only Node built-ins, modeled after @clack/core.
  */
 import { execSync } from 'node:child_process'
 import fs from 'node:fs'
@@ -67,7 +67,7 @@ function createMultiselect({ message, choices, input, output }) {
         return `${pointer} [${mark}] ${truncate(item.label, labelMax)}`
       }),
       '',
-      '↑↓ 移动  空格/x 切换  回车 确认',
+      '↑↓ Move  Space/x Toggle  Enter Confirm',
     ]
     if (error) lines.push('', error)
     return `${lines.join('\n')}\n`
@@ -75,7 +75,7 @@ function createMultiselect({ message, choices, input, output }) {
 
   function renderSubmitFrame() {
     const picked = choices.filter((c) => c.selected)
-    return `${message}\n已选 ${picked.length} 项\n`
+    return `${message}\n${picked.length} selected\n`
   }
 
   function render() {
@@ -97,7 +97,7 @@ function createMultiselect({ message, choices, input, output }) {
   return new Promise((resolve, reject) => {
     const canInteract = input.isTTY || process.env.SYNC_INTERACTIVE === '1'
     if (!canInteract) {
-      reject(new Error('非 TTY 环境'))
+      reject(new Error('Not a TTY'))
       return
     }
 
@@ -107,11 +107,11 @@ function createMultiselect({ message, choices, input, output }) {
       }
     }
     catch (err) {
-      reject(new Error(`无法进入交互模式: ${err.message}`))
+      reject(new Error(`Could not enter interactive mode: ${err.message}`))
       return
     }
 
-    // 勿绑 output / terminal:true，否则回车时 readline 会多写换行，restoreFrame 错位
+    // Do not bind output / terminal:true; readline adds a newline and offsets restoreFrame.
     rl = readline.createInterface({ input })
     readline.emitKeypressEvents(input, rl)
 
@@ -141,7 +141,7 @@ function createMultiselect({ message, choices, input, output }) {
       if (key.name === 'return' || key.name === 'enter') {
         const picked = choices.filter((c) => c.selected)
         if (picked.length === 0) {
-          error = '至少选择一项'
+          error = 'Select at least one item'
           render()
           return
         }
@@ -161,7 +161,7 @@ function createMultiselect({ message, choices, input, output }) {
       }
       else if (key.ctrl && key.name === 'c') {
         close()
-        const err = new Error('文件选择已取消')
+        const err = new Error('File selection canceled')
         err.code = 'CANCELLED'
         reject(err)
         return
@@ -189,13 +189,13 @@ export async function runSyncSelectPrompt({ direction, rawLines, outPath }) {
   const term = openTerminal()
   if (!term) {
     if (process.env.SYNC_INTERACTIVE === '1') {
-      throw new Error('无法打开交互终端，请使用 SYNC_SELECT_ALL=1 跳过选择')
+      throw new Error('Could not open an interactive terminal; use SYNC_SELECT_ALL=1 to skip selection')
     }
     writeResult(rawLines, outPath)
     return rawLines.length
   }
 
-  const title = direction === '1' ? '选择要备份到仓库的文件' : '选择要恢复到本地的文件'
+  const title = direction === '1' ? 'Choose files to back up to the repository' : 'Choose files to restore locally'
   const choices = items.map((item) => ({
     label: direction === '1' ? formatRepoDisplay(item.repo) : formatLocalDisplay(item.local),
     selected: item.selected,
@@ -233,7 +233,7 @@ if (isCli) {
   const outPath = process.argv[4]
 
   if (!direction || !pairsPath) {
-    console.error('用法: node sync-select.mjs <1|2> <pairs-file> [out-file]')
+    console.error('Usage: node sync-select.mjs <1|2> <pairs-file> [out-file]')
     process.exit(1)
   }
 

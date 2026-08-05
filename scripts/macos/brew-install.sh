@@ -13,7 +13,7 @@ usage() {
     node "$MANIFEST_CONFIG" usage-pm
 }
 
-# 解析 Homebrew 镜像（stdout 输出 id）
+# Resolve the Homebrew mirror and print its ID to stdout.
 resolve_brew_mirror() {
     local arg="${1:-}"
     local mirror=""
@@ -27,7 +27,7 @@ resolve_brew_mirror() {
     if [[ -n "$mirror" ]]; then
         node "$MANIFEST_CONFIG" has-mirror "$mirror" || {
             usage >&2
-            error "未知参数: $arg"
+            error "Unknown argument: $arg"
         }
         echo "$mirror"
         return 0
@@ -35,7 +35,7 @@ resolve_brew_mirror() {
 
     if ! has_tty; then
         usage >&2
-        error "非交互环境请传入参数（示例: vpr pm -- ustc）"
+        error "Pass an argument in non-interactive environments (example: vpr pm -- ustc)"
     fi
 
     local menu_args=()
@@ -46,18 +46,18 @@ resolve_brew_mirror() {
 
     local choice=""
     choice=$(node "$SCRIPT_DIR/lib/menu-select.mjs" \
-        "请选择 Homebrew 镜像" \
+        "Choose a Homebrew mirror" \
         "${menu_args[@]}") || choice=""
     choice=${choice//$'\r'/}
     choice=${choice//$'\n'/}
 
     if [[ -z "$choice" ]]; then
         usage >&2
-        error "非交互环境请传入参数（示例: vpr pm -- ustc）"
+        error "Pass an argument in non-interactive environments (example: vpr pm -- ustc)"
     fi
 
     node "$MANIFEST_CONFIG" has-mirror "$choice" || {
-        error "无效选择: ${choice}"
+        error "Invalid selection: ${choice}"
     }
     echo "$choice"
 }
@@ -69,7 +69,7 @@ mirror_exports() {
         const mirror = process.argv[2];
         const cfg = m.brewMirrors[mirror] || {};
         const lines = [];
-        if (cfg.label) lines.push('# Homebrew 镜像配置 - ' + cfg.label);
+        if (cfg.label) lines.push('# Homebrew mirror configuration - ' + cfg.label);
         if (cfg.brewGitRemote) lines.push('export HOMEBREW_BREW_GIT_REMOTE=\"' + cfg.brewGitRemote + '\"');
         if (cfg.bottleDomain) lines.push('export HOMEBREW_BOTTLE_DOMAIN=\"' + cfg.bottleDomain + '\"');
         if (cfg.apiDomain) lines.push('export HOMEBREW_API_DOMAIN=\"' + cfg.apiDomain + '\"');
@@ -88,7 +88,7 @@ persist_zprofile() {
     file=$(expand_path "$file_display")
     local brew_path
 
-    brew_path=$(command -v brew) || error "brew 未找到，无法写入 $file_display"
+    brew_path=$(command -v brew) || error "brew not found; cannot write $file_display"
 
     {
         echo "eval \"\$($brew_path shellenv)\""
@@ -96,7 +96,7 @@ persist_zprofile() {
         mirror_exports "$mirror"
     } > "$file"
 
-    info "已配置 Homebrew 镜像 ($mirror) 到 $file_display"
+    info "Configured Homebrew mirror ($mirror) in $file_display"
 }
 
 run_install_script() {
@@ -107,16 +107,16 @@ run_install_script() {
 
     if [[ "$mode" == "git" ]]; then
         git clone --depth=1 "$url" brew-install || {
-            error "Homebrew 安装脚本下载失败！"
+            error "Failed to download the Homebrew installer!"
         }
         /bin/bash brew-install/install.sh || {
             rm -rf brew-install
-            error "Homebrew 安装失败！"
+            error "Homebrew installation failed!"
         }
         rm -rf brew-install
     else
         /bin/bash -c "$(curl -fsSL "$url")" || {
-            error "Homebrew 安装失败！"
+            error "Homebrew installation failed!"
         }
     fi
 }
@@ -126,14 +126,14 @@ install_homebrew() {
 
     if command -v brew &> /dev/null; then
         persist_zprofile "$mirror"
-        info "Homebrew 已安装，跳过"
+        info "Homebrew is already installed; skipping"
         return 0
     fi
 
     if [[ "$mirror" == "official" ]]; then
-        info "Homebrew 未安装，正在从官方源安装..."
+        info "Homebrew is not installed; installing from upstream..."
     else
-        info "Homebrew 未安装，正在从 $mirror 镜像安装..."
+        info "Homebrew is not installed; installing from the $mirror mirror..."
     fi
 
     load_mirror_env "$mirror"
@@ -142,9 +142,9 @@ install_homebrew() {
 
     source "$(expand_path "$(manifest_get "zprofile")")"
     brew update || {
-        error "Homebrew 更新失败！"
+        error "Homebrew update failed!"
     }
-    info "Homebrew 安装成功"
+    info "Homebrew installation complete"
 }
 
 main() {

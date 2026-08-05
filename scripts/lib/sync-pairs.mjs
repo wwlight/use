@@ -8,7 +8,7 @@ export function readSyncPairLines(platform, scriptsDir, direction) {
   for (const scope of scopes) {
     const manifestPath = path.join(scriptsDir, scope, '_manifest.json')
     if (!fs.existsSync(manifestPath)) {
-      throw new Error(`找不到 manifest: ${manifestPath}`)
+      throw new Error(`Manifest not found: ${manifestPath}`)
     }
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
     for (const item of manifest.sync?.toRepo ?? []) {
@@ -41,6 +41,6 @@ export function cleanupSyncTempFile(filePath) {
     fs.unlinkSync(filePath)
   }
   catch {
-    // 文件可能已被 shell 侧消费并删除
+    // The shell may already have consumed and removed the file.
   }
 }

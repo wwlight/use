@@ -9,17 +9,17 @@ function Update-GitHubHosts {
     param([string]$HostsUrl)
 
     if ([string]::IsNullOrWhiteSpace($HostsUrl)) {
-        Write-Warn '未配置 GitHub hosts 源，跳过 hosts 更新'
+        Write-Warn 'No GitHub hosts source configured; skipping hosts update'
         return
     }
 
     if ([string]::IsNullOrWhiteSpace($env:SystemRoot)) {
-        Write-Warn '未检测到 SystemRoot，跳过 hosts 更新'
+        Write-Warn 'SystemRoot not detected; skipping hosts update'
         return
     }
 
     if (-not (Test-Administrator)) {
-        Write-Warn '请以管理员身份运行，跳过 hosts 更新'
+        Write-Warn 'Administrator privileges required; skipping hosts update'
         return
     }
 
@@ -27,12 +27,12 @@ function Update-GitHubHosts {
     $beginMarker = '# BEGIN use scoop-install github hosts'
     $endMarker = '# END use scoop-install github hosts'
 
-    Write-Info "正在更新 GitHub hosts: $HostsUrl"
+    Write-Info "Updating GitHub hosts: $HostsUrl"
     try {
         $response = Invoke-WebRequest -Uri $HostsUrl -UseBasicParsing -TimeoutSec 20
         $hostsContent = $response.Content.Trim()
         if ([string]::IsNullOrWhiteSpace($hostsContent)) {
-            Write-Warn '下载到的 GitHub hosts 内容为空，跳过更新'
+            Write-Warn 'Downloaded GitHub hosts content is empty; skipping update'
             return
         }
 
@@ -61,10 +61,10 @@ function Update-GitHubHosts {
 
         $utf8NoBom = [System.Text.UTF8Encoding]::new($false)
         [System.IO.File]::WriteAllText($hostsPath, $updatedContent, $utf8NoBom)
-        Write-Info "GitHub hosts 已更新: $hostsPath"
+        Write-Info "GitHub hosts updated: $hostsPath"
     }
     catch {
-        Write-Warn "GitHub hosts 更新失败: $($_.Exception.Message)"
+        Write-Warn "GitHub hosts update failed: $($_.Exception.Message)"
     }
 }
 

@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 /**
- * 从完整 scoop export 按 manifest.scoopLiteApps 生成尝鲜版备份。
+ * Generate a lite backup from a full Scoop export using manifest.scoopLiteApps.
  * @returns {{ ok: boolean, missing: string[], written: number }}
  */
 export function writeScoopLiteBackup(projectRoot, manifest) {
@@ -11,7 +11,7 @@ export function writeScoopLiteBackup(projectRoot, manifest) {
   const liteNames = manifest.scoopLiteApps
 
   if (!fullRel || !liteRel || !Array.isArray(liteNames) || liteNames.length === 0) {
-    throw new Error('windows manifest 缺少 scoopBackup / scoopBackupLite / scoopLiteApps')
+    throw new Error('windows manifest is missing scoopBackup / scoopBackupLite / scoopLiteApps')
   }
 
   const fullPath = path.join(projectRoot, fullRel)

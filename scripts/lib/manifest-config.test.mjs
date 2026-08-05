@@ -20,8 +20,8 @@ const windows = loadManifest('windows')
 assert.equal(hasProfile('lite', common), true)
 assert.equal(hasProfile('full', common), true)
 assert.equal(hasProfile('nope', common), false)
-assert.equal(profileLabel('lite', common), '尝鲜版')
-assert.deepEqual(profileMenuItems(common), ['lite) 尝鲜版', 'full) 完整版'])
+assert.equal(profileLabel('lite', common), 'Lite')
+assert.deepEqual(profileMenuItems(common), ['lite) Lite', 'full) Full'])
 
 const initUsage = formatInitUsage(common)
 assert.match(initUsage, /vpr init \[lite\|full\]/)
@@ -39,9 +39,9 @@ assert.equal(hasMirror('ustc', macos), true)
 assert.equal(hasMirror('tuna', macos), true)
 assert.equal(hasMirror('nope', macos), false)
 assert.deepEqual(mirrorMenuItems(macos), [
-  'ustc) 中科大镜像',
-  'tuna) 清华大学镜像',
-  'official) 官方源',
+  'ustc) USTC mirror',
+  'tuna) TUNA mirror',
+  'official) Official',
 ])
 
 const pmUsage = formatPmUsage(macos)
@@ -49,7 +49,7 @@ assert.match(pmUsage, /vpr pm \[ustc\|tuna\|official\]/)
 assert.match(pmUsage, /vpr pm -- ustc/)
 assert.match(pmUsage, /vpr pm -- tuna/)
 assert.match(pmUsage, /vpr pm -- official/)
-assert.match(pmUsage, /中科大镜像/)
+assert.match(pmUsage, /USTC mirror/)
 
 assert.deepEqual(
   mirrorInstallMode(macos.brewMirrors.tuna, macos.brewMirrors.official.installScript),

@@ -25,7 +25,7 @@ export function stripArgSeparator(args = []) {
 }
 
 export function runPwsh(scriptPath, args = []) {
-  // 已用 -ExecutionPolicy Bypass，不再每次递归 Unblock-File（会慢数秒）
+  // -ExecutionPolicy Bypass is already set; recursive Unblock-File adds several seconds.
   const cleanArgs = stripArgSeparator(args)
 
   const pwsh = spawnSync('pwsh', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, ...cleanArgs], {

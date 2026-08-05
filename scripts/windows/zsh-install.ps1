@@ -9,12 +9,12 @@ $manifest = Read-Manifest
 
 function Get-GitPath {
     if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
-        Write-ErrorAndExit '未检测到 scoop 安装，请先安装 scoop'
+        Write-ErrorAndExit 'Scoop is not installed; install Scoop first'
     }
 
     $gitPath = (scoop prefix git).Trim()
     if ([string]::IsNullOrWhiteSpace($gitPath) -or -not (Test-Path $gitPath)) {
-        Write-ErrorAndExit '无法获取 git 路径'
+        Write-ErrorAndExit 'Could not locate Git'
     }
 
     return $gitPath
@@ -54,25 +54,25 @@ function Install-ZshForGit {
     $zipFile = Join-Path $workDir $ZshInstall.archiveName
     $tarFile = Join-Path $workDir ($ZshInstall.archiveName -replace '\.zst$')
 
-    Write-Step '步骤1/6: 下载 zsh 压缩包...'
+    Write-Step 'Step 1/6: Downloading the Zsh archive...'
     & curl.exe --ssl-no-revoke -L $ZshInstall.downloadUrl -o $zipFile
     if ($LASTEXITCODE -ne 0) {
-        Write-ErrorAndExit '下载 zsh 压缩包失败'
+        Write-ErrorAndExit 'Failed to download the Zsh archive'
     }
-    Write-Info "下载完成: $zipFile"
+    Write-Info "Download complete: $zipFile"
 
-    Write-Step '步骤2/6: 查找 git 安装路径...'
-    Write-Info "git 路径: $GitPath"
+    Write-Step 'Step 2/6: Locating the Git installation...'
+    Write-Info "Git path: $GitPath"
     Write-Host ''
 
-    Write-Step '步骤3/6: 检查 7z 工具...'
+    Write-Step 'Step 3/6: Checking the 7z tool...'
     if (-not (Get-Command 7z -ErrorAction SilentlyContinue)) {
         Remove-PathSafe $zipFile
-        Write-ErrorAndExit '7z 命令未找到，请安装 7-Zip'
+        Write-ErrorAndExit '7z command not found; install 7-Zip'
     }
-    Write-Info '7z 工具可用'
+    Write-Info '7z is available'
 
-    Write-Step '步骤4/6: 解压 .zst 文件...'
+    Write-Step 'Step 4/6: Extracting the .zst file...'
     Remove-PathSafe $tempExtractDir
     New-Item -ItemType Directory -Path $tempExtractDir -Force | Out-Null
 
@@ -80,29 +80,29 @@ function Install-ZshForGit {
     if ($LASTEXITCODE -ne 0) {
         Remove-PathSafe $zipFile
         Remove-PathSafe $tempExtractDir
-        Write-ErrorAndExit '解压 .zst 文件失败'
+        Write-ErrorAndExit 'Failed to extract the .zst file'
     }
 
     if (-not (Test-Path $tarFile)) {
         Remove-PathSafe $zipFile
         Remove-PathSafe $tempExtractDir
-        Write-ErrorAndExit '未找到解压后的 .tar 文件'
+        Write-ErrorAndExit 'Extracted .tar file not found'
     }
-    Write-Info '.zst 文件解压完成'
+    Write-Info '.zst extraction complete'
 
-    Write-Step '步骤5/6: 解压 .tar 文件并移动文件...'
+    Write-Step 'Step 5/6: Extracting the .tar file and moving files...'
     & 7z x "-o$tempExtractDir" $tarFile
     if ($LASTEXITCODE -ne 0) {
         Remove-PathSafe $zipFile
         Remove-PathSafe $tarFile
         Remove-PathSafe $tempExtractDir
-        Write-ErrorAndExit '解压 .tar 文件失败'
+        Write-ErrorAndExit 'Failed to extract the .tar file'
     }
-    Write-Info '.tar 文件解压完成'
+    Write-Info '.tar extraction complete'
 
     try {
         Copy-Item -Path (Join-Path $tempExtractDir '*') -Destination $gitPath -Recurse -Force -ErrorAction Stop
-        Write-Info '文件移动完成'
+        Write-Info 'Files moved'
         Remove-PathSafe $cpErrorLog
     }
     catch {
@@ -110,15 +110,15 @@ function Install-ZshForGit {
         Remove-PathSafe $zipFile
         Remove-PathSafe $tarFile
         Remove-PathSafe $tempExtractDir
-        Write-ErrorAndExit "移动失败，查看详细错误: $cpErrorLog"
+        Write-ErrorAndExit "Move failed; see details: $cpErrorLog"
     }
 
-    Write-Step '步骤6/6: 清理临时文件...'
+    Write-Step 'Step 6/6: Cleaning temporary files...'
     Remove-PathSafe $zipFile
     Remove-PathSafe $tarFile
     Remove-PathSafe $tempExtractDir
 
-    Write-Info 'zsh 安装完成！'
+    Write-Info 'Zsh installation complete!'
 }
 
 $gitPath = Get-GitPath
@@ -128,5 +128,5 @@ if (-not $zshAlreadyInstalled) {
     Install-ZshForGit -ZshInstall $manifest.zshInstall -GitPath $gitPath
 }
 else {
-    Write-Info 'zsh 已安装，跳过'
+    Write-Info 'Zsh is already installed; skipping'
 }

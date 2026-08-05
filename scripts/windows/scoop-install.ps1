@@ -31,10 +31,10 @@ if ($Mirror -in @('-h', '--help', 'help')) {
 }
 
 $activePrefix = Resolve-ScoopMirrorSelection -Choice $Mirror
-Write-Info "已选择加速代理: $(Format-ScoopMirrorActiveLabel -ActivePrefix $activePrefix)"
+Write-Info "Selected mirror: $(Format-ScoopMirrorActiveLabel -ActivePrefix $activePrefix)"
 
 if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
-    Write-Info 'scoop 未安装，正在自动安装...'
+    Write-Info 'Scoop is not installed; installing automatically...'
 
     $softwareAppsDir = Get-ExpandedPath $manifest.softwareAppsDir
     if (-not (Test-Path $softwareAppsDir)) {
@@ -49,19 +49,19 @@ if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
         Invoke-ScoopInstallScriptWithFallback -Accel $accel -PreferredPrefix $activePrefix
     }
     catch {
-        Write-ErrorAndExit "scoop 安装失败: $($_.Exception.Message)"
+        Write-ErrorAndExit "Scoop installation failed: $($_.Exception.Message)"
     }
 
     $env:PATH = "$scoopDir\shims;$env:PATH"
 
     if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
-        Write-ErrorAndExit 'scoop 安装后当前会话仍无法识别命令，请新开终端后重新运行安装'
+        Write-ErrorAndExit 'Scoop is still unavailable in this session; open a new terminal and rerun the installer'
     }
 
-    Write-Info 'scoop 安装成功'
+    Write-Info 'Scoop installation complete'
 }
 else {
-    Write-Info 'scoop 已安装'
+    Write-Info 'Scoop is already installed'
     if (-not $env:SCOOP) {
         $env:SCOOP = $scoopDir
     }
@@ -70,10 +70,10 @@ else {
 Enable-ScoopAccel -Manifest $manifest -ActivePrefix $activePrefix -SkipAria2
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-    Write-Info '正在安装 git...'
+    Write-Info 'Installing Git...'
     scoop install git
     if ($LASTEXITCODE -ne 0) {
-        Write-ErrorAndExit 'git 安装失败'
+        Write-ErrorAndExit 'Git installation failed'
     }
 }
 

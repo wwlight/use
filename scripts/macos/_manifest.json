@@ -7,21 +7,21 @@
   },
   "brewMirrors": {
     "ustc": {
-      "label": "中科大镜像",
+      "label": "USTC mirror",
       "apiDomain": "https://mirrors.ustc.edu.cn/homebrew-bottles/api",
       "bottleDomain": "https://mirrors.ustc.edu.cn/homebrew-bottles",
       "brewGitRemote": "https://mirrors.ustc.edu.cn/brew.git",
       "installScript": "https://mirrors.ustc.edu.cn/misc/brew-install.sh"
     },
     "tuna": {
-      "label": "清华大学镜像",
+      "label": "TUNA mirror",
       "apiDomain": "https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api",
       "bottleDomain": "https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles",
       "brewGitRemote": "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git",
       "installGitRepo": "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/install.git"
     },
     "official": {
-      "label": "官方源",
+      "label": "Official",
       "installScript": "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
     }
   },

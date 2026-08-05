@@ -36,7 +36,7 @@ function runSubDispatch(relativePath, subTask, args = []) {
 function requirePlatform() {
   const platform = detectPlatform()
   if (!platform) {
-    console.error(`[ERROR] 不支持的操作系统: ${process.platform}`)
+    console.error(`[ERROR] Unsupported operating system: ${process.platform}`)
     process.exit(1)
   }
   return platform
@@ -44,7 +44,7 @@ function requirePlatform() {
 
 function requireWindows(platform) {
   if (platform !== 'windows') {
-    console.error(`[ERROR] ${task} 仅支持 windows`)
+    console.error(`[ERROR] ${task} supports Windows only`)
     process.exit(1)
   }
 }
@@ -79,14 +79,14 @@ function runWinBackup() {
 
   try {
     const { missing, written } = writeScoopLiteBackup(projectRoot, manifest)
-    console.log(`\x1b[32m[INFO] 已生成尝鲜版备份（${written} 个应用）: ${manifest.scoopBackupLite}\x1b[0m`)
+    console.log(`\x1b[32m[INFO] Generated lite backup (${written} apps): ${manifest.scoopBackupLite}\x1b[0m`)
     if (missing.length > 0) {
-      console.warn(`\x1b[33m[WARN] 尝鲜版清单中未安装，已跳过: ${missing.join(', ')}\x1b[0m`)
+      console.warn(`\x1b[33m[WARN] Not installed from the lite manifest; skipped: ${missing.join(', ')}\x1b[0m`)
     }
     return 0
   }
   catch (err) {
-    console.error(`\x1b[31m[ERROR] 生成尝鲜版备份失败: ${err.message}\x1b[0m`)
+    console.error(`\x1b[31m[ERROR] Failed to generate lite backup: ${err.message}\x1b[0m`)
     return 1
   }
 }
@@ -105,7 +105,7 @@ function parseSyncDirection(args) {
 async function promptSyncDirection(args) {
   const parsed = parseSyncDirection(args)
   if (parsed === '__INVALID__') {
-    console.error(`\x1b[31m[ERROR] 无效的同步方向: 请使用 1 或 2\x1b[0m`)
+    console.error(`\x1b[31m[ERROR] Invalid sync direction; use 1 or 2\x1b[0m`)
     console.error(SYNC_DIRECTION_EXAMPLE)
     process.exit(1)
   }
@@ -114,14 +114,14 @@ async function promptSyncDirection(args) {
   try {
     const direction = await promptSyncDirectionMenu()
     if (!isSyncDirection(direction)) {
-      console.error(`\x1b[31m[ERROR] 无效选择: ${direction}\x1b[0m`)
+      console.error(`\x1b[31m[ERROR] Invalid selection: ${direction}\x1b[0m`)
       process.exit(1)
     }
     return { direction }
   }
   catch (err) {
     if (err?.code === 'CANCELLED') process.exit(130)
-    console.error(`\x1b[31m[ERROR] 非交互环境请传入方向参数: ${SYNC_DIRECTION_HINT}\x1b[0m`)
+    console.error(`\x1b[31m[ERROR] Pass a direction in non-interactive environments: ${SYNC_DIRECTION_HINT}\x1b[0m`)
     console.error(SYNC_DIRECTION_EXAMPLE)
     process.exit(1)
   }
@@ -146,7 +146,7 @@ async function runSyncSelect(direction, lines) {
     const count = await runSyncSelectPrompt({ direction, rawLines: lines, outPath: filteredFile })
     if (count === 0) {
       cleanupSyncTempFile(filteredFile)
-      console.error('\x1b[31m[ERROR] 没有可同步的配置项\x1b[0m')
+      console.error('\x1b[31m[ERROR] No configuration items to sync\x1b[0m')
       process.exit(1)
     }
     return { file: filteredFile, count }
@@ -154,7 +154,7 @@ async function runSyncSelect(direction, lines) {
   catch (err) {
     cleanupSyncTempFile(filteredFile)
     if (err?.code === 'CANCELLED') process.exit(130)
-    console.error(`\x1b[31m[ERROR] ${err?.message || '文件选择已取消'}\x1b[0m`)
+    console.error(`\x1b[31m[ERROR] ${err?.message || 'File selection canceled'}\x1b[0m`)
     process.exit(1)
   }
 }
@@ -162,8 +162,8 @@ async function runSyncSelect(direction, lines) {
 function logSyncProgress(direction, total) {
   if (total <= 0) return
   const message = direction === '1'
-    ? `正在备份 ${total} 个文件到仓库...`
-    : `正在恢复 ${total} 个文件到本地...`
+    ? `Backing up ${total} files to the repository...`
+    : `Restoring ${total} files locally...`
   console.log(`\x1b[34m[INFO] ${message}\x1b[0m`)
 }
 
@@ -255,7 +255,7 @@ function runWinOnlyTask() {
 }
 
 if (!task || !ALL_TASKS.includes(task)) {
-  console.error(`用法: node _dispatch.mjs <${ALL_TASKS.join('|')}> [args...]`)
+  console.error(`Usage: node _dispatch.mjs <${ALL_TASKS.join('|')}> [args...]`)
   process.exit(1)
 }
 

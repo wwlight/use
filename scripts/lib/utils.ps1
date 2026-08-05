@@ -1,6 +1,6 @@
 $Script:ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
 
-# --- 平台特有（Windows） ---
+# --- Windows-specific helpers ---
 function Test-Administrator {
     try {
         $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
@@ -31,12 +31,12 @@ function Test-InteractivePrompt {
         return $false
     }
 
-    # 不在此打开 CONIN$：在 node/zsh 调度、stdin 重定向时可能长时间阻塞。
-    # 需要交互时由上层设置 SYNC_INTERACTIVE=1。
+    # Do not open CONIN$ here: Node/Zsh dispatch or redirected stdin may block.
+    # Callers enable interaction with SYNC_INTERACTIVE=1.
     return $false
 }
 
-# 规范化 git remote，便于比较是否同一仓库
+# Normalize Git remotes for repository comparison.
 function Normalize-RepoUrl {
     param([string]$Url)
     $u = Strip-GithubAccelPrefix -Url $Url
@@ -58,7 +58,7 @@ function Get-GithubAccelMirrors {
 
     $cfg = (Read-Manifest -Scope common).githubAccel
     if (-not $cfg) {
-        Write-ErrorAndExit 'common manifest 缺少 githubAccel'
+        Write-ErrorAndExit 'common manifest is missing githubAccel'
     }
 
     $mirrors = @()
@@ -72,7 +72,7 @@ function Get-GithubAccelMirrors {
     }
 
     if ($mirrors.Count -eq 0) {
-        Write-ErrorAndExit 'common githubAccel.mirrors 为空，请至少配置一个加速镜像'
+        Write-ErrorAndExit 'common githubAccel.mirrors is empty; configure at least one mirror'
     }
 
     $script:GithubAccelMirrors = $mirrors
@@ -183,7 +183,7 @@ function Test-SameRemoteRepo {
     return (Normalize-RepoUrl $remote) -eq (Normalize-RepoUrl $ExpectedRepo)
 }
 
-# --- 打印方法 ---
+# --- Output helpers ---
 function Write-Info {
     param([string]$Message)
     Write-Host "[INFO] $Message" -ForegroundColor Green
@@ -194,16 +194,16 @@ function Write-Step {
     Write-Host "[INFO] $Message" -ForegroundColor Blue
 }
 
-# 全局步骤计数（跨子进程，专用前缀避免脏环境干扰）
-#   USE_STEP_CHAIN=1  由 install 入口设置，表示续接父进度
-#   USE_STEP_TOTAL    总步数
-#   USE_STEP_CURRENT  当前已完成步数
+# Global step counter shared across child processes.
+#   USE_STEP_CHAIN=1  Continue progress started by the installer.
+#   USE_STEP_TOTAL    Total steps.
+#   USE_STEP_CURRENT  Completed steps.
 function Test-UseStepUInt {
     param([string]$Value)
     return ($Value -match '^\d+$')
 }
 
-# 用法: Write-NextStep '正在创建目录结构...'
+# Usage: Write-NextStep 'Creating directory structure...'
 function Write-NextStep {
     param([string]$Message)
 
@@ -218,16 +218,16 @@ function Write-NextStep {
     }
 
     if ($total -gt 0) {
-        Write-Step "步骤 ${current}/${total}: $Message"
+        Write-Step "Step ${current}/${total}: $Message"
     }
     else {
         Write-Step $Message
     }
 }
 
-# 用法: Initialize-StepProgress 4
-# - 无 USE_STEP_CHAIN=1：始终按本脚本步数重置（忽略残留环境变量）
-# - 有链式标记：总数 = 已完成 + 本脚本步数（以本脚本为准，防止与入口漂移）
+# Usage: Initialize-StepProgress 4
+# Without USE_STEP_CHAIN=1, reset to this script's step count.
+# With chaining, total = completed + this script's steps.
 function Initialize-StepProgress {
     param([int]$LocalSteps)
 
@@ -258,10 +258,10 @@ function Write-SyncProgressHint {
     if ($env:SYNC_FROM_DISPATCH -eq '1') { return }
 
     if ($Direction -eq '1') {
-        Write-Step "正在备份 $Total 个文件到仓库..."
+        Write-Step "Backing up $Total files to the repository..."
     }
     else {
-        Write-Step "正在恢复 $Total 个文件到本地..."
+        Write-Step "Restoring $Total files locally..."
     }
     [Console]::Out.Flush()
 }
@@ -271,10 +271,10 @@ function Write-Warn {
     Write-Host "[WARN] $Message" -ForegroundColor Yellow
 }
 
-# 安装或更新 git 仓库型插件
-# - 目录不存在：clone
-# - 已存在且 -Update：同 remote 则 pull，否则删了重装
-# - 已存在且无 -Update：跳过
+# Install or update a Git-based plugin.
+# Clone missing directories.
+# With -Update, update matching remotes or reinstall mismatches.
+# Without -Update, skip existing directories.
 function Update-GitRepoToLatest {
     param([string]$Dir)
 
@@ -302,7 +302,7 @@ function Install-GitRepoClone {
         [string]$Name
     )
 
-    Write-Info "正在下载插件: $Name..."
+    Write-Info "Downloading plugin: $Name..."
     $candidates = @(Get-GithubAccelUrlCandidates -Url $Repo)
     $ok = $false
     foreach ($url in $candidates) {
@@ -313,16 +313,16 @@ function Install-GitRepoClone {
         if ($LASTEXITCODE -eq 0) {
             $ok = $true
             if ($url -ne $Repo -and $url -ne (Strip-GithubAccelPrefix -Url $Repo)) {
-                Write-Info "$Name 已通过加速源克隆"
+                Write-Info "$Name cloned through a mirror"
             }
             break
         }
     }
     if (-not $ok) {
-        Write-Warn "$Name 下载失败，跳过此插件"
+        Write-Warn "Failed to download $Name; skipping"
         return
     }
-    Write-Info "$Name 下载完成"
+    Write-Info "$Name download complete"
 }
 
 function Sync-GitRepoPlugin {
@@ -339,35 +339,35 @@ function Sync-GitRepoPlugin {
     }
 
     if (-not $Update) {
-        Write-Info "插件 $Name 已存在，跳过"
+        Write-Info "Plugin $Name already exists; skipping"
         return
     }
 
     if (Test-SameRemoteRepo -Dir $TargetPath -ExpectedRepo $Repo) {
-        Write-Info "插件 $Name 已是线上仓库，正在拉取最新..."
+        Write-Info "Plugin $Name is linked to the remote repository; updating..."
         $accelUrl = ConvertTo-GithubAccelUrl -Url $Repo
         $current = (git -C $TargetPath remote get-url origin 2>$null)
         if ($accelUrl -and $current -and ($current.Trim() -ne $accelUrl)) {
             git -C $TargetPath remote set-url origin $accelUrl 2>$null
         }
         if (Update-GitRepoToLatest -Dir $TargetPath) {
-            Write-Info "$Name 已更新到最新"
+            Write-Info "$Name is up to date"
         }
         else {
-            # 加速源失败时回退官方 remote 再试一次
+            # Retry with the upstream remote if the mirror fails.
             $bare = Strip-GithubAccelPrefix -Url $Repo
             git -C $TargetPath remote set-url origin $bare 2>$null
             if (Update-GitRepoToLatest -Dir $TargetPath) {
-                Write-Info "$Name 已更新到最新（官方源）"
+                Write-Info "$Name is up to date (upstream)"
             }
             else {
-                Write-Warn "$Name 拉取最新失败，跳过此插件"
+                Write-Warn "Failed to update $Name; skipping"
             }
         }
         return
     }
 
-    Write-Info "插件 $Name 同名但非目标仓库，正在删除并重新克隆..."
+    Write-Info "Plugin $Name is not the expected repository; reinstalling..."
     Remove-Item $TargetPath -Recurse -Force -ErrorAction SilentlyContinue
     Install-GitRepoClone -Repo $Repo -TargetPath $TargetPath -Name $Name
 }
@@ -378,7 +378,7 @@ function Write-ErrorAndExit {
     exit 1
 }
 
-# --- 系统环境检测 ---
+# --- OS detection ---
 function Get-Os {
     if (($env:OS -eq 'Windows_NT') -or (($null -ne (Get-Variable IsWindows -ErrorAction SilentlyContinue)) -and $IsWindows)) {
         return 'windows'
@@ -407,7 +407,7 @@ function Get-Os {
     return 'unknown'
 }
 
-# 期望值: macos / windows / linux
+# Expected value: macos, windows, or linux.
 function Assert-TargetOs {
     param(
         [Parameter(Mandatory = $true)]
@@ -417,11 +417,11 @@ function Assert-TargetOs {
 
     $current = Get-Os
     if ($current -ne $Expected) {
-        Write-ErrorAndExit "本脚本仅支持 $Expected，检测到当前系统为 $current"
+        Write-ErrorAndExit "This script supports only $Expected; detected $current"
     }
 }
 
-# --- manifest 读取 ---
+# --- Manifest access ---
 function Get-ManifestDirectories {
     param([string]$Scope = 'windows')
 
@@ -444,7 +444,7 @@ function Read-Manifest {
 
     $manifestPath = Join-Path $Script:ProjectRoot "scripts/$Scope/_manifest.json"
     if (-not (Test-Path $manifestPath)) {
-        Write-ErrorAndExit "找不到 manifest: $manifestPath"
+        Write-ErrorAndExit "Manifest not found: $manifestPath"
     }
     Get-Content $manifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 }
@@ -461,14 +461,14 @@ function Get-SyncScopes {
 
 function Write-SyncSelectError {
     if ($LASTEXITCODE -eq 130) {
-        Write-ErrorAndExit '文件选择已取消'
+        Write-ErrorAndExit 'File selection canceled'
     }
     if ($LASTEXITCODE -ne 0) {
-        Write-ErrorAndExit '文件选择失败，请重试或通过 vpr sync 运行'
+        Write-ErrorAndExit 'File selection failed; retry or run through vpr sync'
     }
 }
 
-# --- 路径展开（~ -> $HOME） ---
+# --- Path expansion (~ to $HOME) ---
 function Get-ExpandedPath {
     param([string]$Path)
     if ($Path -match '^~(/|\\|$)') {
@@ -493,7 +493,7 @@ function Format-LocalDisplay {
     return $normalized
 }
 
-# --- 文件复制（不保留 Zone.Identifier 等 ADS） ---
+# --- File copy without Zone.Identifier or other ADS ---
 function Copy-FileDataOnly {
     param(
         [string]$SourceFile,
@@ -506,7 +506,7 @@ function Copy-FileDataOnly {
     $destinationDir = Split-Path $destination -Parent
 
     if (-not (Test-Path $source)) {
-        throw "源文件不存在: $source"
+        throw "Source file not found: $source"
     }
 
     if (-not (Test-Path $destinationDir)) {
@@ -539,7 +539,7 @@ function Copy-FileDataOnly {
             & $robocopyPath $sourceDir $copyDir $sourceName /COPY:DAT /R:1 /W:1 /NFL /NDL /NJH /NJS /NC /NS | Out-Null
             $exitCode = $LASTEXITCODE
             if ($exitCode -ge 8) {
-                throw "robocopy 复制失败，退出码: $exitCode"
+                throw "robocopy failed with exit code $exitCode"
             }
 
             if ($tempDir) {
@@ -553,7 +553,7 @@ function Copy-FileDataOnly {
         }
 
         if (-not (Test-Path $destination)) {
-            throw "复制后目标不存在: $destination"
+            throw "Destination missing after copy: $destination"
         }
     }
     else {
@@ -561,7 +561,7 @@ function Copy-FileDataOnly {
     }
 }
 
-# --- 备份（支持自定义路径+日期序号+错误不中断） ---
+# --- Backups with custom paths and dated sequence numbers ---
 function Backup-File {
     param(
         [string]$TargetFile,
@@ -590,12 +590,12 @@ function Backup-File {
         return "$fileName.bak.$dateStr.$nextNum"
     }
     catch {
-        Write-Warn "备份失败: $fileName"
+        Write-Warn "Backup failed: $fileName"
         return $null
     }
 }
 
-# --- 解析 config-sync 方向参数 ---
+# --- Parse config-sync direction ---
 function Resolve-SyncDirectionArg {
     param([string[]]$RawArgs)
 
@@ -625,7 +625,7 @@ function Format-RepoDisplay {
 function Resolve-SyncDirection {
     param(
         [string]$DirectionArg,
-        [string]$Example = '示例: vpr sync 2'
+        [string]$Example = 'Example: vpr sync 2'
     )
 
     if ($DirectionArg -eq '1' -or $DirectionArg -eq '2') {
@@ -633,27 +633,27 @@ function Resolve-SyncDirection {
     }
 
     if (Test-SyncDispatchMode) {
-        Write-ErrorAndExit "缺少同步方向参数`n$Example"
+        Write-ErrorAndExit "Sync direction missing`n$Example"
     }
 
     if (-not [string]::IsNullOrWhiteSpace($DirectionArg)) {
-        Write-ErrorAndExit "无效的同步方向: 请使用 1 或 2`n$Example"
+        Write-ErrorAndExit "Invalid sync direction; use 1 or 2`n$Example"
     }
 
     $dirScript = Join-Path $PSScriptRoot 'sync-direction.mjs'
     $hint = (& node $dirScript --hint 2>$null)
     if ([string]::IsNullOrWhiteSpace($hint)) {
-        $hint = '1=备份配置→仓库, 2=恢复配置→本地'
+        $hint = '1=back up config to repository, 2=restore config locally'
     }
 
     if (-not (Test-InteractivePrompt)) {
-        Write-ErrorAndExit "非交互环境请传入方向参数: $hint`n$Example"
+        Write-ErrorAndExit "Pass a direction in non-interactive environments: $hint`n$Example"
     }
 
     $choice = & node $dirScript
     $choice = "$choice".Trim()
     if ($LASTEXITCODE -ne 0 -or ($choice -ne '1' -and $choice -ne '2')) {
-        Write-ErrorAndExit "非交互环境请传入方向参数: $hint`n$Example"
+        Write-ErrorAndExit "Pass a direction in non-interactive environments: $hint`n$Example"
     }
     return $choice
 }
@@ -698,7 +698,7 @@ function Get-SyncItemsFiltered {
         try {
             $selected = Read-SyncItemsFromPairsFile $env:SYNC_FILTERED_PAIRS
             if ($selected.Count -eq 0) {
-                Write-ErrorAndExit '没有可同步的配置项'
+                Write-ErrorAndExit 'No configuration items to sync'
             }
             return $selected
         }
@@ -731,7 +731,7 @@ function Get-SyncItemsFiltered {
         if (Test-SkipSyncSelect) {
             return $items
         }
-        Write-ErrorAndExit '缺少已选文件列表，请通过 vpr sync 运行'
+        Write-ErrorAndExit 'Selected-file list missing; run through vpr sync'
     }
 
     if (Test-SkipSyncSelect) {
@@ -757,7 +757,7 @@ function Get-SyncItemsFiltered {
 
         $selected = Read-SyncItemsFromPairsFile $filteredFile
         if ($selected.Count -eq 0) {
-            Write-ErrorAndExit '没有可同步的配置项'
+            Write-ErrorAndExit 'No configuration items to sync'
         }
         return $selected
     }
@@ -767,7 +767,7 @@ function Get-SyncItemsFiltered {
     }
 }
 
-# --- 配置同步入口 ---
+# --- Configuration sync entry point ---
 function Invoke-ManifestSync {
     param(
         [string]$Scope,
@@ -776,7 +776,7 @@ function Invoke-ManifestSync {
 
     $scopes = Get-SyncScopes $Scope
 
-    $example = '示例: vpr sync 2'
+    $example = 'Example: vpr sync 2'
     $direction = Resolve-SyncDirection -DirectionArg $DirectionArg -Example $example
     $items = Get-SyncItemsFiltered -Scopes $scopes -Direction $direction
     $total = $items.Count
@@ -799,9 +799,9 @@ function Invoke-ManifestSync {
                 } catch {
                     Write-ErrorAndExit $_.Exception.Message
                 }
-                Write-Backup "[$i/$total] 已备份 $(Format-RepoDisplay $item.repo)"
+                Write-Backup "[$i/$total] Backed up $(Format-RepoDisplay $item.repo)"
             }
-            Write-Info '配置已备份到仓库'
+            Write-Info 'Configuration backed up to the repository'
         }
         '2' {
             $i = 0
@@ -812,7 +812,7 @@ function Invoke-ManifestSync {
                 if ($item.backup) {
                     $bakName = Backup-File $item.local '~/.backup'
                     if ($bakName) {
-                        Write-Backup "[$i/$total] 已备份 $(Format-LocalDisplay $item.local) -> ~/.backup/$bakName"
+                        Write-Backup "[$i/$total] Backed up $(Format-LocalDisplay $item.local) -> ~/.backup/$bakName"
                     }
                 }
                 $localDir = Split-Path $local -Parent
@@ -824,12 +824,12 @@ function Invoke-ManifestSync {
                 } catch {
                     Write-ErrorAndExit $_.Exception.Message
                 }
-                Write-Backup "[$i/$total] 已恢复 $(Format-LocalDisplay $item.local)"
+                Write-Backup "[$i/$total] Restored $(Format-LocalDisplay $item.local)"
             }
-            Write-Info '配置已恢复到本地'
+            Write-Info 'Configuration restored locally'
         }
         default {
-            Write-ErrorAndExit '无效选择'
+            Write-ErrorAndExit 'Invalid selection'
         }
     }
 }

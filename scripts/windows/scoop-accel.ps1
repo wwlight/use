@@ -1,11 +1,11 @@
-# Apply Scoop mirror + aria2 acceleration. Requires utils.ps1 already loaded.
+# Apply Scoop mirror and aria2 acceleration. Requires utils.ps1.
 
 function Get-ScoopAccelConfig {
     param($Manifest)
     if (-not $Manifest) { $Manifest = Read-Manifest }
     $accel = $Manifest.scoopAccel
     if (-not $accel) {
-        Write-ErrorAndExit 'windows manifest 缺少 scoopAccel'
+        Write-ErrorAndExit 'windows manifest is missing scoopAccel'
     }
     return $accel
 }
@@ -18,7 +18,7 @@ function Get-ScoopMirrorPrefixes {
     }
 
     if ($list.Count -eq 0) {
-        Write-ErrorAndExit 'common githubAccel.mirrors 为空，请至少配置一个加速镜像'
+        Write-ErrorAndExit 'common githubAccel.mirrors is empty; configure at least one mirror'
     }
     return $list
 }
@@ -41,14 +41,14 @@ function Get-ScoopMirrorChoiceId {
 function Show-ScoopMirrorUsage {
     $map = Get-GithubAccelSelectionMap
     $keys = @($map.Keys)
-    Write-Host "用法: vpr pm [$($keys -join '|')]"
+    Write-Host "Usage: vpr pm [$($keys -join '|')]"
     Write-Host ''
     foreach ($k in $keys) {
-        $label = if ($k -eq 'official') { '官方源' } else { $map[$k] }
+        $label = if ($k -eq 'official') { 'Upstream' } else { $map[$k] }
         Write-Host ("  {0,-12}  {1}" -f $k, $label)
     }
     Write-Host ''
-    Write-Host '示例:'
+    Write-Host 'Examples:'
     Write-Host '  vpr pm'
     foreach ($k in $keys) {
         Write-Host "  vpr pm -- $k"
@@ -130,7 +130,7 @@ function Invoke-NodeMenuSelect {
 
     $menuScript = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\lib\menu-select.mjs'))
     if (-not (Test-Path $menuScript)) {
-        Write-ErrorAndExit "找不到菜单脚本: $menuScript"
+        Write-ErrorAndExit "Menu script not found: $menuScript"
     }
     $outFile = [System.IO.Path]::GetTempFileName()
     try {
@@ -162,35 +162,35 @@ function Resolve-ScoopMirrorSelection {
             if ($prefix -and ($prefix.TrimEnd('/') -eq $Choice.TrimEnd('/'))) { return $prefix }
         }
         Show-ScoopMirrorUsage
-        Write-ErrorAndExit "未知加速镜像: $Choice"
+        Write-ErrorAndExit "Unknown mirror: $Choice"
     }
 
     if (-not (Test-InteractivePrompt)) {
         Show-ScoopMirrorUsage
-        Write-ErrorAndExit '非交互环境请传入参数（示例: vpr pm -- official）'
+        Write-ErrorAndExit 'Pass an argument in non-interactive environments (example: vpr pm -- official)'
     }
 
     $menuItems = New-Object System.Collections.Generic.List[string]
     foreach ($k in @($map.Keys)) {
         if ($k -eq 'official') {
-            [void]$menuItems.Add("${k}) 官方源")
+            [void]$menuItems.Add("${k}) Upstream")
         }
         else {
             [void]$menuItems.Add("${k}) $($map[$k])")
         }
     }
 
-    $selected = Invoke-NodeMenuSelect -Title '请选择 Scoop 加速镜像' -Items @($menuItems)
+    $selected = Invoke-NodeMenuSelect -Title 'Choose a Scoop mirror' -Items @($menuItems)
     if ([string]::IsNullOrWhiteSpace($selected) -or -not $map.Contains($selected)) {
         Show-ScoopMirrorUsage
-        Write-ErrorAndExit '非交互环境请传入参数（示例: vpr pm -- official）'
+        Write-ErrorAndExit 'Pass an argument in non-interactive environments (example: vpr pm -- official)'
     }
     return $map[$selected]
 }
 
 function Format-ScoopMirrorActiveLabel {
     param([string]$ActivePrefix)
-    if ([string]::IsNullOrWhiteSpace($ActivePrefix)) { return '官方源' }
+    if ([string]::IsNullOrWhiteSpace($ActivePrefix)) { return 'Upstream' }
     return $ActivePrefix
 }
 
@@ -204,7 +204,7 @@ function Get-ScoopMirrorLabelFromUrl {
         if ([string]::IsNullOrWhiteSpace($prefix)) { continue }
         if ($Url.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) { return $prefix }
     }
-    return '官方源'
+    return 'Upstream'
 }
 
 function Invoke-ScoopInstallScriptWithFallback {
@@ -213,16 +213,16 @@ function Invoke-ScoopInstallScriptWithFallback {
         [string]$PreferredPrefix = $null
     )
 
-    # 引导安装脚本只从官方地址执行，避免第三方加速站篡改后被 iex。
-    # PreferredPrefix 仅用于安装完成后的下载/仓库加速，不用于执行远程脚本。
+    # Run the bootstrap installer only from upstream to avoid piping a modified mirror response to iex.
+    # PreferredPrefix accelerates downloads and repositories after installation, not remote script execution.
     $null = $PreferredPrefix
     $url = [string]$Accel.installScript
     if ([string]::IsNullOrWhiteSpace($url)) {
-        Write-ErrorAndExit 'scoopAccel.installScript 为空'
+        Write-ErrorAndExit 'scoopAccel.installScript is empty'
     }
 
-    Write-Info "尝试安装脚本（官方源）: $url"
-    Write-Info '镜像加速将在 scoop 安装完成后生效；若官方源不可达可先运行 vpr hosts'
+    Write-Info "Trying installer (upstream): $url"
+    Write-Info 'Mirror acceleration starts after Scoop installs; run vpr hosts first if upstream is unreachable'
     try {
         if (Test-Administrator) {
             iex "& {$(irm $url)} -RunAsAdmin"
@@ -230,11 +230,11 @@ function Invoke-ScoopInstallScriptWithFallback {
         else {
             Invoke-RestMethod -Uri $url | Invoke-Expression
         }
-        Write-Info '安装脚本成功（官方源）'
+        Write-Info 'Installer succeeded (upstream)'
         return
     }
     catch {
-        Write-ErrorAndExit "scoop 安装失败（官方安装脚本）: $($_.Exception.Message)"
+        Write-ErrorAndExit "Scoop installation failed (upstream installer): $($_.Exception.Message)"
     }
 }
 
@@ -242,7 +242,7 @@ function Get-ScoopLibDownloadPath {
     $scoopRoot = if ($env:SCOOP) { $env:SCOOP } else { (Read-Manifest).scoopDir }
     $download = Join-Path $scoopRoot 'apps\scoop\current\lib\download.ps1'
     if (-not (Test-Path $download)) {
-        Write-ErrorAndExit "找不到 Scoop download.ps1: $download"
+        Write-ErrorAndExit "Scoop download.ps1 not found: $download"
     }
     return $download
 }
@@ -279,7 +279,7 @@ function Install-ScoopMirrorAccelFiles {
     )
 
     $scoopRoot = $env:SCOOP
-    if (-not $scoopRoot) { Write-ErrorAndExit 'SCOOP 环境变量未设置' }
+    if (-not $scoopRoot) { Write-ErrorAndExit 'SCOOP environment variable is not set' }
 
     $configDir = Join-Path $scoopRoot 'config'
     if (-not (Test-Path $configDir)) {
@@ -298,11 +298,11 @@ function Install-ScoopMirrorAccelFiles {
 
     $src = Join-Path $PSScriptRoot 'mirror-accel.ps1'
     if (-not (Test-Path $src)) {
-        Write-ErrorAndExit "找不到 mirror-accel.ps1: $src"
+        Write-ErrorAndExit "mirror-accel.ps1 not found: $src"
     }
     $dest = Join-Path $configDir 'mirror-accel.ps1'
     Copy-FileDataOnly -SourceFile $src -DestinationFile $dest -Encoding 'utf8Bom'
-    Write-Info "已同步 mirror-accel 到 $dest"
+    Write-Info "Synced mirror-accel to $dest"
 }
 
 function Install-ScoopDownloadHook {
@@ -324,7 +324,7 @@ function Install-ScoopDownloadHook {
     if ($beginIdx -ge 0) {
         $endIdx = $content.IndexOf($markerEnd, $beginIdx)
         if ($endIdx -lt 0) {
-            Write-ErrorAndExit "download.ps1 加速标记不完整: $downloadPath"
+            Write-ErrorAndExit "Incomplete acceleration markers in download.ps1: $downloadPath"
         }
         $endIdx += $markerEnd.Length
         $content = $content.Substring(0, $beginIdx).TrimEnd() + "`n`n" + $hook + "`n" + $content.Substring($endIdx).TrimStart()
@@ -335,10 +335,10 @@ function Install-ScoopDownloadHook {
     }
     Write-Utf8NoBomFile -Path $downloadPath -Content $content
     if ($hadHook) {
-        Write-Info '已刷新 download.ps1 加速挂钩'
+        Write-Info 'Refreshed the download.ps1 acceleration hook'
     }
     else {
-        Write-Info '已写入 download.ps1 加速挂钩（scoop update 后由 profile 自动恢复）'
+        Write-Info 'Added the download.ps1 acceleration hook (the profile restores it after scoop update)'
     }
 }
 
@@ -371,22 +371,22 @@ function Install-ScoopAria2Accel {
     if (-not $aria) { return }
 
     if (-not (Get-Command aria2c -ErrorAction SilentlyContinue)) {
-        Write-Info '正在安装 aria2...'
+        Write-Info 'Installing aria2...'
         scoop install aria2
         if ($LASTEXITCODE -ne 0) {
-            Write-Warn 'aria2 安装失败；可稍后重试。若镜像站不支持分片，可执行: scoop config aria2-enabled false'
+            Write-Warn 'aria2 installation failed; retry later. If the mirror does not support segmented downloads, run: scoop config aria2-enabled false'
             return
         }
     }
 
-    Write-Info '正在配置 aria2 多线程下载...'
+    Write-Info 'Configuring aria2 multithreaded downloads...'
     scoop config aria2-enabled $(if ($aria.enabled) { 'true' } else { 'false' })
     scoop config aria2-warning-enabled $(if ($aria.warningEnabled) { 'true' } else { 'false' })
     if ($null -ne $aria.retryWait) { scoop config aria2-retry-wait $aria.retryWait }
     if ($null -ne $aria.split) { scoop config aria2-split $aria.split }
     if ($null -ne $aria.maxConnectionPerServer) { scoop config aria2-max-connection-per-server $aria.maxConnectionPerServer }
     if ($null -ne $aria.minSplitSize) { scoop config aria2-min-split-size $aria.minSplitSize }
-    Write-Info 'aria2 配置完成'
+    Write-Info 'aria2 configuration complete'
 }
 
 function Enable-ScoopAccel {
@@ -398,7 +398,7 @@ function Enable-ScoopAccel {
     )
 
     if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
-        Write-ErrorAndExit 'scoop 未安装，无法应用加速配置'
+        Write-ErrorAndExit 'Scoop is not installed; acceleration cannot be configured'
     }
 
     if (-not $env:SCOOP) {
@@ -414,14 +414,14 @@ function Enable-ScoopAccel {
     $ActivePrefix = [string]$ActivePrefix
 
     $activeLabel = Format-ScoopMirrorActiveLabel -ActivePrefix $ActivePrefix
-    Write-Info "正在应用 Scoop 加速，当前加速代理: $activeLabel"
+    Write-Info "Applying Scoop acceleration; active mirror: $activeLabel"
 
     if (-not [string]::IsNullOrWhiteSpace($ActivePrefix)) {
         $probeTarget = [string]$accel.installScript
         if ([string]::IsNullOrWhiteSpace($probeTarget)) { $probeTarget = [string]$accel.scoopRepo }
         $probeUrl = Join-ScoopMirrorUrl -Url $probeTarget -Prefix $ActivePrefix -AllPrefixes $prefixes
         if (-not (Test-ScoopUrlReachable -Url $probeUrl)) {
-            Write-Warn "所选加速站当前探测未通过，仍将写入配置；下载失败时会自动回退其他源"
+            Write-Warn 'The selected mirror failed its probe; configuration will continue and downloads will fall back automatically'
         }
     }
 
@@ -441,5 +441,5 @@ function Enable-ScoopAccel {
         Install-ScoopAria2Accel -Accel $accel
     }
 
-    Write-Info "Scoop 加速配置完成（加速代理: $activeLabel）"
+    Write-Info "Scoop acceleration configured (mirror: $activeLabel)"
 }

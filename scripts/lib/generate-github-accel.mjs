@@ -21,7 +21,7 @@ function loadMirrors() {
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
   const config = manifest.githubAccel
   if (!config || !Array.isArray(config.mirrors) || config.mirrors.length === 0) {
-    throw new Error('common manifest 的 githubAccel.mirrors 不能为空')
+    throw new Error('common manifest githubAccel.mirrors must not be empty')
   }
 
   const seenIds = new Set()
@@ -29,11 +29,11 @@ function loadMirrors() {
   const mirrors = config.mirrors.map((item) => {
     const id = String(item?.id || '').trim()
     let prefix = String(item?.prefix || '').trim()
-    if (!id || !prefix) throw new Error('githubAccel mirror 必须包含 id 和 prefix')
-    if (/[\r\n'"]/.test(prefix)) throw new Error(`githubAccel prefix 包含不支持的字符: ${prefix}`)
+    if (!id || !prefix) throw new Error('githubAccel mirrors must include id and prefix')
+    if (/[\r\n'"]/.test(prefix)) throw new Error(`githubAccel prefix contains unsupported characters: ${prefix}`)
     if (!prefix.endsWith('/')) prefix += '/'
-    if (seenIds.has(id)) throw new Error(`githubAccel mirror id 重复: ${id}`)
-    if (seenPrefixes.has(prefix)) throw new Error(`githubAccel mirror prefix 重复: ${prefix}`)
+    if (seenIds.has(id)) throw new Error(`Duplicate githubAccel mirror id: ${id}`)
+    if (seenPrefixes.has(prefix)) throw new Error(`Duplicate githubAccel mirror prefix: ${prefix}`)
     seenIds.add(id)
     seenPrefixes.add(prefix)
     return { id, prefix }
@@ -41,7 +41,7 @@ function loadMirrors() {
 
   const defaultId = String(config.default || '').trim()
   const defaultMirror = mirrors.find((item) => item.id === defaultId)
-  if (!defaultMirror) throw new Error(`githubAccel.default 不存在于 mirrors: ${defaultId}`)
+  if (!defaultMirror) throw new Error(`githubAccel.default is not present in mirrors: ${defaultId}`)
 
   return [defaultMirror, ...mirrors.filter((item) => item !== defaultMirror)]
 }
@@ -50,11 +50,11 @@ function replaceBlock(content, markers, body, relativePath) {
   const startIndex = content.indexOf(markers.start)
   const endIndex = content.indexOf(markers.end)
   if (startIndex < 0 || endIndex < 0 || endIndex < startIndex) {
-    throw new Error(`${relativePath} 缺少完整生成标记`)
+    throw new Error(`${relativePath} is missing complete generated markers`)
   }
   if (content.indexOf(markers.start, startIndex + markers.start.length) >= 0
     || content.indexOf(markers.end, endIndex + markers.end.length) >= 0) {
-    throw new Error(`${relativePath} 包含重复生成标记`)
+    throw new Error(`${relativePath} contains duplicate generated markers`)
   }
 
   const generated = `${markers.start}\n${body}\n${markers.end}`
@@ -189,8 +189,8 @@ const changed = [
 ]
 
 if (checkOnly && changed.some(Boolean)) {
-  console.error('GitHub 加速生成内容已过期，请运行: npm run generate:github-accel')
+  console.error('Generated GitHub acceleration content is stale; run: npm run generate:github-accel')
   process.exit(1)
 }
 
-console.log(checkOnly ? 'GitHub 加速生成内容检查通过' : 'GitHub 加速生成内容已更新')
+console.log(checkOnly ? 'Generated GitHub acceleration content is current' : 'Generated GitHub acceleration content updated')

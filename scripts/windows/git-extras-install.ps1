@@ -7,52 +7,52 @@ $manifest = Read-Manifest
 
 $workDir = Join-Path ([System.IO.Path]::GetTempPath()) "use-git-extras-$([Guid]::NewGuid().ToString('N'))"
 
-Write-Step '步骤1/5: 克隆 git-extras 仓库到临时目录...'
+Write-Step 'Step 1/5: Cloning the git-extras repository to a temporary directory...'
 Install-GitRepoClone -Repo $manifest.gitExtras.repo -TargetPath $workDir -Name 'git-extras'
 if (-not (Test-Path (Join-Path $workDir '.git'))) {
-    Write-ErrorAndExit '克隆 git-extras 仓库失败'
+    Write-ErrorAndExit 'Failed to clone the git-extras repository'
 }
 
-Write-Step '步骤2/5: 进入 git-extras 目录...'
+Write-Step 'Step 2/5: Entering the git-extras directory...'
 Set-Location $workDir
 
-Write-Step '步骤3/5: 检出最新版本...'
+Write-Step 'Step 3/5: Checking out the latest version...'
 $latestCommit = git rev-list --tags --max-count=1
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($latestCommit)) {
-    Write-ErrorAndExit '无法解析最新标签提交'
+    Write-ErrorAndExit 'Could not resolve the latest tag commit'
 }
 $latestTag = git describe --tags $latestCommit
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($latestTag)) {
-    Write-ErrorAndExit '无法解析最新标签'
+    Write-ErrorAndExit 'Could not resolve the latest tag'
 }
 git checkout $latestTag
-if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '检出最新标签失败' }
-Write-Info "已检出版本: $latestTag"
+if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Failed to check out the latest tag' }
+Write-Info "Checked out version: $latestTag"
 
-Write-Step '步骤4/5: 正在安装 git-extras...'
+Write-Step 'Step 4/5: Installing git-extras...'
 $gitPath = (scoop prefix git).Trim()
 if ([string]::IsNullOrWhiteSpace($gitPath)) {
-    Write-ErrorAndExit '无法获取 Git 路径'
+    Write-ErrorAndExit 'Could not locate Git'
 }
 
 if (Test-Path './install.cmd') {
     cmd /c "install.cmd `"$gitPath`""
     if ($LASTEXITCODE -ne 0) {
-        Write-Warn '安装命令执行可能不完全成功，请手动检查'
+        Write-Warn 'The install command may not have completed successfully; check manually'
     }
 }
 else {
-    Write-Warn '未找到 install.cmd 文件'
+    Write-Warn 'install.cmd not found'
 }
 
-Write-Step '步骤5/5: 验证安装...'
+Write-Step 'Step 5/5: Verifying installation...'
 git extras --help | Out-Null
 if ($LASTEXITCODE -ne 0) {
-    Write-ErrorAndExit 'git extras 命令验证失败，可能安装未成功'
+    Write-ErrorAndExit 'git extras command verification failed; installation may be incomplete'
 }
-Write-Info '安装验证成功'
+Write-Info 'Installation verified'
 
-Write-Info '清理临时文件...'
+Write-Info 'Cleaning temporary files...'
 Set-Location ([System.IO.Path]::GetTempPath())
 Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
-Write-Info 'git-extras 安装完成!'
+Write-Info 'git-extras installation complete!'

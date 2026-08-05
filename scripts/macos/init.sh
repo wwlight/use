@@ -13,7 +13,7 @@ usage() {
     node "$MANIFEST_CONFIG" usage-init
 }
 
-# 解析安装配置档（stdout 输出档位）
+# Resolve the installation profile and print it to stdout.
 resolve_brew_profile() {
     local arg="${1:-}"
     local profile=""
@@ -27,14 +27,14 @@ resolve_brew_profile() {
     if [[ -n "$profile" ]]; then
         node "$MANIFEST_CONFIG" has-profile "$profile" || {
             usage >&2
-            error "未知参数: $arg"
+            error "Unknown argument: $arg"
         }
         echo "$profile"
         return 0
     fi
 
     if ! has_tty; then
-        error "非交互环境请传入参数（示例: vpr init -- lite）"
+        error "Pass an argument in non-interactive environments (example: vpr init -- lite)"
     fi
 
     local menu_args=()
@@ -45,28 +45,28 @@ resolve_brew_profile() {
 
     local choice=""
     choice=$(node "$SCRIPT_DIR/lib/menu-select.mjs" \
-        "请选择 Homebrew 安装范围" \
+        "Choose the Homebrew installation profile" \
         "${menu_args[@]}") || choice=""
     choice=${choice//$'\r'/}
     choice=${choice//$'\n'/}
 
     if [[ -z "$choice" ]]; then
-        error "非交互环境请传入参数（示例: vpr init -- lite）"
+        error "Pass an argument in non-interactive environments (example: vpr init -- lite)"
     fi
 
     node "$MANIFEST_CONFIG" has-profile "$choice" || {
-        error "无效选择: ${choice}"
+        error "Invalid selection: ${choice}"
     }
     echo "$choice"
 }
 
 setup_directories() {
-    next_step "正在创建目录结构..."
+    next_step "Creating directory structure..."
     local dir path
     while IFS= read -r dir; do
         [ -z "$dir" ] && continue
         path=$(expand_path "$dir")
-        mkdir -p "$path" || warn "目录创建失败或已存在: $path"
+        mkdir -p "$path" || warn "Directory could not be created or already exists: $path"
     done < <(manifest_directories)
 }
 
@@ -74,47 +74,47 @@ install_or_restore_brew() {
     local profile="$1"
     local label brewfile
     label=$(node "$MANIFEST_CONFIG" profile-label "$profile")
-    next_step "正在恢复 Homebrew 依赖（${label}）..."
+    next_step "Restoring Homebrew dependencies (${label})..."
 
     brewfile=$(node "$MANIFEST_CONFIG" profile-artifact macos "$profile")
     local BREWFILE="$PROJECT_ROOT/$brewfile"
 
     if ! command -v brew &> /dev/null; then
-        error "Homebrew 未安装！请先运行: vpr pm"
+        error "Homebrew is not installed. Run: vpr pm"
     fi
 
     if [ -f "$BREWFILE" ]; then
-        info "正在从 $(basename "$BREWFILE") 安装依赖..."
+        info "Installing dependencies from $(basename "$BREWFILE")..."
         brew bundle install --file="$BREWFILE" || {
-            error "Brewfile 依赖安装失败！"
+            error "Brewfile dependency installation failed!"
         }
-        info "Brewfile 依赖安装完成"
+        info "Brewfile dependencies installed"
     else
-        error "找不到 Brewfile: $BREWFILE"
+        error "Brewfile not found: $BREWFILE"
     fi
 }
 
 install_zsh_plugins() {
-    next_step "正在安装 zsh 插件..."
-    bash "$SCRIPT_DIR/common/zsh-plugins-install.sh" || error "zsh 插件安装失败！"
+    next_step "Installing Zsh plugins..."
+    bash "$SCRIPT_DIR/common/zsh-plugins-install.sh" || error "Zsh plugin installation failed!"
 }
 
 sync_configurations() {
     local profile="$1"
-    next_step "正在同步配置..."
+    next_step "Syncing configuration..."
     local CONFIG_SCRIPT="$SCRIPT_DIR/macos/config-sync.sh"
     local BASE_SCRIPT="$SCRIPT_DIR/common/git-setup.sh"
 
     if [ -f "$CONFIG_SCRIPT" ]; then
-        SYNC_PROFILE="$profile" SYNC_SELECT_ALL=1 bash "$CONFIG_SCRIPT" 2 || error "同步配置失败！"
+        SYNC_PROFILE="$profile" SYNC_SELECT_ALL=1 bash "$CONFIG_SCRIPT" 2 || error "Configuration sync failed!"
     else
-        error "找不到配置同步脚本: $CONFIG_SCRIPT"
+        error "Configuration sync script not found: $CONFIG_SCRIPT"
     fi
 
     if [ -f "$BASE_SCRIPT" ]; then
-        bash "$BASE_SCRIPT" || error "基础配置初始化失败！"
+        bash "$BASE_SCRIPT" || error "Base configuration initialization failed!"
     else
-        warn "找不到基础配置初始化脚本: $BASE_SCRIPT"
+        warn "Base configuration initialization script not found: $BASE_SCRIPT"
     fi
 }
 
@@ -138,7 +138,7 @@ main() {
     install_zsh_plugins
     sync_configurations "$profile"
 
-    info "所有操作完成！系统已准备就绪。"
+    info "All operations complete. The system is ready."
 }
 
 main "$@"

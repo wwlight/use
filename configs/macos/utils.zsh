@@ -31,18 +31,18 @@ function _clone() {
         target_dir="$base_dir/${repo_name}_$((counter++))"
     done
 
-    [[ $counter -gt 1 ]] && echo "注意：原目录名已存在，将克隆到: $target_dir"
+    [[ $counter -gt 1 ]] && echo "Note: the original directory exists; cloning to: $target_dir"
 
-    mkdir -p "$base_dir" || { echo "无法创建目录: $base_dir"; return 1; }
+    mkdir -p "$base_dir" || { echo "Could not create directory: $base_dir"; return 1; }
 
-    echo "正在克隆到: $target_dir"
+    echo "Cloning to: $target_dir"
     if _git_clone_accel "$repo" "$target_dir"; then
-        echo "✅ 成功克隆到: $target_dir"
+        echo "✅ Cloned to: $target_dir"
     else
-        echo "克隆仓库失败: $repo"
+        echo "Failed to clone repository: $repo"
         if [[ -d "$target_dir" ]]; then
-            echo "正在移除不完整的克隆目录: $target_dir"
-            rm -rf "$target_dir" && echo "已移除" || echo "移除失败，请手动检查: $target_dir"
+            echo "Removing incomplete clone directory: $target_dir"
+            rm -rf "$target_dir" && echo "Removed" || echo "Removal failed; check manually: $target_dir"
         fi
         return 1
     fi
@@ -50,19 +50,19 @@ function _clone() {
 
 function cloneo() {
     if [[ $# -eq 0 ]]; then
-        echo "用法: cloneo <仓库地址> [自定义目录名]"; return 1
+        echo "Usage: cloneo <repository-url> [custom-directory]"; return 1
     fi
     _clone "$1" "$2" "$HOME/open-source" ""
 }
 
 function cloned() {
     if [[ $# -eq 0 ]]; then
-        echo "用法: cloned <仓库地址> [自定义目录名]"; return 1
+        echo "Usage: cloned <repository-url> [custom-directory]"; return 1
     fi
     _clone "$1" "$2" "$HOME/dev-code" "wwlight"
 }
 
-# 清理历史记录：去重 + 剔除错误/简单的命令
+# Clean history: remove duplicates and invalid or trivial commands.
 function history_clean() {
     local tmp=$(mktemp)
 

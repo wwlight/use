@@ -1,5 +1,5 @@
 /**
- * 打开可用于交互的终端流（支持 curl|bash / PowerShell 捕获 stdout 场景）。
+ * Open terminal streams for interaction, including piped shells and captured stdout.
  */
 import fs from 'node:fs'
 import tty from 'node:tty'
@@ -23,7 +23,7 @@ function openWindowsConsole() {
       output: new tty.WriteStream(fdOut),
       owned: true,
       close() {
-        // 只关输入；destroy CONOUT$ 易导致控制台被清空/错乱
+        // Close input only; destroying CONOUT$ can clear or corrupt the console.
         if (!this.input.destroyed) this.input.destroy()
       },
     }
@@ -40,8 +40,8 @@ function isVsCodeConPty() {
 
 /**
  * @param {{ allowWindowsConsole?: boolean }} [options]
- * - allowWindowsConsole: Windows 下是否允许 CONIN$/CONOUT$
- *   默认跟随 SYNC_INTERACTIVE=1；Cursor/VS Code ConPTY 下禁用（菜单不可见会假死）
+ * - allowWindowsConsole: whether to allow CONIN$/CONOUT$ on Windows.
+ *   Defaults to SYNC_INTERACTIVE=1; disabled under Cursor/VS Code ConPTY.
  */
 export function openTerminal(options = {}) {
   const allowWindowsConsole = options.allowWindowsConsole
@@ -56,7 +56,7 @@ export function openTerminal(options = {}) {
     }
   }
 
-  // PowerShell `$x = & node ...` 会捕获 stdout；stderr 仍常是 TTY，菜单应画在这里
+  // PowerShell `$x = & node ...` captures stdout; stderr is often still a TTY.
   if (process.stdin.isTTY && process.stderr.isTTY) {
     return {
       input: process.stdin,
@@ -67,7 +67,7 @@ export function openTerminal(options = {}) {
   }
 
   if (process.platform === 'win32') {
-    // Cursor/VS Code 的 ConPTY 下 CONOUT$ 不可见、CONIN$ 收不到按键 → 表现为卡住
+    // Under Cursor/VS Code ConPTY, CONOUT$ is hidden and CONIN$ receives no keys.
     if (allowWindowsConsole && !isVsCodeConPty()) {
       const cons = openWindowsConsole()
       if (cons) return cons

@@ -5,7 +5,7 @@
 
 param([switch]$RepairHook)
 
-# Re-inject download.ps1 hook after scoop self-update replaces apps\scoop\current.
+# Re-inject the download.ps1 hook after Scoop self-update replaces apps\scoop\current.
 function Repair-ScoopMirrorAccelHook {
     if ([string]::IsNullOrWhiteSpace($env:SCOOP)) { return $false }
 
@@ -117,7 +117,7 @@ function Get-ScoopMirrorAccelCandidates {
     $list = New-Object System.Collections.Generic.List[string]
     $active = [string]$cfg.ActivePrefix
 
-    # Prefer active prefix, then other mirrors, then official.
+    # Prefer the active prefix, then other mirrors, then upstream.
     if (-not [string]::IsNullOrWhiteSpace($active)) {
         $first = $active + $bare
         if (-not $list.Contains($first)) { [void]$list.Add($first) }
@@ -152,7 +152,7 @@ function Write-ScoopMirrorAccelUsed {
     Write-Host "Scoop mirror: $label" -ForegroundColor Cyan
 }
 
-# aria2 / single-shot: pick candidate by attempt index (0 = active first)
+# aria2 / single-shot: pick a candidate by attempt index (0 = active first).
 function ConvertTo-ScoopMirrorUrl {
     param([string]$Url)
 
@@ -190,10 +190,10 @@ if (Get-Command handle_special_urls -ErrorAction SilentlyContinue) {
     }
 }
 
-# WebRequest path: active -> other mirrors -> official
+# WebRequest path: active, other mirrors, then upstream.
 if (Get-Command Start-Download -ErrorAction SilentlyContinue) {
     function Start-Download ($url, $to, $cookies) {
-        # Match Scoop upstream quoting; parentheses required for PS parser.
+        # Match Scoop upstream quoting; parentheses are required by the PowerShell parser.
         $progress = [console]::isoutputredirected -eq $false -and
             ($Host.Name -ne 'Windows PowerShell ISE Host')
 
@@ -208,7 +208,7 @@ if (Get-Command Start-Download -ErrorAction SilentlyContinue) {
         catch {
             $e = $_.Exception
             if ($e.Response.StatusCode -eq 'Unauthorized') {
-                warn "Token might be misconfigured."
+                warn 'Token might be misconfigured.'
             }
             if ($e.innerexception) { $e = $e.innerexception }
             throw $e
@@ -236,7 +236,7 @@ if (Get-Command Start-Download -ErrorAction SilentlyContinue) {
     }
 }
 
-# aria2: retry with next mirror candidate on failure
+# aria2: retry with the next mirror candidate on failure.
 if (Get-Command Invoke-CachedAria2Download -ErrorAction SilentlyContinue) {
     $script:ScoopMirrorOrigAria2Download = ${function:Invoke-CachedAria2Download}
     function Invoke-CachedAria2Download ($app, $version, $manifest, $architecture, $dir, $cookies = $null, $use_cache = $true, $check_hash = $true) {
@@ -261,7 +261,7 @@ if (Get-Command Invoke-CachedAria2Download -ErrorAction SilentlyContinue) {
             catch {
                 $lastError = $_
                 if ($i -lt $maxAttempts - 1) {
-                    Write-Host "aria2 failed, retry with next mirror ($($i + 2)/$maxAttempts)..." -ForegroundColor Yellow
+                    Write-Host "aria2 failed; trying the next mirror ($($i + 2)/$maxAttempts)..." -ForegroundColor Yellow
                 }
             }
         }
