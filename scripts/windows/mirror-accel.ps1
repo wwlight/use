@@ -1,36 +1,197 @@
 # Scoop download URL mirror helper.
 # Deployed to $env:SCOOP\config\mirror-accel.ps1 and sourced from download.ps1.
 # Order: activePrefix -> other prefixes -> official.
-# Repair hook only: powershell -NoProfile -File mirror-accel.ps1 -RepairHook
+# Repair/preflight: powershell -NoProfile -File mirror-accel.ps1 -RepairHook
 
-param([switch]$RepairHook)
+param(
+    [switch]$RepairHook,
+    [switch]$PrepareCommand,
+    [switch]$GitFilterClean,
+    [switch]$GitFilterSmudge
+)
 
-# Re-inject the download.ps1 hook after Scoop self-update replaces apps\scoop\current.
-function Repair-ScoopMirrorAccelHook {
-    if ([string]::IsNullOrWhiteSpace($env:SCOOP)) { return $false }
+$script:ScoopMirrorHookBegin = [Text.Encoding]::UTF8.GetBytes('# >>> scoop-mirror-accel')
+$script:ScoopMirrorHookEnd = [Text.Encoding]::UTF8.GetBytes('# <<< scoop-mirror-accel')
+$script:ScoopMirrorHook = [Text.Encoding]::UTF8.GetBytes("`n# >>> scoop-mirror-accel`n. `"`$env:SCOOP\config\mirror-accel.ps1`"`n# <<< scoop-mirror-accel`n")
 
-    $helper = Join-Path $env:SCOOP 'config\mirror-accel.ps1'
-    $download = Join-Path $env:SCOOP 'apps\scoop\current\lib\download.ps1'
-    if (-not (Test-Path -LiteralPath $helper)) { return $false }
-    if (-not (Test-Path -LiteralPath $download)) { return $false }
+function Find-ByteSequence {
+    param([byte[]]$Bytes, [byte[]]$Sequence, [int]$Start = 0)
+    if ($Sequence.Length -eq 0) { return $Start }
+    for ($i = $Start; $i -le $Bytes.Length - $Sequence.Length; $i++) {
+        $matches = $true
+        for ($j = 0; $j -lt $Sequence.Length; $j++) {
+            if ($Bytes[$i + $j] -ne $Sequence[$j]) {
+                $matches = $false
+                break
+            }
+        }
+        if ($matches) { return $i }
+    }
+    return -1
+}
 
-    $markerBegin = '# >>> scoop-mirror-accel'
-    $markerEnd = '# <<< scoop-mirror-accel'
-    $content = Get-Content -LiteralPath $download -Raw -Encoding UTF8
-    if ($null -eq $content) { $content = '' }
-    if ($content.Contains($markerBegin)) { return $false }
+function Remove-ScoopMirrorHookBytes {
+    param([byte[]]$Bytes)
+    $begin = Find-ByteSequence -Bytes $Bytes -Sequence $script:ScoopMirrorHookBegin
+    if ($begin -lt 0) { return ,$Bytes }
+    $end = Find-ByteSequence -Bytes $Bytes -Sequence $script:ScoopMirrorHookEnd -Start $begin
+    if ($end -lt 0) { throw 'Incomplete Scoop mirror acceleration markers' }
 
-    $hook = "`n$markerBegin`n. `"`$env:SCOOP\config\mirror-accel.ps1`"`n$markerEnd`n"
-    if (-not $content.EndsWith("`n")) { $content += "`n" }
-    $utf8 = New-Object System.Text.UTF8Encoding $true
-    [System.IO.File]::WriteAllText($download, ($content + $hook), $utf8)
-    Write-Host 'Restored Scoop download mirror hook' -ForegroundColor Cyan
+    $start = $begin
+    if ($start -gt 0 -and $Bytes[$start - 1] -eq 10) {
+        $start--
+        if ($start -gt 0 -and $Bytes[$start - 1] -eq 13) { $start-- }
+    }
+    $end += $script:ScoopMirrorHookEnd.Length
+    if ($end -lt $Bytes.Length -and $Bytes[$end] -eq 13) { $end++ }
+    if ($end -lt $Bytes.Length -and $Bytes[$end] -eq 10) { $end++ }
+
+    $output = New-Object byte[] ($Bytes.Length - ($end - $start))
+    if ($start -gt 0) { [Array]::Copy($Bytes, 0, $output, 0, $start) }
+    if ($end -lt $Bytes.Length) { [Array]::Copy($Bytes, $end, $output, $start, $Bytes.Length - $end) }
+    return ,$output
+}
+
+function Add-ScoopMirrorHookBytes {
+    param([byte[]]$Bytes)
+    if ((Find-ByteSequence -Bytes $Bytes -Sequence $script:ScoopMirrorHookBegin) -ge 0) { return ,$Bytes }
+    $output = New-Object byte[] ($Bytes.Length + $script:ScoopMirrorHook.Length)
+    if ($Bytes.Length -gt 0) { [Array]::Copy($Bytes, 0, $output, 0, $Bytes.Length) }
+    [Array]::Copy($script:ScoopMirrorHook, 0, $output, $Bytes.Length, $script:ScoopMirrorHook.Length)
+    return ,$output
+}
+
+function Test-ByteArraysEqual {
+    param([byte[]]$Left, [byte[]]$Right)
+    if ($Left.Length -ne $Right.Length) { return $false }
+    for ($i = 0; $i -lt $Left.Length; $i++) {
+        if ($Left[$i] -ne $Right[$i]) { return $false }
+    }
     return $true
 }
 
-if ($RepairHook) {
-    [void](Repair-ScoopMirrorAccelHook)
-    return
+function Test-ScoopMirrorLegacyLineEndingDamage {
+    param([byte[]]$Current, [byte[]]$Tracked)
+    try {
+        $utf8 = New-Object Text.UTF8Encoding $false, $true
+        $currentText = $utf8.GetString($Current).TrimStart([char]0xFEFF).Replace("`r`n", "`n")
+        $trackedText = $utf8.GetString($Tracked).TrimStart([char]0xFEFF).Replace("`r`n", "`n")
+        return $currentText -ceq $trackedText
+    }
+    catch {
+        return $false
+    }
+}
+
+function Invoke-ScoopMirrorGitFilter {
+    param([switch]$Clean)
+    $inputStream = [Console]::OpenStandardInput()
+    $memory = New-Object IO.MemoryStream
+    $inputStream.CopyTo($memory)
+    $bytes = $memory.ToArray()
+    [byte[]]$output = if ($Clean) { Remove-ScoopMirrorHookBytes -Bytes $bytes } else { Add-ScoopMirrorHookBytes -Bytes $bytes }
+    $stdout = [Console]::OpenStandardOutput()
+    $stdout.Write($output, 0, $output.Length)
+}
+
+if ($GitFilterClean -or $GitFilterSmudge) {
+    Invoke-ScoopMirrorGitFilter -Clean:$GitFilterClean
+    exit 0
+}
+
+function Get-GitBlobBytes {
+    param([string]$Repository, [string]$Object)
+    $start = New-Object Diagnostics.ProcessStartInfo
+    $start.FileName = 'git.exe'
+    $quotedRepo = $Repository.Replace('"', '\"')
+    $quotedObject = $Object.Replace('"', '\"')
+    $start.Arguments = "-C `"$quotedRepo`" cat-file blob `"$quotedObject`""
+    $start.UseShellExecute = $false
+    $start.RedirectStandardOutput = $true
+    $start.RedirectStandardError = $true
+    $process = [Diagnostics.Process]::Start($start)
+    $memory = New-Object IO.MemoryStream
+    $process.StandardOutput.BaseStream.CopyTo($memory)
+    $errorText = $process.StandardError.ReadToEnd()
+    $process.WaitForExit()
+    if ($process.ExitCode -ne 0) { throw "Could not read Scoop's tracked download.ps1: $errorText" }
+    return ,$memory.ToArray()
+}
+
+function Initialize-ScoopMirrorAccelFilter {
+    if ([string]::IsNullOrWhiteSpace($env:SCOOP)) { throw 'SCOOP environment variable is not set' }
+
+    $helper = Join-Path $env:SCOOP 'config\mirror-accel.ps1'
+    $scoopRepo = Join-Path $env:SCOOP 'apps\scoop\current'
+    $download = Join-Path $scoopRepo 'lib\download.ps1'
+    if (-not (Test-Path -LiteralPath $helper)) { throw "Scoop mirror helper not found: $helper" }
+    if (-not (Test-Path -LiteralPath (Join-Path $scoopRepo '.git'))) { throw "Scoop Git repository not found: $scoopRepo" }
+    if (-not (Test-Path -LiteralPath $download)) { throw "Scoop download.ps1 not found: $download" }
+
+    $filterPath = $helper.Replace('\', '/').Replace("'", "'\''")
+    $filterBase = "powershell.exe -NoProfile -ExecutionPolicy Bypass -File '$filterPath'"
+    & git.exe -C $scoopRepo config --local filter.scoop-mirror-accel.clean "$filterBase -GitFilterClean"
+    if ($LASTEXITCODE -ne 0) { throw 'Could not configure the Scoop mirror clean filter' }
+    & git.exe -C $scoopRepo config --local filter.scoop-mirror-accel.smudge "$filterBase -GitFilterSmudge"
+    if ($LASTEXITCODE -ne 0) { throw 'Could not configure the Scoop mirror smudge filter' }
+    & git.exe -C $scoopRepo config --local filter.scoop-mirror-accel.required true
+    if ($LASTEXITCODE -ne 0) { throw 'Could not require the Scoop mirror Git filter' }
+
+    $attributes = Join-Path $scoopRepo '.git\info\attributes'
+    $attributeLine = 'lib/download.ps1 filter=scoop-mirror-accel -text'
+    $attributeContent = if (Test-Path -LiteralPath $attributes) {
+        @((Get-Content -LiteralPath $attributes -Encoding UTF8) | Where-Object { $_ -notmatch '^\s*lib/download\.ps1\s+.*filter=scoop-mirror-accel' })
+    }
+    else { @() }
+    $attributeContent += $attributeLine
+    [IO.File]::WriteAllText($attributes, (($attributeContent -join "`n") + "`n"), (New-Object Text.UTF8Encoding $false))
+
+    # Rebuild only our managed file from the index, then let the smudge transform add the runtime hook.
+    # This also repairs line-ending damage from older versions without using destructive Git restore commands.
+    $tracked = Get-GitBlobBytes -Repository $scoopRepo -Object ':lib/download.ps1'
+    $current = [IO.File]::ReadAllBytes($download)
+    $currentWithoutHook = Remove-ScoopMirrorHookBytes -Bytes $current
+    if (-not (Test-ByteArraysEqual -Left $currentWithoutHook -Right $tracked) -and
+        -not (Test-ScoopMirrorLegacyLineEndingDamage -Current $currentWithoutHook -Tracked $tracked)) {
+        throw 'Scoop lib/download.ps1 contains changes unrelated to the mirror hook; refusing to overwrite them'
+    }
+    $runtime = Add-ScoopMirrorHookBytes -Bytes $tracked
+    [IO.File]::WriteAllBytes($download, $runtime)
+
+    $indexObjectBefore = "$(& git.exe -C $scoopRepo rev-parse --verify ':lib/download.ps1')".Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($indexObjectBefore)) {
+        throw 'Could not read the Scoop download.ps1 index object'
+    }
+
+    # Ask Git to run the clean filter and cache the runtime file's stat data.
+    # The byte validation above guarantees the clean result is the tracked blob;
+    # verify that invariant explicitly so this cannot stage different content.
+    & git.exe -C $scoopRepo update-index --add -- lib/download.ps1
+    $refreshExitCode = $LASTEXITCODE
+    $indexObjectAfter = "$(& git.exe -C $scoopRepo rev-parse --verify ':lib/download.ps1')".Trim()
+    $objectReadExitCode = $LASTEXITCODE
+    if ($refreshExitCode -ne 0) { throw 'Could not refresh the Scoop download.ps1 index metadata' }
+    if ($objectReadExitCode -ne 0 -or $indexObjectAfter -cne $indexObjectBefore) {
+        throw 'Scoop download.ps1 index object changed while refreshing metadata'
+    }
+
+    $dirty = @(& git.exe -C $scoopRepo status --porcelain --untracked-files=no)
+    if ($LASTEXITCODE -ne 0) { throw 'Could not verify the Scoop Git worktree' }
+    if ($dirty.Count -gt 0) {
+        throw "Scoop has unrelated tracked changes; refusing to start a package operation:`n$($dirty -join "`n")"
+    }
+}
+
+if ($RepairHook -or $PrepareCommand) {
+    try {
+        Initialize-ScoopMirrorAccelFilter
+        if ($RepairHook) { Write-Host 'Scoop mirror hook and clean-worktree filter are ready' -ForegroundColor Cyan }
+        exit 0
+    }
+    catch {
+        [Console]::Error.WriteLine($_.Exception.Message)
+        exit 1
+    }
 }
 
 function Get-ScoopMirrorAccelConfig {

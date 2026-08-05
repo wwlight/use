@@ -306,39 +306,27 @@ function Install-ScoopMirrorAccelFiles {
 }
 
 function Install-ScoopDownloadHook {
-    $downloadPath = Get-ScoopLibDownloadPath
-    $markerBegin = '# >>> scoop-mirror-accel'
-    $markerEnd = '# <<< scoop-mirror-accel'
-    $hookLines = @(
-        $markerBegin
-        '. "$env:SCOOP\config\mirror-accel.ps1"'
-        $markerEnd
-    )
-    $hook = ($hookLines -join "`n")
+    if (-not (Get-Command git.exe -ErrorAction SilentlyContinue)) {
+        Write-Warn 'Git is not available yet; deferring the Scoop download hook until Git installs'
+        return
+    }
 
-    $content = Get-Content $downloadPath -Raw -Encoding UTF8
-    if ($null -eq $content) { $content = '' }
+    $helper = Join-Path $env:SCOOP 'config\mirror-accel.ps1'
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $helper -RepairHook
+    if ($LASTEXITCODE -ne 0) {
+        Write-ErrorAndExit 'Could not install the Scoop download acceleration hook'
+    }
+}
 
-    $hadHook = $content.Contains($markerBegin)
-    $beginIdx = $content.IndexOf($markerBegin)
-    if ($beginIdx -ge 0) {
-        $endIdx = $content.IndexOf($markerEnd, $beginIdx)
-        if ($endIdx -lt 0) {
-            Write-ErrorAndExit "Incomplete acceleration markers in download.ps1: $downloadPath"
-        }
-        $endIdx += $markerEnd.Length
-        $content = $content.Substring(0, $beginIdx).TrimEnd() + "`n`n" + $hook + "`n" + $content.Substring($endIdx).TrimStart()
+function Assert-ScoopWorktreeClean {
+    if (-not (Get-Command git.exe -ErrorAction SilentlyContinue)) {
+        # A fresh Scoop bootstrap has no hook yet and installs Git before acceleration is activated.
+        return
     }
-    else {
-        if (-not $content.EndsWith("`n")) { $content += "`n" }
-        $content += "`n$hook`n"
-    }
-    Write-Utf8NoBomFile -Path $downloadPath -Content $content
-    if ($hadHook) {
-        Write-Info 'Refreshed the download.ps1 acceleration hook'
-    }
-    else {
-        Write-Info 'Added the download.ps1 acceleration hook (the profile restores it after scoop update)'
+    $helper = Join-Path $env:SCOOP 'config\mirror-accel.ps1'
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $helper -PrepareCommand
+    if ($LASTEXITCODE -ne 0) {
+        Write-ErrorAndExit 'Scoop package operation aborted because its tracked worktree is not clean'
     }
 }
 
@@ -372,6 +360,7 @@ function Install-ScoopAria2Accel {
 
     if (-not (Get-Command aria2c -ErrorAction SilentlyContinue)) {
         Write-Info 'Installing aria2...'
+        Assert-ScoopWorktreeClean
         scoop install aria2
         if ($LASTEXITCODE -ne 0) {
             Write-Warn 'aria2 installation failed; retry later. If the mirror does not support segmented downloads, run: scoop config aria2-enabled false'

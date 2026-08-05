@@ -71,10 +71,13 @@ Enable-ScoopAccel -Manifest $manifest -ActivePrefix $activePrefix -SkipAria2
 
 if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
     Write-Info 'Installing Git...'
+    Assert-ScoopWorktreeClean
     scoop install git
     if ($LASTEXITCODE -ne 0) {
         Write-ErrorAndExit 'Git installation failed'
     }
 }
 
+Install-ScoopDownloadHook
+Assert-ScoopWorktreeClean
 Install-ScoopAria2Accel -Accel $accel
