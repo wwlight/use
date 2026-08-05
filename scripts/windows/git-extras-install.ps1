@@ -5,11 +5,13 @@ Assert-TargetOs windows
 
 $manifest = Read-Manifest
 
-$workDir = Join-Path $env:USERPROFILE 'Desktop/git-extras'
+$workDir = Join-Path ([System.IO.Path]::GetTempPath()) "use-git-extras-$([Guid]::NewGuid().ToString('N'))"
 
-Write-Step '步骤1/5: 克隆 git-extras 仓库到桌面...'
-git clone $manifest.gitExtras.repo $workDir
-if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '克隆 git-extras 仓库失败' }
+Write-Step '步骤1/5: 克隆 git-extras 仓库到临时目录...'
+Install-GitRepoClone -Repo $manifest.gitExtras.repo -TargetPath $workDir -Name 'git-extras'
+if (-not (Test-Path (Join-Path $workDir '.git'))) {
+    Write-ErrorAndExit '克隆 git-extras 仓库失败'
+}
 
 Write-Step '步骤2/5: 进入 git-extras 目录...'
 Set-Location $workDir
@@ -51,6 +53,6 @@ if ($LASTEXITCODE -ne 0) {
 Write-Info '安装验证成功'
 
 Write-Info '清理临时文件...'
-Set-Location (Join-Path $env:USERPROFILE 'Desktop')
+Set-Location ([System.IO.Path]::GetTempPath())
 Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
 Write-Info 'git-extras 安装完成!'

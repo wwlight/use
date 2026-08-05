@@ -9,6 +9,12 @@ if ([string]::IsNullOrWhiteSpace($InstallProfile)) {
 
 $Repo = 'https://github.com/wwlight/use.git'
 $InstallDir = "$env:USERPROFILE\Desktop\use"
+# BEGIN GENERATED GITHUB ACCEL
+$GithubAccelPrefixes = @(
+    'https://ghfast.top/',
+    'https://gh-proxy.com/'
+)
+# END GENERATED GITHUB ACCEL
 
 function Write-Info  { Write-Host "[INFO] $args" -ForegroundColor Green }
 function Write-Step  { Write-Host "[INFO] $args" -ForegroundColor Blue }
@@ -94,9 +100,19 @@ switch -Regex ($InstallProfile) {
 }
 
 # 规范化 git remote，便于比较是否同一仓库
+function Remove-GithubAccelPrefix {
+  param([string]$Url)
+  foreach ($prefix in $GithubAccelPrefixes) {
+    if ($Url.StartsWith($prefix, [StringComparison]::OrdinalIgnoreCase)) {
+      return $Url.Substring($prefix.Length)
+    }
+  }
+  return $Url
+}
+
 function Normalize-RepoUrl {
   param([string]$Url)
-  $u = $Url
+  $u = Remove-GithubAccelPrefix $Url
   while ($u.EndsWith('/')) { $u = $u.TrimEnd('/') }
   if ($u.EndsWith('.git')) { $u = $u.Substring(0, $u.Length - 4) }
   foreach ($prefix in @('https://', 'http://', 'ssh://git@', 'git@')) {
@@ -117,6 +133,42 @@ function Test-SameRemoteRepo {
   return (Normalize-RepoUrl $remote) -eq (Normalize-RepoUrl $Repo)
 }
 
+function Get-GithubRepoCandidates {
+  foreach ($prefix in $GithubAccelPrefixes) {
+    "$prefix$Repo"
+  }
+  $Repo
+}
+
+function Copy-UseRepository {
+  param([string]$Target)
+
+  foreach ($url in (Get-GithubRepoCandidates)) {
+    Remove-Item $Target -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Info "正在尝试克隆: $url"
+    git clone --depth=1 $url $Target
+    if ($LASTEXITCODE -eq 0) { return }
+  }
+  Write-ErrorAndExit '克隆仓库失败'
+}
+
+function Update-UseRepository {
+  param([string]$Target)
+
+  foreach ($url in (Get-GithubRepoCandidates)) {
+    git -C $Target remote set-url origin $url
+    if ($LASTEXITCODE -ne 0) { continue }
+    Write-Info "正在尝试同步: $url"
+    git -C $Target fetch origin main
+    if ($LASTEXITCODE -eq 0) {
+      git -C $Target reset --hard origin/main
+      if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '重置本地失败' }
+      return
+    }
+  }
+  Write-ErrorAndExit '拉取远程失败'
+}
+
 function Get-NextTimestampedDir {
   param([string]$Base)
   $ts = Get-Date -Format 'yyyyMMdd-HHmmss'
@@ -131,21 +183,16 @@ function Get-NextTimestampedDir {
 
 if (-not (Test-Path $InstallDir)) {
   Write-Info "正在克隆仓库到 $InstallDir ..."
-  git clone --depth=1 $Repo $InstallDir
-  if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '克隆仓库失败' }
+  Copy-UseRepository $InstallDir
 }
 elseif (Test-SameRemoteRepo $InstallDir) {
   Write-Info "检测到已有仓库 $InstallDir，正在同步到 origin/main ..."
-  git -C $InstallDir fetch origin main
-  if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '拉取远程失败' }
-  git -C $InstallDir reset --hard origin/main
-  if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '重置本地失败' }
+  Update-UseRepository $InstallDir
 }
 else {
   $InstallDir = Get-NextTimestampedDir $InstallDir
   Write-Info "目录已占用，正在克隆到 $InstallDir ..."
-  git clone --depth=1 $Repo $InstallDir
-  if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '克隆仓库失败' }
+  Copy-UseRepository $InstallDir
 }
 
 Set-Location $InstallDir

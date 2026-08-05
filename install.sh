@@ -3,6 +3,12 @@ set -e
 
 REPO="https://github.com/wwlight/use.git"
 INSTALL_DIR="${HOME}/Desktop/use"
+# BEGIN GENERATED GITHUB ACCEL
+GITHUB_ACCEL_PREFIXES=(
+  "https://ghfast.top/"
+  "https://gh-proxy.com/"
+)
+# END GENERATED GITHUB ACCEL
 
 detect_os() {
   # Git Bash / MSYS / Cygwin: uname is MINGW*|MSYS*|CYGWIN*；再兜底 OSTYPE / OS
@@ -62,8 +68,19 @@ resolve_profile() {
 }
 
 # 规范化 git remote，便于比较是否同一仓库
+strip_github_accel_prefix() {
+  local url="$1" prefix
+  for prefix in "${GITHUB_ACCEL_PREFIXES[@]}"; do
+    case "$url" in
+      "$prefix"*) printf '%s' "${url#"$prefix"}"; return ;;
+    esac
+  done
+  printf '%s' "$url"
+}
+
 normalize_repo_url() {
-  local u="$1"
+  local u
+  u=$(strip_github_accel_prefix "$1")
   while [ "${u%/}" != "$u" ]; do u="${u%/}"; done
   case "$u" in
     *.git) u="${u%.git}" ;;
@@ -82,6 +99,41 @@ is_same_remote_repo() {
   local remote
   remote=$(git -C "$dir" remote get-url origin 2>/dev/null) || return 1
   [ "$(normalize_repo_url "$remote")" = "$(normalize_repo_url "$REPO")" ]
+}
+
+github_repo_candidates() {
+  local prefix
+  for prefix in "${GITHUB_ACCEL_PREFIXES[@]}"; do
+    printf '%s%s\n' "$prefix" "$REPO"
+  done
+  printf '%s\n' "$REPO"
+}
+
+clone_repo() {
+  local target="$1" url
+  while IFS= read -r url; do
+    [ -n "$url" ] || continue
+    rm -rf "$target"
+    info "正在尝试克隆: $url"
+    if git clone --depth=1 "$url" "$target"; then
+      return 0
+    fi
+  done < <(github_repo_candidates)
+  error "克隆仓库失败"
+}
+
+update_repo() {
+  local target="$1" url
+  while IFS= read -r url; do
+    [ -n "$url" ] || continue
+    git -C "$target" remote set-url origin "$url" || continue
+    info "正在尝试同步: $url"
+    if git -C "$target" fetch origin main; then
+      git -C "$target" reset --hard origin/main || error "重置本地失败"
+      return 0
+    fi
+  done < <(github_repo_candidates)
+  error "拉取远程失败"
 }
 
 next_timestamped_dir() {
@@ -103,22 +155,21 @@ ensure_repo() {
   if [ ! -e "$target" ]; then
     INSTALL_DIR="$target"
     info "正在克隆仓库到 $INSTALL_DIR ..."
-    git clone --depth=1 "$REPO" "$INSTALL_DIR"
+    clone_repo "$INSTALL_DIR"
     return
   fi
 
   if is_same_remote_repo "$target"; then
     INSTALL_DIR="$target"
     info "检测到已有仓库 ${INSTALL_DIR}，正在同步到 origin/main ..."
-    git -C "$INSTALL_DIR" fetch origin main || error "拉取远程失败"
-    git -C "$INSTALL_DIR" reset --hard origin/main || error "重置本地失败"
+    update_repo "$INSTALL_DIR"
     return
   fi
 
   target=$(next_timestamped_dir "$INSTALL_DIR")
   INSTALL_DIR="$target"
   info "目录已占用，正在克隆到 $INSTALL_DIR ..."
-  git clone --depth=1 "$REPO" "$INSTALL_DIR"
+  clone_repo "$INSTALL_DIR"
 }
 
 install_macos() {

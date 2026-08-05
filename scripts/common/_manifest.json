@@ -20,9 +20,9 @@
   "sync": {
     "toRepo": [
       { "local": "~/.zsh/.zshrc_core", "repo": "configs/common/.zshrc_core" },
-      { "local": "~/.zsh/functions/_eza", "repo": "configs/common/_eza" },
+      { "local": "~/.zsh/functions/_eza", "repo": "configs/common/_eza", "restoreOnly": true },
       { "local": "~/.zsh/functions/aliases.zsh", "repo": "configs/common/aliases.zsh" },
-      { "local": "~/.zsh/functions/github-accel.zsh", "repo": "configs/common/github-accel.zsh" },
+      { "local": "~/.zsh/functions/github-accel.zsh", "repo": "configs/common/github-accel.zsh", "restoreOnly": true },
       { "local": "~/.config/starship/starship.toml", "repo": "configs/common/starship.toml" },
       { "local": "~/.config/opencode/opencode.jsonc", "repo": "configs/common/opencode.jsonc", "backup": true, "lite": false }
     ]

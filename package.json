@@ -14,7 +14,9 @@
     "git-extras": "node ./scripts/_dispatch.mjs git-extras",
     "clink": "node ./scripts/_dispatch.mjs clink",
     "hosts": "node ./scripts/_dispatch.mjs hosts",
-    "test": "node ./scripts/lib/menu-select.test.mjs && node ./scripts/lib/manifest-config.test.mjs"
+    "generate:github-accel": "node ./scripts/lib/generate-github-accel.mjs",
+    "check:github-accel": "node ./scripts/lib/generate-github-accel.mjs --check",
+    "test": "node ./scripts/lib/menu-select.test.mjs && node ./scripts/lib/manifest-config.test.mjs && npm run check:github-accel"
   },
   "author": "wwlight",
   "license": "ISC",

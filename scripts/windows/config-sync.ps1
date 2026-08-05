@@ -9,12 +9,5 @@ $ScriptDir = Split-Path $PSScriptRoot -Parent
 Assert-TargetOs windows
 
 $directionArg = Resolve-SyncDirectionArg $SyncArgs
-$direction = Resolve-SyncDirection -DirectionArg $directionArg
-Invoke-ManifestSync -Scope windows -DirectionArg $direction
-
-if ($direction -eq '2') {
-    . (Join-Path $PSScriptRoot 'scoop-accel.ps1')
-    Install-ScoopMirrorAccelScript -Manifest (Read-Manifest)
-}
-
+Invoke-ManifestSync -Scope windows -DirectionArg $directionArg
 $global:LASTEXITCODE = 0

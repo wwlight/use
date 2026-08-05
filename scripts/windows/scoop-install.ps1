@@ -26,11 +26,11 @@ $scoopDir = $manifest.scoopDir
 $accel = Get-ScoopAccelConfig -Manifest $manifest
 
 if ($Mirror -in @('-h', '--help', 'help')) {
-    Show-ScoopMirrorUsage -Accel $accel
+    Show-ScoopMirrorUsage
     exit 0
 }
 
-$activePrefix = Resolve-ScoopMirrorSelection -Accel $accel -Choice $Mirror
+$activePrefix = Resolve-ScoopMirrorSelection -Choice $Mirror
 Write-Info "已选择加速代理: $(Format-ScoopMirrorActiveLabel -ActivePrefix $activePrefix)"
 
 if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {

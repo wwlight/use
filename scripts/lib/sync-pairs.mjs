@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-export function readSyncPairLines(platform, scriptsDir) {
+export function readSyncPairLines(platform, scriptsDir, direction) {
   const scopes = platform === 'macos' ? ['macos', 'common'] : ['windows', 'common']
   const lines = []
 
@@ -12,7 +12,8 @@ export function readSyncPairLines(platform, scriptsDir) {
     }
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
     for (const item of manifest.sync?.toRepo ?? []) {
-      lines.push(`${item.local}\t${item.repo}\t${item.backup ? '1' : '0'}`)
+      if (direction === '1' && item.restoreOnly === true) continue
+      lines.push(`${item.local}\t${item.repo}\t${item.backup ? '1' : '0'}\t${item.encoding ?? ''}`)
     }
   }
 
