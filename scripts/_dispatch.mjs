@@ -171,16 +171,17 @@ async function runUnifiedSync(platform, args) {
   markSyncInteractive()
   process.env.SYNC_FROM_DISPATCH = '1'
 
+  const { direction } = await promptSyncDirection(args)
+
   let pairLines
   try {
-    pairLines = readSyncPairLines(platform, __dirname)
+    pairLines = readSyncPairLines(platform, __dirname, direction)
   }
   catch (err) {
     console.error(`\x1b[31m[ERROR] ${err.message}\x1b[0m`)
     process.exit(1)
   }
 
-  const { direction } = await promptSyncDirection(args)
   const selection = await runSyncSelect(direction, pairLines)
 
   let tempFile = null

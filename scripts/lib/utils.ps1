@@ -497,7 +497,8 @@ function Format-LocalDisplay {
 function Copy-FileDataOnly {
     param(
         [string]$SourceFile,
-        [string]$DestinationFile
+        [string]$DestinationFile,
+        [string]$Encoding = ''
     )
 
     $source = Get-ExpandedPath $SourceFile
@@ -510,6 +511,13 @@ function Copy-FileDataOnly {
 
     if (-not (Test-Path $destinationDir)) {
         New-Item -ItemType Directory -Path $destinationDir -Force | Out-Null
+    }
+
+    if ($Encoding -eq 'utf8Bom') {
+        $content = [System.IO.File]::ReadAllText($source, [System.Text.Encoding]::UTF8)
+        $utf8Bom = New-Object System.Text.UTF8Encoding $true
+        [System.IO.File]::WriteAllText($destination, $content, $utf8Bom)
+        return
     }
 
     $robocopy = Get-Command robocopy.exe -ErrorAction SilentlyContinue
@@ -668,10 +676,13 @@ function Read-SyncItemsFromPairsFile {
     foreach ($line in [System.IO.File]::ReadAllLines($PairsFile)) {
         if ([string]::IsNullOrWhiteSpace($line)) { continue }
         $parts = $line.Split("`t")
+        $encoding = ''
+        if ($parts.Count -gt 3) { $encoding = $parts[3] }
         $selected += [PSCustomObject]@{
-            local  = $parts[0]
-            repo   = $parts[1]
-            backup = ($parts[2] -eq '1')
+            local    = $parts[0]
+            repo     = $parts[1]
+            backup   = ($parts[2] -eq '1')
+            encoding = $encoding
         }
     }
     return $selected
@@ -680,8 +691,7 @@ function Read-SyncItemsFromPairsFile {
 function Get-SyncItemsFiltered {
     param(
         [string[]]$Scopes,
-        [string]$Direction,
-        [string]$DirectionArg
+        [string]$Direction
     )
 
     if ($env:SYNC_FILTERED_PAIRS -and (Test-Path $env:SYNC_FILTERED_PAIRS)) {
@@ -705,10 +715,14 @@ function Get-SyncItemsFiltered {
             if ($env:SYNC_PROFILE -eq 'lite' -and $item.PSObject.Properties['lite'] -and $item.lite -eq $false) {
                 continue
             }
+            if ($Direction -eq '1' -and $item.PSObject.Properties['restoreOnly'] -and $item.restoreOnly -eq $true) {
+                continue
+            }
             $items += [PSCustomObject]@{
-                local  = $item.local
-                repo   = $item.repo
-                backup = [bool]$item.backup
+                local    = $item.local
+                repo     = $item.repo
+                backup   = [bool]$item.backup
+                encoding = [string]$item.encoding
             }
         }
     }
@@ -729,7 +743,7 @@ function Get-SyncItemsFiltered {
     try {
         $lines = foreach ($item in $items) {
             $backupFlag = if ($item.backup) { '1' } else { '0' }
-            "$($item.local)`t$($item.repo)`t$backupFlag"
+            "$($item.local)`t$($item.repo)`t$backupFlag`t$($item.encoding)"
         }
         [System.IO.File]::WriteAllLines($pairsFile, $lines)
 
@@ -764,7 +778,7 @@ function Invoke-ManifestSync {
 
     $example = '示例: vpr sync 2'
     $direction = Resolve-SyncDirection -DirectionArg $DirectionArg -Example $example
-    $items = Get-SyncItemsFiltered -Scopes $scopes -Direction $direction -DirectionArg $DirectionArg
+    $items = Get-SyncItemsFiltered -Scopes $scopes -Direction $direction
     $total = $items.Count
 
     Write-SyncProgressHint -Direction $direction -Total $total
@@ -806,7 +820,7 @@ function Invoke-ManifestSync {
                     New-Item -ItemType Directory -Path $localDir -Force | Out-Null
                 }
                 try {
-                    Copy-FileDataOnly $repo $local
+                    Copy-FileDataOnly $repo $local -Encoding $item.encoding
                 } catch {
                     Write-ErrorAndExit $_.Exception.Message
                 }

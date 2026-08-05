@@ -11,8 +11,6 @@ function Get-ScoopAccelConfig {
 }
 
 function Get-ScoopMirrorPrefixes {
-    param($Accel)
-
     $list = New-Object System.Collections.Generic.List[string]
     foreach ($p in @(Get-GithubAccelPrefixes)) {
         if ([string]::IsNullOrWhiteSpace($p)) { continue }
@@ -23,17 +21,6 @@ function Get-ScoopMirrorPrefixes {
         Write-ErrorAndExit 'common githubAccel.mirrors 为空，请至少配置一个加速镜像'
     }
     return $list
-}
-
-function Get-ScoopMirrorSelectionMap {
-    param($Accel)
-
-    $map = Get-GithubAccelSelectionMap
-    if ($map.Count -le 1) {
-        # 仅有 official 说明 mirrors 为空
-        Write-ErrorAndExit 'common githubAccel.mirrors 为空，请至少配置一个加速镜像'
-    }
-    return $map
 }
 
 function Get-ScoopMirrorChoiceId {
@@ -52,8 +39,7 @@ function Get-ScoopMirrorChoiceId {
 }
 
 function Show-ScoopMirrorUsage {
-    param($Accel)
-    $map = Get-ScoopMirrorSelectionMap -Accel $Accel
+    $map = Get-GithubAccelSelectionMap
     $keys = @($map.Keys)
     Write-Host "用法: vpr pm [$($keys -join '|')]"
     Write-Host ''
@@ -64,9 +50,9 @@ function Show-ScoopMirrorUsage {
     Write-Host ''
     Write-Host '示例:'
     Write-Host '  vpr pm'
-    Write-Host '  vpr pm -- ghfast'
-    Write-Host '  vpr pm -- ghproxy'
-    Write-Host '  vpr pm -- official'
+    foreach ($k in $keys) {
+        Write-Host "  vpr pm -- $k"
+    }
 }
 
 function Strip-ScoopMirrorPrefix {
@@ -162,12 +148,9 @@ function Invoke-NodeMenuSelect {
 }
 
 function Resolve-ScoopMirrorSelection {
-    param(
-        $Accel,
-        [string]$Choice = ''
-    )
+    param([string]$Choice = '')
 
-    $map = Get-ScoopMirrorSelectionMap -Accel $Accel
+    $map = Get-GithubAccelSelectionMap
     if ($Choice -match '^--(.+)$') { $Choice = $Matches[1] }
     $Choice = "$Choice".Trim()
 
@@ -178,12 +161,12 @@ function Resolve-ScoopMirrorSelection {
             if ($prefix -eq $Choice) { return $prefix }
             if ($prefix -and ($prefix.TrimEnd('/') -eq $Choice.TrimEnd('/'))) { return $prefix }
         }
-        Show-ScoopMirrorUsage -Accel $Accel
+        Show-ScoopMirrorUsage
         Write-ErrorAndExit "未知加速镜像: $Choice"
     }
 
     if (-not (Test-InteractivePrompt)) {
-        Show-ScoopMirrorUsage -Accel $Accel
+        Show-ScoopMirrorUsage
         Write-ErrorAndExit '非交互环境请传入参数（示例: vpr pm -- official）'
     }
 
@@ -199,7 +182,7 @@ function Resolve-ScoopMirrorSelection {
 
     $selected = Invoke-NodeMenuSelect -Title '请选择 Scoop 加速镜像' -Items @($menuItems)
     if ([string]::IsNullOrWhiteSpace($selected) -or -not $map.Contains($selected)) {
-        Show-ScoopMirrorUsage -Accel $Accel
+        Show-ScoopMirrorUsage
         Write-ErrorAndExit '非交互环境请传入参数（示例: vpr pm -- official）'
     }
     return $map[$selected]
@@ -288,40 +271,6 @@ function Write-Utf8NoBomFile {
     [System.IO.File]::WriteAllText($Path, $Content, $encoding)
 }
 
-# Windows PowerShell 5.1 defaults to system ANSI without BOM; use BOM for .ps1.
-function Write-Utf8BomFile {
-    param(
-        [string]$Path,
-        [string]$Content
-    )
-    $encoding = New-Object System.Text.UTF8Encoding $true
-    [System.IO.File]::WriteAllText($Path, $Content, $encoding)
-}
-
-function Install-ScoopMirrorAccelScript {
-    param($Manifest)
-
-    if (-not $Manifest) { $Manifest = Read-Manifest }
-    $scoopRoot = $env:SCOOP
-    if (-not $scoopRoot) { $scoopRoot = $Manifest.scoopDir }
-    if (-not $scoopRoot) { Write-ErrorAndExit 'SCOOP 环境变量未设置，且 windows manifest 缺少 scoopDir' }
-
-    $configDir = Join-Path $scoopRoot 'config'
-    if (-not (Test-Path $configDir)) {
-        New-Item -ItemType Directory -Path $configDir -Force | Out-Null
-    }
-
-    $src = Join-Path $PSScriptRoot 'mirror-accel.ps1'
-    if (-not (Test-Path $src)) {
-        Write-ErrorAndExit "找不到 mirror-accel.ps1: $src"
-    }
-    $dest = Join-Path $configDir 'mirror-accel.ps1'
-    $ps1Content = Get-Content -LiteralPath $src -Raw -Encoding UTF8
-    if ($null -eq $ps1Content) { $ps1Content = '' }
-    Write-Utf8BomFile -Path $dest -Content $ps1Content
-    Write-Info "已同步 mirror-accel 到 $dest"
-}
-
 function Install-ScoopMirrorAccelFiles {
     param(
         $Accel,
@@ -337,7 +286,7 @@ function Install-ScoopMirrorAccelFiles {
         New-Item -ItemType Directory -Path $configDir -Force | Out-Null
     }
 
-    if (-not $Prefixes) { $Prefixes = Get-ScoopMirrorPrefixes -Accel $Accel }
+    if (-not $Prefixes) { $Prefixes = Get-ScoopMirrorPrefixes }
 
     $jsonPath = Join-Path $configDir 'mirror-accel.json'
     $payload = [ordered]@{
@@ -347,7 +296,13 @@ function Install-ScoopMirrorAccelFiles {
     }
     Write-Utf8NoBomFile -Path $jsonPath -Content (($payload | ConvertTo-Json -Depth 5) + "`n")
 
-    Install-ScoopMirrorAccelScript
+    $src = Join-Path $PSScriptRoot 'mirror-accel.ps1'
+    if (-not (Test-Path $src)) {
+        Write-ErrorAndExit "找不到 mirror-accel.ps1: $src"
+    }
+    $dest = Join-Path $configDir 'mirror-accel.ps1'
+    Copy-FileDataOnly -SourceFile $src -DestinationFile $dest -Encoding 'utf8Bom'
+    Write-Info "已同步 mirror-accel 到 $dest"
 }
 
 function Install-ScoopDownloadHook {
@@ -389,12 +344,11 @@ function Install-ScoopDownloadHook {
 
 function Set-ScoopBucketMirrors {
     param(
-        $Accel,
         [string]$ActivePrefix,
         $Prefixes
     )
 
-    if (-not $Prefixes) { $Prefixes = Get-ScoopMirrorPrefixes -Accel $Accel }
+    if (-not $Prefixes) { $Prefixes = Get-ScoopMirrorPrefixes }
     $bucketsRoot = Join-Path $env:SCOOP 'buckets'
     if (-not (Test-Path $bucketsRoot)) { return }
 
@@ -452,10 +406,10 @@ function Enable-ScoopAccel {
     }
 
     $accel = Get-ScoopAccelConfig -Manifest $Manifest
-    $prefixes = Get-ScoopMirrorPrefixes -Accel $accel
+    $prefixes = Get-ScoopMirrorPrefixes
 
     if (-not $PSBoundParameters.ContainsKey('ActivePrefix')) {
-        $ActivePrefix = Resolve-ScoopMirrorSelection -Accel $accel -Choice $Mirror
+        $ActivePrefix = Resolve-ScoopMirrorSelection -Choice $Mirror
     }
     $ActivePrefix = [string]$ActivePrefix
 
@@ -481,7 +435,7 @@ function Enable-ScoopAccel {
 
     Install-ScoopMirrorAccelFiles -Accel $accel -ActivePrefix $ActivePrefix -Prefixes $prefixes
     Install-ScoopDownloadHook
-    Set-ScoopBucketMirrors -Accel $accel -ActivePrefix $ActivePrefix -Prefixes $prefixes
+    Set-ScoopBucketMirrors -ActivePrefix $ActivePrefix -Prefixes $prefixes
 
     if (-not $SkipAria2) {
         Install-ScoopAria2Accel -Accel $accel

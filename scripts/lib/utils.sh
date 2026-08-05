@@ -544,6 +544,8 @@ manifest_directories() {
 }
 
 manifest_sync_pairs() {
+    local direction="$1"
+    shift
     local scopes=("$@")
     if [[ ${#scopes[@]} -eq 0 ]]; then
         if [[ -z "$MANIFEST_SCOPE" ]]; then
@@ -556,7 +558,8 @@ manifest_sync_pairs() {
         const fs = require('fs');
         const path = require('path');
         const projectRoot = process.argv[1];
-        const scopes = process.argv.slice(2);
+        const direction = process.argv[2];
+        const scopes = process.argv.slice(3);
         for (const scope of scopes) {
             const manifestPath = path.join(projectRoot, 'scripts', scope, '_manifest.json');
             if (!fs.existsSync(manifestPath)) {
@@ -567,10 +570,11 @@ manifest_sync_pairs() {
             const liteOnly = process.env.SYNC_PROFILE === 'lite';
             for (const item of m.sync.toRepo) {
                 if (liteOnly && item.lite === false) continue;
+                if (direction === '1' && item.restoreOnly === true) continue;
                 process.stdout.write(item.local + '\t' + item.repo + '\t' + (item.backup ? '1' : '0') + '\n');
             }
         }
-    " "$PROJECT_ROOT" "${scopes[@]}"
+    " "$PROJECT_ROOT" "$direction" "${scopes[@]}"
 }
 
 should_skip_sync_select() {
@@ -612,14 +616,14 @@ manifest_sync_pairs_filtered() {
 
     if is_sync_dispatch_mode; then
         if should_skip_sync_select; then
-            manifest_sync_pairs "${scopes[@]}"
+            manifest_sync_pairs "$direction" "${scopes[@]}"
             return
         fi
         error "缺少已选文件列表，请通过 vpr sync 运行"
     fi
 
     pairs_file=$(mktemp) || error "无法创建临时文件"
-    manifest_sync_pairs "${scopes[@]}" > "$pairs_file"
+    manifest_sync_pairs "$direction" "${scopes[@]}" > "$pairs_file"
 
     if should_skip_sync_select; then
         cat "$pairs_file"
