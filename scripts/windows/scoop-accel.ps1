@@ -298,6 +298,30 @@ function Write-Utf8BomFile {
     [System.IO.File]::WriteAllText($Path, $Content, $encoding)
 }
 
+function Install-ScoopMirrorAccelScript {
+    param($Manifest)
+
+    if (-not $Manifest) { $Manifest = Read-Manifest }
+    $scoopRoot = $env:SCOOP
+    if (-not $scoopRoot) { $scoopRoot = $Manifest.scoopDir }
+    if (-not $scoopRoot) { Write-ErrorAndExit 'SCOOP 环境变量未设置，且 windows manifest 缺少 scoopDir' }
+
+    $configDir = Join-Path $scoopRoot 'config'
+    if (-not (Test-Path $configDir)) {
+        New-Item -ItemType Directory -Path $configDir -Force | Out-Null
+    }
+
+    $src = Join-Path $PSScriptRoot 'mirror-accel.ps1'
+    if (-not (Test-Path $src)) {
+        Write-ErrorAndExit "找不到 mirror-accel.ps1: $src"
+    }
+    $dest = Join-Path $configDir 'mirror-accel.ps1'
+    $ps1Content = Get-Content -LiteralPath $src -Raw -Encoding UTF8
+    if ($null -eq $ps1Content) { $ps1Content = '' }
+    Write-Utf8BomFile -Path $dest -Content $ps1Content
+    Write-Info "已同步 mirror-accel 到 $dest"
+}
+
 function Install-ScoopMirrorAccelFiles {
     param(
         $Accel,
@@ -323,15 +347,7 @@ function Install-ScoopMirrorAccelFiles {
     }
     Write-Utf8NoBomFile -Path $jsonPath -Content (($payload | ConvertTo-Json -Depth 5) + "`n")
 
-    $src = Join-Path $PSScriptRoot 'mirror-accel.ps1'
-    if (-not (Test-Path $src)) {
-        Write-ErrorAndExit "找不到 mirror-accel.ps1: $src"
-    }
-    $dest = Join-Path $configDir 'mirror-accel.ps1'
-    $ps1Content = Get-Content -LiteralPath $src -Raw -Encoding UTF8
-    if ($null -eq $ps1Content) { $ps1Content = '' }
-    Write-Utf8BomFile -Path $dest -Content $ps1Content
-    Write-Info "已同步 mirror-accel 到 $dest"
+    Install-ScoopMirrorAccelScript
 }
 
 function Install-ScoopDownloadHook {
