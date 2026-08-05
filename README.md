@@ -223,6 +223,18 @@ configs/windows/
 └── utils.zsh                     # 自定义函数
 ```
 
+### scoop mirror
+
+一键同步切换 Scoop 仓库、GitHub bucket 远端及后续安装、更新使用的下载镜像。
+
+```sh
+scoop mirror                      # 查看当前镜像
+scoop mirror list                 # 列出可用镜像
+scoop mirror ghfast               # 切换到 ghfast.top
+scoop mirror ghproxy              # 切换到 gh-proxy.com
+scoop mirror official             # 恢复官方源
+```
+
 ### scoop services
 
 需先 `scoop install winsw-pre`，并配置 `services-manifest.json`。

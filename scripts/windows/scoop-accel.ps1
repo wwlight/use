@@ -289,10 +289,20 @@ function Install-ScoopMirrorAccelFiles {
     if (-not $Prefixes) { $Prefixes = Get-ScoopMirrorPrefixes }
 
     $jsonPath = Join-Path $configDir 'mirror-accel.json'
+    $mirrors = @(
+        foreach ($item in @(Get-GithubAccelMirrors)) {
+            [ordered]@{
+                id     = [string]$item.id
+                prefix = [string]$item.prefix
+            }
+        }
+    )
     $payload = [ordered]@{
         mirrorPrefix = @($Prefixes)
+        mirrors      = $mirrors
         activePrefix = $ActivePrefix
         githubHosts  = @($Accel.githubHosts)
+        scoopRepo    = [string]$Accel.scoopRepo
     }
     Write-Utf8NoBomFile -Path $jsonPath -Content (($payload | ConvertTo-Json -Depth 5) + "`n")
 

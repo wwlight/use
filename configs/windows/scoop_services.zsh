@@ -34,8 +34,25 @@ _scoop_prepare_package_operation() {
   powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$p" -PrepareCommand
 }
 
+_scoop_manage_mirror() {
+  local p="${SCOOP}/config/mirror-accel.ps1"
+  [[ -f "$p" ]] || {
+    echo "scoop: mirror helper not found at $p" >&2
+    return 1
+  }
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$p" -ManageMirror -MirrorChoice "${1:-}"
+}
+
 scoop() {
   [[ -n "$SCOOP" ]] || { echo "scoop: \$SCOOP is not set" >&2; return 1 }
+  if [[ "$1" == "mirror" ]]; then
+    if (( $# > 2 )); then
+      echo "Usage: scoop mirror [status|list|<name>|official]" >&2
+      return 1
+    fi
+    _scoop_manage_mirror "${2:-}"
+    return $?
+  fi
   if [[ "$1" == "update" || "$1" == "install" || "$1" == "import" ]]; then
     _scoop_prepare_package_operation || {
       echo "scoop: package operation aborted because the Scoop worktree is not clean" >&2
