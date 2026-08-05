@@ -12,8 +12,14 @@ import { openTerminal, restoreFrame } from './tty-term.mjs'
 
 function parseItems(rawLines) {
   return rawLines.map((line) => {
-    const [local, repo, backup] = line.split('\t')
-    return { local, repo, backup, selected: true, line }
+    const [local, repo, backup, , defaultSelected] = line.split('\t')
+    return {
+      local,
+      repo,
+      backup,
+      selected: defaultSelected !== '0',
+      line,
+    }
   })
 }
 

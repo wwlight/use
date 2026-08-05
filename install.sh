@@ -4,6 +4,10 @@ set -e
 REPO="https://github.com/wwlight/use.git"
 INSTALL_DIR="${HOME}/Desktop/use"
 # BEGIN GENERATED GITHUB ACCEL
+GITHUB_ACCEL_IDS=(
+  "ghfast"
+  "ghproxy"
+)
 GITHUB_ACCEL_PREFIXES=(
   "https://ghfast.top/"
   "https://gh-proxy.com/"
@@ -101,9 +105,26 @@ is_same_remote_repo() {
   [ "$(normalize_repo_url "$remote")" = "$(normalize_repo_url "$REPO")" ]
 }
 
+# Resolve USE_ACCEL=<id> (set by mirrored one-liners) to a known prefix.
+resolve_accel_prefix() {
+  local accel="${USE_ACCEL:-}" i
+  [ -n "$accel" ] || return 0
+  for i in "${!GITHUB_ACCEL_IDS[@]}"; do
+    if [ "${GITHUB_ACCEL_IDS[$i]}" = "$accel" ]; then
+      printf '%s' "${GITHUB_ACCEL_PREFIXES[$i]}"
+      return 0
+    fi
+  done
+}
+
 github_repo_candidates() {
-  local prefix
+  local preferred prefix
+  preferred=$(resolve_accel_prefix)
+  if [ -n "$preferred" ]; then
+    printf '%s%s\n' "$preferred" "$REPO"
+  fi
   for prefix in "${GITHUB_ACCEL_PREFIXES[@]}"; do
+    [ "$prefix" = "$preferred" ] && continue
     printf '%s%s\n' "$prefix" "$REPO"
   done
   printf '%s\n' "$REPO"

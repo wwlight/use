@@ -5,12 +5,12 @@ import { isPowerShell, resolveScript, runBash, runPwsh, stripArgSeparator } from
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 const TASK_MAP = {
-  scoop: 'scoop-install',
+  scoop: 'scoop/install',
+  'scoop-import': 'scoop/import-backup',
   sync: 'config-sync',
   zsh: 'zsh-install',
   'git-extras': 'git-extras-install',
   clink: 'clink-install',
-  hosts: 'github-hosts',
 }
 
 const task = process.argv[2]

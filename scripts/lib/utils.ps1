@@ -719,10 +719,11 @@ function Get-SyncItemsFiltered {
                 continue
             }
             $items += [PSCustomObject]@{
-                local    = $item.local
-                repo     = $item.repo
-                backup   = [bool]$item.backup
-                encoding = [string]$item.encoding
+                local           = $item.local
+                repo            = $item.repo
+                backup          = [bool]$item.backup
+                encoding        = [string]$item.encoding
+                defaultSelected = -not ($item.PSObject.Properties['defaultSelected'] -and $item.defaultSelected -eq $false)
             }
         }
     }
@@ -743,7 +744,8 @@ function Get-SyncItemsFiltered {
     try {
         $lines = foreach ($item in $items) {
             $backupFlag = if ($item.backup) { '1' } else { '0' }
-            "$($item.local)`t$($item.repo)`t$backupFlag`t$($item.encoding)"
+            $selectedFlag = if ($item.defaultSelected) { '1' } else { '0' }
+            "$($item.local)`t$($item.repo)`t$backupFlag`t$($item.encoding)`t$selectedFlag"
         }
         [System.IO.File]::WriteAllLines($pairsFile, $lines)
 

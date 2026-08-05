@@ -103,14 +103,26 @@ function Install-OrRestoreScoop {
 
     $gitInitiallyAvailable = [bool](Get-Command git.exe -ErrorAction SilentlyContinue)
 
-    . (Join-Path $PSScriptRoot 'scoop-accel.ps1')
+    . (Join-Path $PSScriptRoot 'scoop\accel.ps1')
     Enable-ScoopAccel -Manifest $manifest
 
     if (Test-Path $scoopBackup) {
         Write-Info "Restoring dependencies from $(Split-Path $scoopBackup -Leaf)..."
         Assert-ScoopWorktreeClean
-        scoop import $scoopBackup
-        if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Scoop app restore failed!' }
+        $activePrefix = Get-ScoopMirrorActivePrefix
+        $importFile = New-ScoopMirroredImportFile -BackupPath $scoopBackup -ActivePrefix $activePrefix
+        try {
+            if ($importFile -ne $scoopBackup) {
+                Write-Info "Importing buckets via active mirror: $(Format-ScoopMirrorActiveLabel -ActivePrefix $activePrefix)"
+            }
+            scoop import $importFile
+            if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Scoop app restore failed!' }
+        }
+        finally {
+            if ($importFile -ne $scoopBackup -and (Test-Path -LiteralPath $importFile)) {
+                Remove-Item -LiteralPath $importFile -Force -ErrorAction SilentlyContinue
+            }
+        }
         if (-not $gitInitiallyAvailable) {
             # Git may have been installed by the import, so retry the hook/filter
             # setup that Enable-ScoopAccel had to defer.

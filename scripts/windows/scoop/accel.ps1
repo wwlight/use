@@ -128,7 +128,7 @@ function Invoke-NodeMenuSelect {
         [string[]]$Items
     )
 
-    $menuScript = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\lib\menu-select.mjs'))
+    $menuScript = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\lib\menu-select.mjs'))
     if (-not (Test-Path $menuScript)) {
         Write-ErrorAndExit "Menu script not found: $menuScript"
     }
@@ -154,6 +154,11 @@ function Resolve-ScoopMirrorSelection {
     if ($Choice -match '^--(.+)$') { $Choice = $Matches[1] }
     $Choice = "$Choice".Trim()
 
+    # One-click install can pass USE_ACCEL=<id> so Scoop uses the same mirror.
+    if ($Choice -eq '' -and -not [string]::IsNullOrWhiteSpace($env:USE_ACCEL)) {
+        $Choice = "$env:USE_ACCEL".Trim()
+    }
+
     if ($Choice -ne '') {
         if ($map.Contains($Choice)) { return $map[$Choice] }
         foreach ($k in @($map.Keys)) {
@@ -171,12 +176,14 @@ function Resolve-ScoopMirrorSelection {
     }
 
     $menuItems = New-Object System.Collections.Generic.List[string]
-    foreach ($k in @($map.Keys)) {
+    $keys = @($map.Keys)
+    $idWidth = ($keys | Measure-Object -Property Length -Maximum).Maximum
+    foreach ($k in $keys) {
         if ($k -eq 'official') {
-            [void]$menuItems.Add("${k}) Upstream")
+            [void]$menuItems.Add(('{0}) Upstream' -f $k.PadRight($idWidth)))
         }
         else {
-            [void]$menuItems.Add("${k}) $($map[$k])")
+            [void]$menuItems.Add(('{0}) {1}' -f $k.PadRight($idWidth), $map[$k]))
         }
     }
 
@@ -222,7 +229,7 @@ function Invoke-ScoopInstallScriptWithFallback {
     }
 
     Write-Info "Trying installer (upstream): $url"
-    Write-Info 'Mirror acceleration starts after Scoop installs; run vpr hosts first if upstream is unreachable'
+    Write-Info 'Mirror acceleration starts after Scoop installs'
     try {
         if (Test-Administrator) {
             iex "& {$(irm $url)} -RunAsAdmin"
@@ -251,68 +258,66 @@ function ConvertTo-MirrorUrl {
     param(
         [string]$Url,
         [string]$Prefix,
-        [string[]]$AllPrefixes
+        [string[]]$AllPrefixes,
+        [string[]]$GithubHosts
     )
     if ([string]::IsNullOrWhiteSpace($Url)) { return $Url }
     if (-not $AllPrefixes) { $AllPrefixes = @() }
     $bare = Strip-ScoopMirrorPrefix -Url $Url.Trim() -Prefixes $AllPrefixes
-    if ($bare -match '^https://github\.com/' -or $bare -match '^https://raw\.githubusercontent\.com/') {
+
+    if (-not $GithubHosts -or $GithubHosts.Count -eq 0) {
+        $GithubHosts = @((Get-ScoopAccelConfig).githubHosts)
+    }
+    try {
+        $hostName = ([Uri]$bare).Host
+    }
+    catch {
+        return $bare
+    }
+    if ($GithubHosts -contains $hostName) {
         return (Join-ScoopMirrorUrl -Url $bare -Prefix $Prefix -AllPrefixes $AllPrefixes)
     }
     return $bare
 }
 
-function Write-Utf8NoBomFile {
-    param(
-        [string]$Path,
-        [string]$Content
-    )
-    $encoding = New-Object System.Text.UTF8Encoding $false
-    [System.IO.File]::WriteAllText($Path, $Content, $encoding)
-}
+. (Join-Path $PSScriptRoot 'deploy.ps1')
 
-function Install-ScoopMirrorAccelFiles {
+function Invoke-ScoopMirrorAccelFilterInit {
     param(
-        $Accel,
-        [string]$ActivePrefix,
-        $Prefixes
+        [string]$FailureMessage
     )
 
-    $scoopRoot = $env:SCOOP
-    if (-not $scoopRoot) { Write-ErrorAndExit 'SCOOP environment variable is not set' }
-
-    $configDir = Join-Path $scoopRoot 'config'
-    if (-not (Test-Path $configDir)) {
-        New-Item -ItemType Directory -Path $configDir -Force | Out-Null
+    $helper = Join-Path $env:SCOOP 'config\scoop-mirror\hook.ps1'
+    $cliJs = Join-Path $env:SCOOP 'config\scoop-mirror\cli.mjs'
+    if (-not (Test-Path -LiteralPath $helper)) {
+        Write-ErrorAndExit "scoop-mirror/hook.ps1 not found: $helper"
     }
 
-    if (-not $Prefixes) { $Prefixes = Get-ScoopMirrorPrefixes }
-
-    $jsonPath = Join-Path $configDir 'mirror-accel.json'
-    $mirrors = @(
-        foreach ($item in @(Get-GithubAccelMirrors)) {
-            [ordered]@{
-                id     = [string]$item.id
-                prefix = [string]$item.prefix
-            }
+    $node = Get-Command node.exe -ErrorAction SilentlyContinue
+    if ($node -and (Test-Path -LiteralPath $cliJs)) {
+        $output = & $node.Source $cliJs repair 2>&1
+        if ($LASTEXITCODE -ne 0) {
+            $detail = ($output | Out-String).Trim()
+            if ([string]::IsNullOrWhiteSpace($detail)) { $detail = $FailureMessage }
+            else { $detail = "${FailureMessage}: $detail" }
+            Write-ErrorAndExit $detail
         }
-    )
-    $payload = [ordered]@{
-        mirrorPrefix = @($Prefixes)
-        mirrors      = $mirrors
-        activePrefix = $ActivePrefix
-        githubHosts  = @($Accel.githubHosts)
-        scoopRepo    = [string]$Accel.scoopRepo
+        return
     }
-    Write-Utf8NoBomFile -Path $jsonPath -Content (($payload | ConvertTo-Json -Depth 5) + "`n")
 
-    $src = Join-Path $PSScriptRoot 'mirror-accel.ps1'
-    if (-not (Test-Path $src)) {
-        Write-ErrorAndExit "mirror-accel.ps1 not found: $src"
+    # Fallback without Node: run the PowerShell implementation in-process
+    # (avoid powershell.exe -File cold start).
+    . $helper
+    try {
+        Initialize-ScoopMirrorAccelFilter
     }
-    $dest = Join-Path $configDir 'mirror-accel.ps1'
-    Copy-FileDataOnly -SourceFile $src -DestinationFile $dest -Encoding 'utf8Bom'
-    Write-Info "Synced mirror-accel to $dest"
+    catch {
+        $detail = $_.Exception.Message
+        if ([string]::IsNullOrWhiteSpace($detail)) {
+            Write-ErrorAndExit $FailureMessage
+        }
+        Write-ErrorAndExit "${FailureMessage}: $detail"
+    }
 }
 
 function Install-ScoopDownloadHook {
@@ -321,11 +326,8 @@ function Install-ScoopDownloadHook {
         return
     }
 
-    $helper = Join-Path $env:SCOOP 'config\mirror-accel.ps1'
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $helper -RepairHook
-    if ($LASTEXITCODE -ne 0) {
-        Write-ErrorAndExit 'Could not install the Scoop download acceleration hook'
-    }
+    Invoke-ScoopMirrorAccelFilterInit -FailureMessage 'Could not install the Scoop download acceleration hook'
+    Write-Info 'Scoop mirror hook and clean-worktree filter are ready'
 }
 
 function Assert-ScoopWorktreeClean {
@@ -333,11 +335,7 @@ function Assert-ScoopWorktreeClean {
         # A fresh Scoop bootstrap has no hook yet and installs Git before acceleration is activated.
         return
     }
-    $helper = Join-Path $env:SCOOP 'config\mirror-accel.ps1'
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $helper -PrepareCommand
-    if ($LASTEXITCODE -ne 0) {
-        Write-ErrorAndExit 'Scoop package operation aborted because its tracked worktree is not clean'
-    }
+    Invoke-ScoopMirrorAccelFilterInit -FailureMessage 'Scoop package operation aborted because its tracked worktree is not clean'
 }
 
 function Set-ScoopBucketMirrors {
@@ -360,6 +358,52 @@ function Set-ScoopBucketMirrors {
             git -C $_.FullName remote set-url origin $mirrored 2>$null | Out-Null
         }
     }
+}
+
+function Get-ScoopMirrorActivePrefix {
+    $cfgPath = Join-Path $env:SCOOP 'config\scoop-mirror\config.json'
+    if (-not (Test-Path -LiteralPath $cfgPath)) { return '' }
+    try {
+        $cfg = Get-Content -LiteralPath $cfgPath -Raw -Encoding UTF8 | ConvertFrom-Json
+        return [string]$cfg.activePrefix
+    }
+    catch {
+        return ''
+    }
+}
+
+# Rewrite scoop export bucket Sources to the active mirror before import.
+# Backup JSON keeps official GitHub URLs; import must not clone a stale baked-in mirror (e.g. dead ghfast).
+function New-ScoopMirroredImportFile {
+    param(
+        [Parameter(Mandatory)]
+        [string]$BackupPath,
+        [string]$ActivePrefix,
+        $Prefixes
+    )
+
+    if (-not (Test-Path -LiteralPath $BackupPath)) {
+        Write-ErrorAndExit "Scoop backup file not found: $BackupPath"
+    }
+    if (-not $Prefixes) { $Prefixes = Get-ScoopMirrorPrefixes }
+
+    $data = Get-Content -LiteralPath $BackupPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    $changed = $false
+    foreach ($bucket in @($data.buckets)) {
+        $source = [string]$bucket.Source
+        if ([string]::IsNullOrWhiteSpace($source)) { continue }
+        $mirrored = ConvertTo-MirrorUrl -Url $source -Prefix $ActivePrefix -AllPrefixes @($Prefixes)
+        if ($mirrored -ne $source) {
+            $bucket.Source = $mirrored
+            $changed = $true
+        }
+    }
+
+    if (-not $changed) { return $BackupPath }
+
+    $temp = Join-Path ([IO.Path]::GetTempPath()) ("use-scoop-import-" + [Guid]::NewGuid().ToString('N') + '.json')
+    Write-Utf8NoBomFile -Path $temp -Content (($data | ConvertTo-Json -Depth 8) + "`n")
+    return $temp
 }
 
 function Install-ScoopAria2Accel {
@@ -433,6 +477,7 @@ function Enable-ScoopAccel {
     }
 
     Install-ScoopMirrorAccelFiles -Accel $accel -ActivePrefix $ActivePrefix -Prefixes $prefixes
+    Install-ScoopServicesFiles
     Install-ScoopDownloadHook
     Set-ScoopBucketMirrors -ActivePrefix $ActivePrefix -Prefixes $prefixes
 

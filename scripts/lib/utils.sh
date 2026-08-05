@@ -571,7 +571,7 @@ manifest_sync_pairs() {
             for (const item of m.sync.toRepo) {
                 if (liteOnly && item.lite === false) continue;
                 if (direction === '1' && item.restoreOnly === true) continue;
-                process.stdout.write(item.local + '\t' + item.repo + '\t' + (item.backup ? '1' : '0') + '\n');
+                process.stdout.write(item.local + '\t' + item.repo + '\t' + (item.backup ? '1' : '0') + '\t' + (item.encoding || '') + '\t' + (item.defaultSelected === false ? '0' : '1') + '\n');
             }
         }
     " "$PROJECT_ROOT" "$direction" "${scopes[@]}"

@@ -3,9 +3,9 @@ param(
     [string]$Mirror = ''
 )
 
-$ScriptDir = Split-Path $PSScriptRoot -Parent
+$ScriptDir = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
 . (Join-Path $ScriptDir 'lib/utils.ps1')
-. (Join-Path $PSScriptRoot 'scoop-accel.ps1')
+. (Join-Path $PSScriptRoot 'accel.ps1')
 
 Assert-TargetOs windows
 

@@ -2,25 +2,25 @@
     "buckets": [
         {
             "Name": "main",
-            "Source": "https://ghfast.top/https://github.com/ScoopInstaller/Main",
+            "Source": "https://github.com/ScoopInstaller/Main",
             "Updated": "2026-08-04T21:01:24+08:00",
             "Manifests": 1618
         },
         {
             "Name": "extras",
-            "Source": "https://ghfast.top/https://github.com/ScoopInstaller/Extras",
+            "Source": "https://github.com/ScoopInstaller/Extras",
             "Updated": "2026-08-04T21:03:40+08:00",
             "Manifests": 2357
         },
         {
             "Name": "versions",
-            "Source": "https://ghfast.top/https://github.com/ScoopInstaller/Versions",
+            "Source": "https://github.com/ScoopInstaller/Versions",
             "Updated": "2026-08-04T22:44:42+08:00",
             "Manifests": 593
         },
         {
             "Name": "nerd-fonts",
-            "Source": "https://ghfast.top/https://github.com/matthewjberger/scoop-nerd-fonts",
+            "Source": "https://github.com/matthewjberger/scoop-nerd-fonts",
             "Updated": "2026-08-03T11:32:38+08:00",
             "Manifests": 367
         }

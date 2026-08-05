@@ -10,6 +10,10 @@ if ([string]::IsNullOrWhiteSpace($InstallProfile)) {
 $Repo = 'https://github.com/wwlight/use.git'
 $InstallDir = "$env:USERPROFILE\Desktop\use"
 # BEGIN GENERATED GITHUB ACCEL
+$GithubAccelIds = @(
+    'ghfast',
+    'ghproxy'
+)
 $GithubAccelPrefixes = @(
     'https://ghfast.top/',
     'https://gh-proxy.com/'
@@ -133,8 +137,27 @@ function Test-SameRemoteRepo {
   return (Normalize-RepoUrl $remote) -eq (Normalize-RepoUrl $Repo)
 }
 
+# Resolve USE_ACCEL=<id> (set by mirrored one-liners) to a known prefix.
+function Resolve-GithubAccelPrefix {
+  $accel = $env:USE_ACCEL
+  if ([string]::IsNullOrWhiteSpace($accel)) { return '' }
+  for ($i = 0; $i -lt $GithubAccelIds.Count; $i++) {
+    if ($GithubAccelIds[$i].Equals($accel, [StringComparison]::OrdinalIgnoreCase)) {
+      return $GithubAccelPrefixes[$i]
+    }
+  }
+  return ''
+}
+
 function Get-GithubRepoCandidates {
+  $preferred = Resolve-GithubAccelPrefix
+  if (-not [string]::IsNullOrWhiteSpace($preferred)) {
+    "$preferred$Repo"
+  }
   foreach ($prefix in $GithubAccelPrefixes) {
+    if (-not [string]::IsNullOrWhiteSpace($preferred) -and $prefix.Equals($preferred, [StringComparison]::OrdinalIgnoreCase)) {
+      continue
+    }
     "$prefix$Repo"
   }
   $Repo
@@ -210,7 +233,7 @@ if (Get-Command scoop -ErrorAction SilentlyContinue) {
     Write-Info 'scoop is already installed; skipping'
 }
 else {
-    & $pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/scoop-install.ps1
+    & $pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/scoop/install.ps1
     if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Package manager installation failed' }
 }
 

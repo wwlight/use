@@ -21,8 +21,8 @@ function clearPreviousFrame(output, frame) {
   else output.write('\r')
 }
 
-function createSelect({ message, choices, input, output }) {
-  let cursor = 0
+function createSelect({ message, choices, input, output, cursor: initialCursor = 0 }) {
+  let cursor = Math.min(Math.max(0, initialCursor), Math.max(0, choices.length - 1))
   let prevFrame = ''
   let state = 'active'
   /** @type {import('node:readline').Interface | undefined} */
@@ -112,6 +112,13 @@ function createSelect({ message, choices, input, output }) {
         reject(err)
         return
       }
+      else if (key.name === 'escape') {
+        close()
+        const err = new Error('Canceled')
+        err.code = 'CANCELLED'
+        reject(err)
+        return
+      }
       else {
         return
       }
@@ -135,18 +142,24 @@ export function parseChoice(raw) {
   }
 }
 
-export async function runMenuSelect({ message, choices }) {
+export async function runMenuSelect({ message, choices, initialValue }) {
   const term = openTerminal({ allowWindowsConsole: true })
   if (!term) {
     throw new Error('Could not open an interactive terminal')
   }
 
   try {
+    let cursor = 0
+    if (initialValue != null && initialValue !== '') {
+      const idx = choices.findIndex((item) => String(item.value) === String(initialValue))
+      if (idx >= 0) cursor = idx
+    }
     return await createSelect({
       message,
       choices,
       input: term.input,
       output: term.output,
+      cursor,
     })
   }
   finally {
@@ -168,7 +181,11 @@ if (isCli) {
 
   try {
     const choices = rawChoices.map(parseChoice)
-    const value = await runMenuSelect({ message, choices })
+    const value = await runMenuSelect({
+      message,
+      choices,
+      initialValue: process.env.MENU_SELECT_INITIAL,
+    })
     const text = `${String(value).trim()}\n`
     const outFile = process.env.MENU_SELECT_OUT
     if (outFile) {

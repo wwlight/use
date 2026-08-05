@@ -13,7 +13,7 @@ export function readSyncPairLines(platform, scriptsDir, direction) {
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'))
     for (const item of manifest.sync?.toRepo ?? []) {
       if (direction === '1' && item.restoreOnly === true) continue
-      lines.push(`${item.local}\t${item.repo}\t${item.backup ? '1' : '0'}\t${item.encoding ?? ''}`)
+      lines.push(`${item.local}\t${item.repo}\t${item.backup ? '1' : '0'}\t${item.encoding ?? ''}\t${item.defaultSelected === false ? '0' : '1'}`)
     }
   }
 

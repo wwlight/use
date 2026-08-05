@@ -10,11 +10,11 @@ curl -fsSL https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash
 ```
 
 ```sh
-curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash
+curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.sh | USE_ACCEL=ghfast bash
 ```
 
 ```sh
-curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash
+curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/main/install.sh | USE_ACCEL=ghproxy bash
 ```
 
 ### macos · 尝鲜版
@@ -24,11 +24,11 @@ curl -fsSL https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash 
 ```
 
 ```sh
-curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash -s -- lite
+curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.sh | USE_ACCEL=ghfast bash -s -- lite
 ```
 
 ```sh
-curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash -s -- lite
+curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/main/install.sh | USE_ACCEL=ghproxy bash -s -- lite
 ```
 
 ### macos · 完整版
@@ -38,11 +38,11 @@ curl -fsSL https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash 
 ```
 
 ```sh
-curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash -s -- full
+curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.sh | USE_ACCEL=ghfast bash -s -- full
 ```
 
 ```sh
-curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash -s -- full
+curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/main/install.sh | USE_ACCEL=ghproxy bash -s -- full
 ```
 
 ### windows · 执行策略
@@ -58,11 +58,11 @@ irm https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
 ```
 
 ```powershell
-irm https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
+$env:USE_ACCEL='ghfast'; irm https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
 ```
 
 ```powershell
-irm https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
+$env:USE_ACCEL='ghproxy'; irm https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
 ```
 
 ### windows · 尝鲜版
@@ -72,11 +72,11 @@ $env:USE_PROFILE='lite'; irm https://raw.githubusercontent.com/wwlight/use/main/
 ```
 
 ```powershell
-$env:USE_PROFILE='lite'; irm https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
+$env:USE_PROFILE='lite'; $env:USE_ACCEL='ghfast'; irm https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
 ```
 
 ```powershell
-$env:USE_PROFILE='lite'; irm https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
+$env:USE_PROFILE='lite'; $env:USE_ACCEL='ghproxy'; irm https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
 ```
 
 ### windows · 完整版
@@ -86,11 +86,11 @@ $env:USE_PROFILE='full'; irm https://raw.githubusercontent.com/wwlight/use/main/
 ```
 
 ```powershell
-$env:USE_PROFILE='full'; irm https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
+$env:USE_PROFILE='full'; $env:USE_ACCEL='ghfast'; irm https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
 ```
 
 ```powershell
-$env:USE_PROFILE='full'; irm https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
+$env:USE_PROFILE='full'; $env:USE_ACCEL='ghproxy'; irm https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
 ```
 
 
@@ -143,12 +143,12 @@ vpr zsh-plugin                    # 安装/更新 zsh 插件
 vpr git-setup                     # Git 全局配置
 ```
 
-### 其他
+### 其他命令
 
 ```sh
-npm run generate:github-accel     # 从 manifest 更新 GitHub 加速配置与 README
-npm run check:github-accel        # 检查生成内容是否需要更新
-npm test                          # 运行项目检查
+vpr generate:github-accel         # 从 manifest 更新 GitHub 加速配置与 README
+vpr check:github-accel            # 检查生成内容是否需要更新
+vpr test                          # 运行项目检查
 ```
 
 > [!TIP]
@@ -187,7 +187,6 @@ configs/macos/
 ## windows
 
 ```sh
-vpr hosts                         # 更新 GitHub hosts（需管理员）
 vpr pm                            # 安装 scoop，交互选加速镜像
 vpr pm -- ghfast                  # ghfast.top 加速镜像
 vpr pm -- ghproxy                 # gh-proxy.com 加速镜像
@@ -215,29 +214,51 @@ configs/windows/
 ├── aliases.zsh                   # windows 专属别名
 ├── pwsh5_profile.ps1             # Windows PowerShell 5 profile
 ├── pwsh7_profile.ps1             # PowerShell 7 profile
-├── scoop_backup.json             # Scoop 应用备份
-├── scoop_backup.lite.json        # 尝鲜版最小依赖
-├── scoop_services.zsh            # 扩展 scoop services（WinSW）
-├── services-manifest.json        # scoop services 服务注册配置
+├── scoop/
+│   ├── backup.json               # Scoop 应用备份
+│   ├── backup.lite.json          # 尝鲜版最小依赖
+│   ├── scoop.ps1                 # PowerShell：scoop mirror / services
+│   ├── scoop.zsh                 # zsh：scoop mirror / services
+│   └── services/
+│       └── manifest.json         # → $SCOOP/config/scoop-services/manifest.json
 ├── starship.lua                  # cmd 下 clink + starship
 └── utils.zsh                     # 自定义函数
 ```
+
 
 ### scoop mirror
 
 一键同步切换 Scoop 仓库、GitHub bucket 远端及后续安装、更新使用的下载镜像。
 
+```text
+scripts/windows/scoop/
+├── install.ps1(.sh)              # vpr pm 入口
+├── accel.ps1                     # 镜像 / aria2 / hook 编排
+├── deploy.ps1                    # 部署 scoop-mirror / scoop-services 到 $SCOOP/config
+├── lite-backup.mjs               # 生成 backup.lite.json
+├── mirror/
+│   ├── hook.ps1                  # → $SCOOP/config/scoop-mirror/hook.ps1
+│   ├── shared.ps1                # → $SCOOP/config/scoop-mirror/shared.ps1
+│   ├── manage.ps1                # → $SCOOP/config/scoop-mirror/manage.ps1
+│   ├── cli.mjs                   # → $SCOOP/config/scoop-mirror/cli.mjs
+│   └── test.mjs
+├── services/
+│   └── manage.ps1                # → $SCOOP/config/scoop-services/manage.ps1
+└── import-backup.ps1             # vpr setup：按当前镜像 import
+```
+
+运行时在 `$SCOOP/config/scoop-mirror/` 生成 `config.json`；菜单依赖同步到同目录 `lib/`。
+
 ```sh
-scoop mirror                      # 查看当前镜像
-scoop mirror list                 # 列出可用镜像
-scoop mirror ghfast               # 切换到 ghfast.top
-scoop mirror ghproxy              # 切换到 gh-proxy.com
+scoop mirror                      # 交互选择（↑↓ / Enter；Esc/Ctrl+C 取消；回车选中当前 * 则直接退出）
+scoop mirror ghfast               # 直接切换到 ghfast.top
+scoop mirror ghproxy              # 直接切换到 gh-proxy.com
 scoop mirror official             # 恢复官方源
 ```
 
 ### scoop services
 
-需先 `scoop install winsw-pre`，并配置 `services-manifest.json`。
+需先 `scoop install winsw-pre`，并配置 `configs/windows/scoop/services/manifest.json`。
 
 ```sh
 scoop services help

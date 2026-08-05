@@ -762,7 +762,7 @@
         <mpath href="#dp4" />
       </animateMotion>
     </circle>
-    <path id="dp5" d="M 440 182 L 440 194 Q 440 202 448 202 L 577 202 Q 585 202 585 210 L 585 238" class="a-emphasis"
+    <path id="dp5" d="M 440 182 L 440 194 Q 440 202 448 202 L 567 202 Q 575 202 575 210 L 575 238" class="a-emphasis"
           stroke-width="1.2" marker-end="url(#arrowhead-emphasis)" />
     <circle r="3" class="dot-emphasis">
       <animateMotion dur="2.5s" repeatCount="indefinite">
@@ -798,11 +798,11 @@
     <text x="215" y="264" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">zsh-plugin / git-setup</text>
     <text x="215" y="280" class="t-muted" font-size="9" text-anchor="middle">→ common/_dispatch</text>
 
-    <rect x="470" y="238" width="230" height="56" rx="6" class="c-mask" />
-    <rect x="470" y="238" width="230" height="56" rx="6" class="c-backend dash-flow-box" stroke-width="2"
+    <rect x="470" y="238" width="210" height="56" rx="6" class="c-mask" />
+    <rect x="470" y="238" width="210" height="56" rx="6" class="c-backend dash-flow-box" stroke-width="2"
           stroke-dasharray="4,4" />
-    <text x="585" y="264" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">zsh / git-extras / clink / hosts</text>
-    <text x="585" y="280" class="t-muted" font-size="9" text-anchor="middle">→ windows/_dispatch</text>
+    <text x="575" y="264" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">zsh / git-extras / clink</text>
+    <text x="575" y="280" class="t-muted" font-size="9" text-anchor="middle">→ windows/_dispatch</text>
 
     <!-- Connection labels -->
 

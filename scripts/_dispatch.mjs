@@ -5,7 +5,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { cleanupSyncTempFile, readSyncPairLines } from './lib/sync-pairs.mjs'
-import { writeScoopLiteBackup } from './lib/scoop-lite-backup.mjs'
+import { writeScoopLiteBackup } from './windows/scoop/lite-backup.mjs'
 import {
   SYNC_DIRECTION_EXAMPLE,
   SYNC_DIRECTION_HINT,
@@ -18,7 +18,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
 
 const CROSS_PLATFORM_TASKS = ['pm', 'init', 'backup', 'setup', 'sync', 'zsh-plugin', 'git-setup']
-const WIN_ONLY_TASKS = ['zsh', 'git-extras', 'clink', 'hosts']
+const WIN_ONLY_TASKS = ['zsh', 'git-extras', 'clink']
 const ALL_TASKS = [...CROSS_PLATFORM_TASKS, ...WIN_ONLY_TASKS]
 
 const task = process.argv[2]
@@ -72,7 +72,7 @@ function runMacBackup() {
 
 function runWinBackup() {
   const manifest = readManifest('windows')
-  const fullRel = manifest.scoopBackup || 'configs/windows/scoop_backup.json'
+  const fullRel = manifest.scoopBackup || 'configs/windows/scoop/backup.json'
 
   const exportStatus = exitStatus(spawnSync(`scoop export > ./${fullRel}`, { stdio: 'inherit', shell: true, cwd: projectRoot }))
   if (exportStatus !== 0) return exportStatus
@@ -226,11 +226,7 @@ async function runCrossPlatformTask(platform) {
         ], { stdio: 'inherit', cwd: projectRoot }))
       }
       {
-        const manifest = readManifest('windows')
-        const scoopBackup = manifest.scoopBackup || 'configs/windows/scoop_backup.json'
-        return exitStatus(spawnSync('scoop', [
-          'import', `./${scoopBackup}`,
-        ], { stdio: 'inherit', cwd: projectRoot, shell: true }))
+        return runSubDispatch('windows/_dispatch.mjs', 'scoop-import', scriptArgs)
       }
     case 'sync':
       return runUnifiedSync(platform, scriptArgs)
@@ -246,7 +242,6 @@ function runWinOnlyTask() {
   switch (task) {
     case 'zsh':
     case 'git-extras':
-    case 'hosts':
     case 'clink':
       return runSubDispatch('windows/_dispatch.mjs', task, scriptArgs)
     default:

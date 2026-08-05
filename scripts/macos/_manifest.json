@@ -31,7 +31,7 @@
       { "local": "~/.bashrc", "repo": "configs/macos/.bashrc" },
       { "local": "~/.zsh/functions/utils.zsh", "repo": "configs/macos/utils.zsh" },
       { "local": "~/.config/ghostty/config", "repo": "configs/macos/ghostty_config" },
-      { "local": "~/Library/Application Support/mihomo-party/mihomo.yaml", "repo": "configs/common/mihomo.yaml", "lite": false }
+      { "local": "~/Library/Application Support/mihomo-party/mihomo.yaml", "repo": "configs/common/mihomo.yaml", "lite": false, "defaultSelected": false }
     ]
   },
   "zprofile": "~/.zprofile"

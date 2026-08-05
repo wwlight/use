@@ -63,6 +63,9 @@ function replaceBlock(content, markers, body, relativePath) {
 
 function shellConfig(mirrors) {
   return [
+    'GITHUB_ACCEL_IDS=(',
+    ...mirrors.map(({ id }) => `  "${id}"`),
+    ')',
     'GITHUB_ACCEL_PREFIXES=(',
     ...mirrors.map(({ prefix }) => `  "${prefix}"`),
     ')',
@@ -71,6 +74,9 @@ function shellConfig(mirrors) {
 
 function powershellConfig(mirrors) {
   return [
+    '$GithubAccelIds = @(',
+    ...mirrors.map(({ id }, index) => `    '${id}'${index < mirrors.length - 1 ? ',' : ''}`),
+    ')',
     '$GithubAccelPrefixes = @(',
     ...mirrors.map(({ prefix }, index) => `    '${prefix}'${index < mirrors.length - 1 ? ',' : ''}`),
     ')',
@@ -90,9 +96,26 @@ function codeBlock(language, command) {
 }
 
 function commandVariants(officialUrl, mirrors, format) {
-  return [officialUrl, ...mirrors.map(({ prefix }) => `${prefix}${officialUrl}`)]
-    .map((url) => codeBlock(format.language, format.command(url)))
+  return [
+    { url: officialUrl, accel: null },
+    ...mirrors.map(({ id, prefix }) => ({ url: `${prefix}${officialUrl}`, accel: id })),
+  ]
+    .map(({ url, accel }) => codeBlock(format.language, format.command(url, accel)))
     .join('\n\n')
+}
+
+function shInstallCommand(url, accel, profile) {
+  const args = profile ? ` -s -- ${profile}` : ''
+  if (!accel) return `curl -fsSL ${url} | bash${args}`
+  return `curl -fsSL ${url} | USE_ACCEL=${accel} bash${args}`
+}
+
+function psInstallCommand(url, accel, profile) {
+  const parts = []
+  if (profile) parts.push(`$env:USE_PROFILE='${profile}'`)
+  if (accel) parts.push(`$env:USE_ACCEL='${accel}'`)
+  parts.push(`irm ${url} | iex`)
+  return parts.join('; ')
 }
 
 function readmeDocs(mirrors) {
@@ -105,21 +128,21 @@ function readmeDocs(mirrors) {
     '',
     commandVariants(`${useBase}/install.sh`, mirrors, {
       language: 'sh',
-      command: (url) => `curl -fsSL ${url} | bash`,
+      command: (url, accel) => shInstallCommand(url, accel, null),
     }),
     '',
     '### macos · 尝鲜版',
     '',
     commandVariants(`${useBase}/install.sh`, mirrors, {
       language: 'sh',
-      command: (url) => `curl -fsSL ${url} | bash -s -- lite`,
+      command: (url, accel) => shInstallCommand(url, accel, 'lite'),
     }),
     '',
     '### macos · 完整版',
     '',
     commandVariants(`${useBase}/install.sh`, mirrors, {
       language: 'sh',
-      command: (url) => `curl -fsSL ${url} | bash -s -- full`,
+      command: (url, accel) => shInstallCommand(url, accel, 'full'),
     }),
     '',
     '### windows · 执行策略',
@@ -130,21 +153,21 @@ function readmeDocs(mirrors) {
     '',
     commandVariants(`${useBase}/install.ps1`, mirrors, {
       language: 'powershell',
-      command: (url) => `irm ${url} | iex`,
+      command: (url, accel) => psInstallCommand(url, accel, null),
     }),
     '',
     '### windows · 尝鲜版',
     '',
     commandVariants(`${useBase}/install.ps1`, mirrors, {
       language: 'powershell',
-      command: (url) => `$env:USE_PROFILE='lite'; irm ${url} | iex`,
+      command: (url, accel) => psInstallCommand(url, accel, 'lite'),
     }),
     '',
     '### windows · 完整版',
     '',
     commandVariants(`${useBase}/install.ps1`, mirrors, {
       language: 'powershell',
-      command: (url) => `$env:USE_PROFILE='full'; irm ${url} | iex`,
+      command: (url, accel) => psInstallCommand(url, accel, 'full'),
     }),
     '',
     '',

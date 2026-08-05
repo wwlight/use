@@ -1,0 +1,494 @@
+#!/usr/bin/env node
+/**
+ * Scoop mirror Node CLI (deployed to $SCOOP/config/scoop-mirror/cli.mjs).
+ *
+ * Usage:
+ *   node cli.mjs <clean|smudge>              # git filter (stdin/stdout)
+ *   node cli.mjs repair                      # install/refresh download.ps1 hook
+ *   node cli.mjs switch [<name>|official]    # switch mirror (interactive if omitted)
+ *   node cli.mjs menu <title> <choice>...    # interactive ↑↓ select
+ */
+import { Buffer } from 'node:buffer'
+import { spawnSync } from 'node:child_process'
+import fs from 'node:fs'
+import path from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
+
+const here = path.dirname(fileURLToPath(import.meta.url))
+const HOOK_REL = path.join('config', 'scoop-mirror', 'hook.ps1')
+
+const MARKERS = [
+  // Longer legacy marker must be stripped before the shorter current marker.
+  {
+    begin: Buffer.from('# >>> scoop-mirror-accel'),
+    end: Buffer.from('# <<< scoop-mirror-accel'),
+  },
+  {
+    begin: Buffer.from('# >>> scoop-mirror'),
+    end: Buffer.from('# <<< scoop-mirror'),
+  },
+]
+
+const hookSnippet = Buffer.from(
+  `\n# >>> scoop-mirror\n. "$env:SCOOP\\config\\scoop-mirror\\hook.ps1"\n# <<< scoop-mirror\n`,
+)
+
+function findByteSequence(bytes, sequence, start = 0) {
+  if (sequence.length === 0) return start
+  outer: for (let i = start; i <= bytes.length - sequence.length; i++) {
+    for (let j = 0; j < sequence.length; j++) {
+      if (bytes[i + j] !== sequence[j]) continue outer
+    }
+    return i
+  }
+  return -1
+}
+
+function removeOneHook(bytes, begin, end) {
+  const beginAt = findByteSequence(bytes, begin)
+  if (beginAt < 0) return bytes
+  let endAt = findByteSequence(bytes, end, beginAt)
+  if (endAt < 0) throw new Error('Incomplete Scoop mirror hook markers')
+
+  let start = beginAt
+  if (start > 0 && bytes[start - 1] === 10) {
+    start -= 1
+    if (start > 0 && bytes[start - 1] === 13) start -= 1
+  }
+  endAt += end.length
+  if (endAt < bytes.length && bytes[endAt] === 13) endAt += 1
+  if (endAt < bytes.length && bytes[endAt] === 10) endAt += 1
+  return Buffer.concat([bytes.subarray(0, start), bytes.subarray(endAt)])
+}
+
+function removeHook(bytes) {
+  let current = bytes
+  for (const marker of MARKERS) {
+    current = removeOneHook(current, marker.begin, marker.end)
+  }
+  return current
+}
+
+function addHook(bytes) {
+  const currentBegin = Buffer.from('# >>> scoop-mirror')
+  if (findByteSequence(bytes, currentBegin) >= 0) return bytes
+  return Buffer.concat([removeHook(bytes), hookSnippet])
+}
+
+function buffersEqual(left, right) {
+  if (left.length !== right.length) return false
+  return left.compare(right) === 0
+}
+
+function legacyLineEndingDamage(current, tracked) {
+  const normalize = (buf) => {
+    let text = buf.toString('utf8')
+    if (text.charCodeAt(0) === 0xfeff) text = text.slice(1)
+    return text.replace(/\r\n/g, '\n')
+  }
+  try {
+    return normalize(current) === normalize(tracked)
+  }
+  catch {
+    return false
+  }
+}
+
+function runGit(repo, args, options = {}) {
+  const result = spawnSync('git.exe', ['-C', repo, ...args], {
+    encoding: options.encoding ?? 'utf8',
+    maxBuffer: options.maxBuffer ?? 32 * 1024 * 1024,
+    stdio: options.stdio ?? ['ignore', 'pipe', 'pipe'],
+  })
+  if (result.error) throw result.error
+  return result
+}
+
+function gitBlob(repo, object) {
+  const result = runGit(repo, ['cat-file', 'blob', object], {
+    encoding: 'buffer',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  if (result.status !== 0) {
+    const err = result.stderr?.toString('utf8') || 'unknown error'
+    throw new Error(`Could not read Scoop's tracked download.ps1: ${err}`)
+  }
+  return Buffer.from(result.stdout)
+}
+
+function quoteForGitFilter(filePath) {
+  return `"${filePath.replace(/\\/g, '/')}"`
+}
+
+function repairHook() {
+  const scoop = process.env.SCOOP
+  if (!scoop || !scoop.trim()) throw new Error('SCOOP environment variable is not set')
+
+  const selfPath = fileURLToPath(import.meta.url)
+  const helper = path.join(scoop, HOOK_REL)
+  const scoopRepo = path.join(scoop, 'apps', 'scoop', 'current')
+  const download = path.join(scoopRepo, 'lib', 'download.ps1')
+
+  if (!fs.existsSync(helper)) throw new Error(`Scoop mirror hook not found: ${helper}`)
+  if (!fs.existsSync(path.join(scoopRepo, '.git'))) throw new Error(`Scoop Git repository not found: ${scoopRepo}`)
+  if (!fs.existsSync(download)) throw new Error(`Scoop download.ps1 not found: ${download}`)
+
+  const nodePath = process.execPath
+  const clean = `${quoteForGitFilter(nodePath)} ${quoteForGitFilter(selfPath)} clean`
+  const smudge = `${quoteForGitFilter(nodePath)} ${quoteForGitFilter(selfPath)} smudge`
+
+  for (const [key, value] of [
+    ['filter.scoop-mirror.clean', clean],
+    ['filter.scoop-mirror.smudge', smudge],
+    ['filter.scoop-mirror.required', 'true'],
+  ]) {
+    const result = runGit(scoopRepo, ['config', '--local', key, value])
+    if (result.status !== 0) throw new Error(`Could not configure ${key}`)
+  }
+
+  const attributes = path.join(scoopRepo, '.git', 'info', 'attributes')
+  const attributeLine = 'lib/download.ps1 filter=scoop-mirror -text'
+  let lines = []
+  if (fs.existsSync(attributes)) {
+    lines = fs.readFileSync(attributes, 'utf8')
+      .split(/\r?\n/)
+      .filter((line) => line.length > 0)
+      .filter((line) => !/^\s*lib\/download\.ps1\s+.*filter=scoop-mirror(-accel)?\b/.test(line))
+  }
+  lines.push(attributeLine)
+  fs.mkdirSync(path.dirname(attributes), { recursive: true })
+  fs.writeFileSync(attributes, `${lines.join('\n')}\n`, 'utf8')
+
+  const tracked = gitBlob(scoopRepo, ':lib/download.ps1')
+  const current = fs.readFileSync(download)
+  const currentWithoutHook = removeHook(current)
+  if (!buffersEqual(currentWithoutHook, tracked) && !legacyLineEndingDamage(currentWithoutHook, tracked)) {
+    throw new Error('Scoop lib/download.ps1 contains changes unrelated to the mirror hook; refusing to overwrite them')
+  }
+
+  fs.writeFileSync(download, addHook(tracked))
+
+  const before = runGit(scoopRepo, ['rev-parse', '--verify', ':lib/download.ps1'])
+  const indexObjectBefore = String(before.stdout || '').trim()
+  if (before.status !== 0 || !indexObjectBefore) {
+    throw new Error('Could not read the Scoop download.ps1 index object')
+  }
+
+  const refresh = runGit(scoopRepo, ['update-index', '--add', '--', 'lib/download.ps1'])
+  const after = runGit(scoopRepo, ['rev-parse', '--verify', ':lib/download.ps1'])
+  const indexObjectAfter = String(after.stdout || '').trim()
+  if (refresh.status !== 0) throw new Error('Could not refresh the Scoop download.ps1 index metadata')
+  if (after.status !== 0 || indexObjectAfter !== indexObjectBefore) {
+    throw new Error('Scoop download.ps1 index object changed while refreshing metadata')
+  }
+
+  const status = runGit(scoopRepo, ['status', '--porcelain', '--untracked-files=no'])
+  if (status.status !== 0) throw new Error('Could not verify the Scoop Git worktree')
+  const dirty = String(status.stdout || '').trim()
+  if (dirty) {
+    throw new Error(`Scoop has unrelated tracked changes; refusing to start a package operation:\n${dirty}`)
+  }
+}
+
+async function loadMenuModule() {
+  const candidates = [
+    path.join(here, 'lib', 'menu-select.mjs'),
+    path.resolve(here, '../../../lib/menu-select.mjs'),
+  ]
+  for (const candidate of candidates) {
+    if (fs.existsSync(candidate)) {
+      return import(pathToFileURL(candidate).href)
+    }
+  }
+  throw new Error('menu-select.mjs not found next to scoop-mirror/cli.mjs (re-run vpr pm / sync)')
+}
+
+async function runMenuCli(args) {
+  const message = args[0]
+  const rawChoices = args.slice(1)
+  if (!message || rawChoices.length === 0) {
+    console.error('Usage: node cli.mjs menu <title> <value) description> [value) description ...]')
+    process.exit(2)
+  }
+
+  const { parseChoice, runMenuSelect } = await loadMenuModule()
+  const choices = rawChoices.map(parseChoice)
+  const value = await runMenuSelect({
+    message,
+    choices,
+    initialValue: process.env.MENU_SELECT_INITIAL,
+  })
+  const text = `${String(value).trim()}\n`
+  const outFile = process.env.MENU_SELECT_OUT
+  if (outFile) fs.writeFileSync(outFile, text, 'utf8')
+  else process.stdout.write(text)
+}
+
+function normalizePrefix(prefix) {
+  const value = String(prefix || '').trim()
+  if (!value) return ''
+  return value.endsWith('/') ? value : `${value}/`
+}
+
+function loadMirrorConfig(configPath) {
+  const raw = JSON.parse(fs.readFileSync(configPath, 'utf8'))
+  const prefixes = []
+  for (const item of raw.mirrorPrefix || []) {
+    const p = normalizePrefix(item)
+    if (p && !prefixes.includes(p)) prefixes.push(p)
+  }
+
+  let mirrors = (raw.mirrors || [])
+    .map((item) => ({
+      id: String(item.id || '').trim(),
+      prefix: normalizePrefix(item.prefix),
+    }))
+    .filter((item) => item.id && item.prefix)
+
+  if (mirrors.length === 0) {
+    mirrors = prefixes.map((prefix) => {
+      let id = prefix
+      try {
+        id = new URL(prefix).hostname.split('.')[0].replace(/[^A-Za-z0-9]/g, '') || prefix
+      }
+      catch { /* keep prefix */ }
+      return { id, prefix }
+    })
+  }
+
+  let activePrefix = ''
+  if (Object.prototype.hasOwnProperty.call(raw, 'activePrefix')) {
+    activePrefix = normalizePrefix(raw.activePrefix)
+  }
+  else if (prefixes.length > 0) {
+    activePrefix = prefixes[0]
+  }
+
+  return {
+    prefixes,
+    mirrors,
+    activePrefix,
+    githubHosts: [...(raw.githubHosts || [])],
+    scoopRepo: String(raw.scoopRepo || '').trim(),
+    configPath,
+    raw,
+  }
+}
+
+function stripMirrorPrefix(url, prefixes) {
+  for (const prefix of prefixes) {
+    if (url.toLowerCase().startsWith(prefix.toLowerCase())) {
+      return url.slice(prefix.length)
+    }
+  }
+  return url
+}
+
+function isGithubHost(url, hosts) {
+  try {
+    return hosts.includes(new URL(url).hostname)
+  }
+  catch {
+    return false
+  }
+}
+
+function mirrorId(prefix, config) {
+  if (!prefix) return 'official'
+  for (const mirror of config.mirrors) {
+    if (mirror.prefix === prefix || mirror.prefix.replace(/\/$/, '') === prefix.replace(/\/$/, '')) {
+      return mirror.id
+    }
+  }
+  return prefix
+}
+
+function resolveMirrorChoice(choice, config) {
+  const value = String(choice || '').trim()
+  if (value === 'official') return ''
+  for (const mirror of config.mirrors) {
+    if (
+      mirror.id === value
+      || mirror.prefix === value
+      || mirror.prefix.replace(/\/$/, '') === value.replace(/\/$/, '')
+    ) {
+      return mirror.prefix
+    }
+  }
+  throw new Error(`Unknown Scoop mirror '${choice}'. Run 'scoop mirror' to see available mirrors.`)
+}
+
+function runScoop(args) {
+  const result = spawnSync('scoop', args, {
+    encoding: 'utf8',
+    shell: true,
+    stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  if (result.error) throw result.error
+  return result
+}
+
+function getUpstreamRepo(config) {
+  if (config.scoopRepo) return config.scoopRepo
+  const result = runScoop(['config', 'scoop_repo'])
+  const repo = String(result.stdout || '').trim()
+  if (result.status !== 0 || !repo) return 'https://github.com/ScoopInstaller/Scoop'
+  return stripMirrorPrefix(repo, config.prefixes)
+}
+
+function setBucketRemotes(activePrefix, config) {
+  const scoop = process.env.SCOOP
+  const bucketsRoot = path.join(scoop, 'buckets')
+  if (!fs.existsSync(bucketsRoot)) return
+
+  for (const entry of fs.readdirSync(bucketsRoot, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue
+    const bucketPath = path.join(bucketsRoot, entry.name)
+    if (!fs.existsSync(path.join(bucketPath, '.git'))) continue
+
+    const originResult = runGit(bucketPath, ['remote', 'get-url', 'origin'])
+    const origin = String(originResult.stdout || '').trim()
+    if (originResult.status !== 0 || !origin) continue
+
+    const bare = stripMirrorPrefix(origin, config.prefixes)
+    if (!isGithubHost(bare, config.githubHosts)) continue
+    const target = activePrefix ? activePrefix + bare : bare
+    if (target === origin) continue
+
+    const setResult = runGit(bucketPath, ['remote', 'set-url', 'origin', target])
+    if (setResult.status !== 0) {
+      throw new Error(`Could not switch bucket '${entry.name}' to ${target}`)
+    }
+  }
+}
+
+function writeActivePrefix(config, activePrefix) {
+  const next = { ...config.raw, activePrefix }
+  fs.writeFileSync(config.configPath, `${JSON.stringify(next, null, 2)}\n`, 'utf8')
+}
+
+function printMirrorStatus(config) {
+  const activeId = mirrorId(config.activePrefix, config)
+  const activeLabel = activeId === 'official'
+    ? 'official'
+    : `${activeId} (${config.activePrefix})`
+  console.log(`Active mirror: ${activeLabel}`)
+  const repoResult = runScoop(['config', 'scoop_repo'])
+  const repo = String(repoResult.stdout || '').trim()
+  if (repoResult.status === 0 && repo) console.log(`Scoop repo:    ${repo}`)
+  console.log('Download rule: selected mirror -> other mirrors -> official; non-GitHub URLs use direct')
+}
+
+function switchMirror(choice, config) {
+  const activePrefix = resolveMirrorChoice(choice, config)
+  const upstreamRepo = getUpstreamRepo(config)
+  const repo = activePrefix ? activePrefix + upstreamRepo : upstreamRepo
+
+  const setRepo = runScoop(['config', 'scoop_repo', repo])
+  if (setRepo.status !== 0) {
+    const detail = String(setRepo.stderr || setRepo.stdout || '').trim()
+    throw new Error(detail || `Could not set Scoop repo to ${repo}`)
+  }
+
+  setBucketRemotes(activePrefix, config)
+  writeActivePrefix(config, activePrefix)
+
+  const next = { ...config, activePrefix }
+  const id = mirrorId(activePrefix, next)
+  console.log(`Scoop mirror switched to ${id}`)
+  printMirrorStatus(next)
+}
+
+async function selectMirrorInteractively(config) {
+  const { parseChoice, runMenuSelect } = await loadMenuModule()
+  const ids = [...config.mirrors.map((m) => m.id), 'official']
+  const pad = Math.max(...ids.map((id) => id.length))
+  const items = []
+  for (const mirror of config.mirrors) {
+    const mark = mirror.prefix === config.activePrefix ? '* ' : '  '
+    items.push(`${mirror.id.padEnd(pad)}) ${mark}${mirror.prefix}`)
+  }
+  const officialMark = config.activePrefix ? '  ' : '* '
+  items.push(`${'official'.padEnd(pad)}) ${officialMark}https://github.com/ScoopInstaller/Scoop`)
+
+  return runMenuSelect({
+    message: 'Choose a Scoop mirror',
+    choices: items.map(parseChoice),
+    initialValue: mirrorId(config.activePrefix, config),
+  })
+}
+
+async function runSwitchCli(choiceArg) {
+  const scoop = process.env.SCOOP
+  if (!scoop?.trim()) throw new Error('SCOOP environment variable is not set')
+
+  const configPath = path.join(scoop, 'config', 'scoop-mirror', 'config.json')
+  if (!fs.existsSync(configPath)) {
+    throw new Error(`Scoop mirror config not found at ${configPath}`)
+  }
+
+  const config = loadMirrorConfig(configPath)
+  let choice = String(choiceArg || '').trim()
+
+  if (['-h', '--help', 'help'].includes(choice)) {
+    console.log('Usage: scoop mirror [<name>|official]')
+    console.log('')
+    console.log('  (no args)        interactive select (↑↓ / Enter; Esc or Ctrl+C cancel; Enter on * exits; * = active)')
+    console.log('  <name>|official  switch directly')
+    return
+  }
+
+  if (!choice) {
+    try {
+      choice = await selectMirrorInteractively(config)
+    }
+    catch (err) {
+      if (err?.code === 'CANCELLED') {
+        console.log('Canceled')
+        throw err
+      }
+      throw err
+    }
+    // Same as active: exit quietly (like Esc, but without "Canceled").
+    if (choice === mirrorId(config.activePrefix, config)) return
+  }
+
+  switchMirror(choice, config)
+}
+
+async function readStdin() {
+  const chunks = []
+  for await (const chunk of process.stdin) chunks.push(chunk)
+  return Buffer.concat(chunks)
+}
+
+const mode = process.argv[2]
+try {
+  if (mode === 'repair') {
+    repairHook()
+    process.exit(0)
+  }
+  if (mode === 'switch') {
+    await runSwitchCli(process.argv[3] || '')
+    process.exit(0)
+  }
+  if (mode === 'menu') {
+    await runMenuCli(process.argv.slice(3))
+    process.exit(0)
+  }
+
+  const input = await readStdin()
+  let output
+  if (mode === 'clean') output = removeHook(input)
+  else if (mode === 'smudge') output = addHook(input)
+  else {
+    console.error('Usage: node cli.mjs <clean|smudge|repair|switch|menu>')
+    process.exit(2)
+  }
+  process.stdout.write(output)
+}
+catch (err) {
+  if (err?.code === 'CANCELLED') process.exit(130)
+  console.error(err?.message || err)
+  process.exit(1)
+}

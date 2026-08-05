@@ -9,9 +9,8 @@
   "gitExtras": {
     "repo": "https://github.com/tj/git-extras.git"
   },
-  "githubHostsUrl": "https://raw.hellogithub.com/hosts",
-  "scoopBackup": "configs/windows/scoop_backup.json",
-  "scoopBackupLite": "configs/windows/scoop_backup.lite.json",
+  "scoopBackup": "configs/windows/scoop/backup.json",
+  "scoopBackupLite": "configs/windows/scoop/backup.lite.json",
   "profileArtifacts": {
     "lite": "scoopBackupLite",
     "full": "scoopBackup"
@@ -54,10 +53,17 @@
       { "local": "~/.bashrc", "repo": "configs/windows/.bashrc" },
       { "local": "~/.zsh/functions/utils.zsh", "repo": "configs/windows/utils.zsh" },
       { "local": "~/.zsh/functions/aliases.win.zsh", "repo": "configs/windows/aliases.zsh" },
-      { "local": "~/.zsh/functions/scoop_services.zsh", "repo": "configs/windows/scoop_services.zsh" },
-      { "local": "D:/SoftwareApps/Scoop/config/services-manifest.json", "repo": "configs/windows/services-manifest.json" },
-      { "local": "D:/SoftwareApps/Scoop/config/mirror-accel.ps1", "repo": "scripts/windows/mirror-accel.ps1", "restoreOnly": true, "encoding": "utf8Bom" },
-      { "local": "D:/SoftwareApps/Scoop/persist/clash-party/data/mihomo.yaml", "repo": "configs/common/mihomo.yaml", "lite": false },
+      { "local": "~/.zsh/functions/scoop.zsh", "repo": "configs/windows/scoop/scoop.zsh" },
+      { "local": "D:/SoftwareApps/Scoop/config/scoop.ps1", "repo": "configs/windows/scoop/scoop.ps1", "restoreOnly": true, "encoding": "utf8Bom" },
+      { "local": "D:/SoftwareApps/Scoop/config/scoop-services/manifest.json", "repo": "configs/windows/scoop/services/manifest.json" },
+      { "local": "D:/SoftwareApps/Scoop/config/scoop-services/manage.ps1", "repo": "scripts/windows/scoop/services/manage.ps1", "restoreOnly": true, "encoding": "utf8Bom" },
+      { "local": "D:/SoftwareApps/Scoop/config/scoop-mirror/hook.ps1", "repo": "scripts/windows/scoop/mirror/hook.ps1", "restoreOnly": true, "encoding": "utf8Bom" },
+      { "local": "D:/SoftwareApps/Scoop/config/scoop-mirror/shared.ps1", "repo": "scripts/windows/scoop/mirror/shared.ps1", "restoreOnly": true, "encoding": "utf8Bom" },
+      { "local": "D:/SoftwareApps/Scoop/config/scoop-mirror/manage.ps1", "repo": "scripts/windows/scoop/mirror/manage.ps1", "restoreOnly": true, "encoding": "utf8Bom" },
+      { "local": "D:/SoftwareApps/Scoop/config/scoop-mirror/cli.mjs", "repo": "scripts/windows/scoop/mirror/cli.mjs", "restoreOnly": true },
+      { "local": "D:/SoftwareApps/Scoop/config/scoop-mirror/lib/menu-select.mjs", "repo": "scripts/lib/menu-select.mjs", "restoreOnly": true },
+      { "local": "D:/SoftwareApps/Scoop/config/scoop-mirror/lib/tty-term.mjs", "repo": "scripts/lib/tty-term.mjs", "restoreOnly": true },
+      { "local": "D:/SoftwareApps/Scoop/persist/clash-party/data/mihomo.yaml", "repo": "configs/common/mihomo.yaml", "lite": false, "defaultSelected": false },
       { "local": "~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1", "repo": "configs/windows/pwsh5_profile.ps1", "backup": true },
       { "local": "~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1", "repo": "configs/windows/pwsh7_profile.ps1", "backup": true }
     ]
