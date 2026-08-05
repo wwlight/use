@@ -16,7 +16,7 @@
     "hosts": "node ./scripts/_dispatch.mjs hosts",
     "generate:github-accel": "node ./scripts/lib/generate-github-accel.mjs",
     "check:github-accel": "node ./scripts/lib/generate-github-accel.mjs --check",
-    "test": "node ./scripts/lib/menu-select.test.mjs && node ./scripts/lib/manifest-config.test.mjs && npm run check:github-accel"
+    "test": "node ./scripts/lib/menu-select.test.mjs && node ./scripts/lib/manifest-config.test.mjs && node ./scripts/windows/scoop-mirror.test.mjs && npm run check:github-accel"
   },
   "author": "wwlight",
   "license": "ISC",

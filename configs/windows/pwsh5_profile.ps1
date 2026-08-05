@@ -76,6 +76,17 @@ function _scoop_prepare_package_operation {
   & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p -PrepareCommand
 }
 
+function _scoop_manage_mirror {
+  param([string]$Choice = '')
+  $p = "$env:SCOOP\config\mirror-accel.ps1"
+  if (-not (Test-Path $p)) {
+    $host.ui.WriteErrorLine("scoop: mirror helper not found at $p")
+    $global:LASTEXITCODE = 1
+    return
+  }
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p -ManageMirror -MirrorChoice $Choice
+}
+
 function scoop {
   if (-not $env:SCOOP) {
     $host.ui.WriteErrorLine('scoop: $env:SCOOP is not set')
@@ -83,6 +94,16 @@ function scoop {
     return
   }
   if ($args.Count -ge 1) {
+    if ($args[0] -eq 'mirror') {
+      if ($args.Count -gt 2) {
+        $host.ui.WriteErrorLine('Usage: scoop mirror [status|list|<name>|official]')
+        $global:LASTEXITCODE = 1
+        return
+      }
+      $choice = if ($args.Count -eq 2) { [string]$args[1] } else { '' }
+      _scoop_manage_mirror -Choice $choice
+      return
+    }
     if ($args[0] -eq 'uninstall') {
       foreach ($app in (_scoop_apps @args)) {
         $cfg = (_scoop_load_manifest).$app
