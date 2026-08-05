@@ -1,5 +1,6 @@
 # 个人配置
 
+<!-- BEGIN GENERATED GITHUB ACCEL DOCS -->
 ## 一键安装
 
 ### macos · 交互选择
@@ -93,7 +94,6 @@ $env:USE_PROFILE='full'; irm https://gh-proxy.com/https://raw.githubusercontent.
 ```
 
 
-
 ## 安装 [vite.plus](https://viteplus.dev/)
 
 仓库：https://github.com/voidzero-dev/vite-plus
@@ -125,8 +125,7 @@ irm https://ghfast.top/https://raw.githubusercontent.com/voidzero-dev/vite-plus/
 ```powershell
 irm https://gh-proxy.com/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.ps1 | iex
 ```
-
-
+<!-- END GENERATED GITHUB ACCEL DOCS -->
 
 ## 通用命令
 
@@ -142,6 +141,14 @@ vpr sync 1                        # 备份配置 → 仓库
 vpr sync 2                        # 恢复配置 → 本地
 vpr zsh-plugin                    # 安装/更新 zsh 插件
 vpr git-setup                     # Git 全局配置
+```
+
+### 其他
+
+```sh
+npm run generate:github-accel     # 从 manifest 更新 GitHub 加速配置与 README
+npm run check:github-accel        # 检查生成内容是否需要更新
+npm test                          # 运行项目检查
 ```
 
 > [!TIP]
@@ -247,9 +254,10 @@ scoop hold clink                  # 禁止更新
 
 ```text
 configs/common/
-├── _eza                          # eza 补全
 ├── .zshrc_core                   # macos / windows 公共核心 zsh
+├── _eza                          # eza 补全（只恢复）
 ├── aliases.zsh                   # 公共别名
+├── github-accel.zsh              # GitHub 加速函数（生成，只恢复）
 ├── mihomo.yaml                   # Mihomo 配置
 ├── opencode.jsonc                # OpenCode 配置
 └── starship.toml                 # starship 配置

@@ -1,8 +1,10 @@
 # GitHub 加速（与 scripts/common/_manifest.json → githubAccel 保持一致）
+# BEGIN GENERATED GITHUB ACCEL
 typeset -ga GITHUB_ACCEL_MIRRORS=(
   'https://ghfast.top/'
   'https://gh-proxy.com/'
 )
+# END GENERATED GITHUB ACCEL
 
 _github_accel_strip() {
   local url="$1" p
