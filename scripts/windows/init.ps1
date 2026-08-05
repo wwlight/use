@@ -101,13 +101,21 @@ function Install-OrRestoreScoop {
         Write-ErrorAndExit 'Scoop is not installed. Run: vpr pm'
     }
 
+    $gitInitiallyAvailable = [bool](Get-Command git.exe -ErrorAction SilentlyContinue)
+
     . (Join-Path $PSScriptRoot 'scoop-accel.ps1')
     Enable-ScoopAccel -Manifest $manifest
 
     if (Test-Path $scoopBackup) {
         Write-Info "Restoring dependencies from $(Split-Path $scoopBackup -Leaf)..."
+        Assert-ScoopWorktreeClean
         scoop import $scoopBackup
         if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Scoop app restore failed!' }
+        if (-not $gitInitiallyAvailable) {
+            # Git may have been installed by the import, so retry the hook/filter
+            # setup that Enable-ScoopAccel had to defer.
+            Install-ScoopDownloadHook
+        }
     }
     else {
         Write-ErrorAndExit "Scoop backup file not found: $scoopBackup"

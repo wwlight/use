@@ -1,4 +1,4 @@
-# scoop services（winsw）
+# Scoop services (WinSW)
 winsw() {
   if (( $# >= 2 )); then
     [[ -n "$SCOOP" ]] || { echo "winsw: \$SCOOP is not set" >&2; return 1 }
@@ -25,8 +25,23 @@ _scoop_ensure_mirror_accel() {
   powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$p" -RepairHook
 }
 
+_scoop_prepare_package_operation() {
+  local p="${SCOOP}/config/mirror-accel.ps1"
+  [[ -f "$p" ]] || {
+    echo "scoop: mirror preflight helper not found at $p" >&2
+    return 1
+  }
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$p" -PrepareCommand
+}
+
 scoop() {
   [[ -n "$SCOOP" ]] || { echo "scoop: \$SCOOP is not set" >&2; return 1 }
+  if [[ "$1" == "update" || "$1" == "install" || "$1" == "import" ]]; then
+    _scoop_prepare_package_operation || {
+      echo "scoop: package operation aborted because the Scoop worktree is not clean" >&2
+      return 1
+    }
+  fi
 
   if [[ "$1" == "uninstall" ]]; then
     for app in $(_scoop_apps_from "${@:2}"); do

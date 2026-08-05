@@ -30,7 +30,7 @@ function gc {
 function reload { . $PROFILE }
 function oc { opencode @args }
 
-# scoop services（winsw）
+# Scoop services (WinSW)
 $__scoop = "$env:SCOOP\shims\scoop.ps1"
 
 function winsw {
@@ -66,6 +66,16 @@ function _scoop_ensure_mirror_accel {
   & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p -RepairHook
 }
 
+function _scoop_prepare_package_operation {
+  $p = "$env:SCOOP\config\mirror-accel.ps1"
+  if (-not (Test-Path $p)) {
+    $host.ui.WriteErrorLine("scoop: mirror preflight helper not found at $p")
+    $global:LASTEXITCODE = 1
+    return
+  }
+  & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $p -PrepareCommand
+}
+
 function scoop {
   if (-not $env:SCOOP) {
     $host.ui.WriteErrorLine('scoop: $env:SCOOP is not set')
@@ -97,12 +107,21 @@ function scoop {
       return
     }
   }
+  if ($args.Count -ge 1 -and $args[0] -in @('update', 'install', 'import')) {
+    _scoop_prepare_package_operation
+    if ($LASTEXITCODE -ne 0) {
+      $host.ui.WriteErrorLine('scoop: package operation aborted because the Scoop worktree is not clean')
+      $global:LASTEXITCODE = 1
+      return
+    }
+  }
   & $__scoop @args
   $ec = $LASTEXITCODE
   if ($args.Count -ge 1 -and $args[0] -eq 'update') {
     _scoop_ensure_mirror_accel
   }
   $global:LASTEXITCODE = $ec
+  return
 }
 
 function _scoop_apps {
