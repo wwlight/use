@@ -5,65 +5,65 @@ Assert-TargetOs windows
 
 $manifest = Read-Manifest
 
-Write-Step '步骤1/4: 检查 scoop 安装...'
+Write-Step 'Step 1/4: Checking Scoop installation...'
 if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
-    Write-ErrorAndExit '未检测到 scoop 安装，请先安装 scoop'
+    Write-ErrorAndExit 'Scoop is not installed; install Scoop first'
 }
-Write-Info 'scoop 已安装'
+Write-Info 'Scoop is installed'
 
-Write-Step '步骤2/4: 检查 clink 安装...'
+Write-Step 'Step 2/4: Checking Clink installation...'
 if (-not (Get-Command clink -ErrorAction SilentlyContinue)) {
-    Write-Warn '未检测到 clink，正在通过 scoop 安装...'
+    Write-Warn 'Clink is not installed; installing through Scoop...'
     scoop install clink
-    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'clink 安装失败' }
-    Write-Info 'clink 安装成功'
+    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Clink installation failed' }
+    Write-Info 'Clink installation complete'
 }
 else {
-    Write-Info 'clink 已安装，跳过'
+    Write-Info 'Clink is already installed; skipping'
 }
 
 $clinkPath = (scoop prefix clink).Trim()
 if ([string]::IsNullOrWhiteSpace($clinkPath) -or -not (Test-Path $clinkPath)) {
-    Write-ErrorAndExit '获取 clink 安装路径失败'
+    Write-ErrorAndExit 'Could not locate the Clink installation'
 }
 
 $scriptsPath = Join-Path $clinkPath 'scripts'
-Write-Info 'Clink 安装路径:'
+Write-Info 'Clink installation path:'
 Write-Host $clinkPath
 
-Write-Step '步骤3/4: 处理插件...'
+Write-Step 'Step 3/4: Processing plugins...'
 foreach ($plugin in $manifest.clinkPlugins) {
     $targetPath = Join-Path $scriptsPath $plugin.name
     Sync-GitRepoPlugin -Repo $plugin.repo -TargetPath $targetPath -Name $plugin.name -Update
 }
 
-Write-Info '复制 starship.lua 启动插件...'
+Write-Info 'Copying the starship.lua startup plugin...'
 $starshipSrc = Join-Path $Script:ProjectRoot 'configs/windows/starship.lua'
 Copy-Item $starshipSrc (Join-Path $scriptsPath 'starship.lua') -Force
 
-Write-Info '注册 Clink 脚本...'
+Write-Info 'Registering Clink scripts...'
 foreach ($path in @($scriptsPath) + @($manifest.clinkPlugins | ForEach-Object { Join-Path $scriptsPath $_.name })) {
-    Write-Info "注册: $path"
+    Write-Info "Registering: $path"
     clink installscripts $path
     if ($LASTEXITCODE -ne 0) {
-        Write-Warn "$path 注册失败"
+        Write-Warn "Failed to register $path"
     }
     else {
-        Write-Info "$path 注册成功"
+        Write-Info "Registered $path"
     }
 }
 
-Write-Step '步骤4/4: 启用 clink 自动运行...'
+Write-Step 'Step 4/4: Enabling Clink autorun...'
 clink set tips.enable false
 if ($LASTEXITCODE -ne 0) {
-    Write-Warn 'tips.enable 设置失败'
+    Write-Warn 'Failed to set tips.enable'
 }
 clink autorun install -- --quiet
 if ($LASTEXITCODE -ne 0) {
-    Write-Warn 'clink 自动运行启用失败'
+    Write-Warn 'Failed to enable Clink autorun'
 }
 else {
-    Write-Info 'clink 自动运行已启用'
+    Write-Info 'Clink autorun enabled'
 }
 
-Write-Info '所有配置已完成！'
+Write-Info 'Configuration complete!'

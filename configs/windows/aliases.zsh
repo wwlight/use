@@ -1,3 +1,3 @@
-# Windows 专属别名
+# Windows-specific aliases
 
 alias wsl='command wsl.exe'

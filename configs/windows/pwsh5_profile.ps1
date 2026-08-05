@@ -1,16 +1,16 @@
-﻿# powershell 5 profile
+﻿# PowerShell 5 profile
 
-# starship
+# Starship
 Invoke-Expression (&starship init powershell)
 $ENV:STARSHIP_CONFIG = "$HOME\\.config\\starship\\starship.toml"
 
-# ls (eza)
+# eza aliases
 function ls { eza --icons @args }
 function l { eza -l --icons @args }
 function la { eza -la --icons @args }
 function lt { eza --tree --icons @args }
 
-# vite+
+# Vite+
 if (Test-Path "$HOME/.vite-plus/env.ps1") { . "$HOME/.vite-plus/env.ps1" }
 function v { vp @args }
 function vc { vp create @args }
@@ -18,7 +18,7 @@ function s { vpr start @args }
 function d { vpr dev @args }
 function b { vpr build @args }
 
-# git
+# Git
 function gp { git push @args }
 function grt { cd "$(git rev-parse --show-toplevel)" }
 function gc {
@@ -26,7 +26,7 @@ function gc {
   if ($branch) { git checkout $branch.Trim() }
 }
 
-# other
+# Other
 function reload { . $PROFILE }
 function oc { opencode @args }
 
@@ -34,14 +34,19 @@ function oc { opencode @args }
 $__scoop = "$env:SCOOP\shims\scoop.ps1"
 
 function winsw {
-  if (-not $env:SCOOP) { $host.ui.WriteErrorLine("winsw: `$env:SCOOP is not set"); return 1 }
+  if (-not $env:SCOOP) {
+    $host.ui.WriteErrorLine('winsw: $env:SCOOP is not set')
+    $global:LASTEXITCODE = 1
+    return
+  }
   if ($args.Count -ge 2) {
     $xml = "$env:SCOOP\persist\$($args[1])\$($args[1])-winsw-service.xml"
     if (Test-Path $xml) {
       $winswExe = "$env:SCOOP\apps\winsw-pre\current\WinSW.exe"
       if (-not (Test-Path $winswExe)) {
         $host.ui.WriteErrorLine("winsw: WinSW not found at $winswExe (run 'scoop install winsw-pre')")
-        return 1
+        $global:LASTEXITCODE = 1
+        return
       }
       $splat = @($args[0], $xml)
       if ($args.Count -gt 2) { $splat += $args[2..($args.Count - 1)] }
@@ -62,7 +67,11 @@ function _scoop_ensure_mirror_accel {
 }
 
 function scoop {
-  if (-not $env:SCOOP) { $host.ui.WriteErrorLine("scoop: `$env:SCOOP is not set"); return 1 }
+  if (-not $env:SCOOP) {
+    $host.ui.WriteErrorLine('scoop: $env:SCOOP is not set')
+    $global:LASTEXITCODE = 1
+    return
+  }
   if ($args.Count -ge 1) {
     if ($args[0] -eq 'uninstall') {
       foreach ($app in (_scoop_apps @args)) {
@@ -93,7 +102,7 @@ function scoop {
   if ($args.Count -ge 1 -and $args[0] -eq 'update') {
     _scoop_ensure_mirror_accel
   }
-  return $ec
+  $global:LASTEXITCODE = $ec
 }
 
 function _scoop_apps {
@@ -148,7 +157,8 @@ function _scoop_services_list {
   $winswExe = "$env:SCOOP\apps\winsw-pre\current\WinSW.exe"
   if (-not (Test-Path $winswExe)) {
     $host.ui.WriteErrorLine("winsw: WinSW not found at $winswExe (run 'scoop install winsw-pre')")
-    return 1
+    $global:LASTEXITCODE = 1
+    return
   }
   $xmls = Get-ChildItem "$env:SCOOP\persist\*-winsw-service.xml" -Recurse -ErrorAction SilentlyContinue
   "$("Name".PadRight(15)) $("Status".PadRight(15)) Path"
@@ -186,22 +196,22 @@ function _scoop_services {
     'ls' { _scoop_services_list }
     'list' { _scoop_services_list }
     'install' {
-      if (-not $svc) { Write-Host "Usage: scoop services install <name>"; return }
+      if (-not $svc) { Write-Host 'Usage: scoop services install <name>'; return }
       $manifest = _scoop_load_manifest
-      if (-not $manifest.ContainsKey($svc)) { Write-Host "'$svc' is not in service manifest"; return }
+      if (-not $manifest.ContainsKey($svc)) { Write-Host "'$svc' is not in the service manifest"; return }
       if (_scoop_ensure_xml $svc) {
         $status = (winsw status $svc).Trim()
         if ($status -eq 'NonExistent') { winsw install $svc; winsw start $svc }
-        else { Write-Host "Service '$svc ($svc)' already registered ($status)" }
+        else { Write-Host "Service '$svc' is already registered ($status)" }
       }
     }
-    'uninstall' { if ($svc) { $s = (winsw status $svc).Trim(); if ($s -ne 'NonExistent') { winsw stop $svc; winsw uninstall $svc; Remove-Item "$env:SCOOP\persist\$svc\$svc-winsw-service.xml" -Force -ErrorAction SilentlyContinue } else { Write-Host "Service '$svc ($svc)' not registered" } } else { Write-Host "Usage: scoop services uninstall <name>" } }
-    'start' { if ($svc) { winsw start $svc } else { Write-Host "Usage: scoop services start <name>" } }
-    'stop' { if ($svc) { winsw stop $svc } else { Write-Host "Usage: scoop services stop <name>" } }
-    'restart' { if ($svc) { winsw restart $svc } else { Write-Host "Usage: scoop services restart <name>" } }
+    'uninstall' { if ($svc) { $s = (winsw status $svc).Trim(); if ($s -ne 'NonExistent') { winsw stop $svc; winsw uninstall $svc; Remove-Item "$env:SCOOP\persist\$svc\$svc-winsw-service.xml" -Force -ErrorAction SilentlyContinue } else { Write-Host "Service '$svc' is not registered" } } else { Write-Host 'Usage: scoop services uninstall <name>' } }
+    'start' { if ($svc) { winsw start $svc } else { Write-Host 'Usage: scoop services start <name>' } }
+    'stop' { if ($svc) { winsw stop $svc } else { Write-Host 'Usage: scoop services stop <name>' } }
+    'restart' { if ($svc) { winsw restart $svc } else { Write-Host 'Usage: scoop services restart <name>' } }
     'help' { _scoop_services_help }
     '-h' { _scoop_services_help }
     '--help' { _scoop_services_help }
-    default { Write-Host "Usage: scoop services <command> [name]"; Write-Host "  Use 'scoop services help' for details" }
+    default { Write-Host 'Usage: scoop services <command> [name]'; Write-Host "  Run 'scoop services help' for details" }
   }
 }

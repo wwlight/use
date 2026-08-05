@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * 终端单选菜单 — ↑↓ 移动，回车确认。结果写到 stdout。
- * 用法: node menu-select.mjs <标题> <value) 说明> [value) 说明 ...]
+ * Terminal single-select menu: move with arrows and confirm with Enter.
+ * Usage: node menu-select.mjs <title> <value) description> [value) description ...]
  */
 import path from 'node:path'
 import fs from 'node:fs'
@@ -37,7 +37,7 @@ function createSelect({ message, choices, input, output }) {
         return `${pointer} ${item.label}`
       }),
       '',
-      '↑↓ 选择  回车 确认',
+      '↑↓ Select  Enter Confirm',
     ]
     return `${lines.join('\n')}\n`
   }
@@ -51,7 +51,7 @@ function createSelect({ message, choices, input, output }) {
     if (frame === prevFrame) return
 
     if (prevFrame) {
-      // 只清菜单区域，避免 \x1B[J 清空整屏
+      // Clear only the menu region; \x1B[J would clear the entire screen.
       clearPreviousFrame(output, prevFrame)
     }
     else {
@@ -69,11 +69,11 @@ function createSelect({ message, choices, input, output }) {
       }
     }
     catch (err) {
-      reject(new Error(`无法进入交互模式: ${err.message}`))
+      reject(new Error(`Could not enter interactive mode: ${err.message}`))
       return
     }
 
-    // 勿绑 output / terminal:true，否则回车时 readline 会多写换行，restoreFrame 错位
+    // Do not bind output / terminal:true; readline adds a newline and offsets restoreFrame.
     rl = readline.createInterface({ input })
     readline.emitKeypressEvents(input, rl)
 
@@ -107,7 +107,7 @@ function createSelect({ message, choices, input, output }) {
       }
       else if (key.ctrl && key.name === 'c') {
         close()
-        const err = new Error('已取消')
+        const err = new Error('Canceled')
         err.code = 'CANCELLED'
         reject(err)
         return
@@ -127,7 +127,7 @@ function createSelect({ message, choices, input, output }) {
 export function parseChoice(raw) {
   const idx = raw.indexOf(')')
   if (idx <= 0) {
-    throw new Error(`选项格式应为 value) 说明，收到: ${raw}`)
+    throw new Error(`Expected option format "value) description"; received: ${raw}`)
   }
   return {
     value: raw.slice(0, idx).trim(),
@@ -138,7 +138,7 @@ export function parseChoice(raw) {
 export async function runMenuSelect({ message, choices }) {
   const term = openTerminal({ allowWindowsConsole: true })
   if (!term) {
-    throw new Error('无法打开交互终端')
+    throw new Error('Could not open an interactive terminal')
   }
 
   try {
@@ -162,7 +162,7 @@ if (isCli) {
   const rawChoices = process.argv.slice(3)
 
   if (!message || rawChoices.length === 0) {
-    console.error('用法: node menu-select.mjs <标题> <value) 说明> [value) 说明 ...]')
+    console.error('Usage: node menu-select.mjs <title> <value) description> [value) description ...]')
     process.exit(1)
   }
 

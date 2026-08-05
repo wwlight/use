@@ -19,7 +19,7 @@ $GithubAccelPrefixes = @(
 function Write-Info  { Write-Host "[INFO] $args" -ForegroundColor Green }
 function Write-Step  { Write-Host "[INFO] $args" -ForegroundColor Blue }
 
-# irm|iex 跑在当前 host：打印后 throw，由顶层 catch return，避免 exit 关掉会话、也避免未捕获堆栈
+# irm|iex runs in the current host. Throw and catch at the top level to avoid closing the session.
 function Write-ErrorAndExit {
     Write-Host "[ERROR] $args" -ForegroundColor Red
     throw 'USE_FATAL'
@@ -31,13 +31,13 @@ function Complete-UseFatal {
         Write-Host "[ERROR] $($ErrorRecord.Exception.Message)" -ForegroundColor Red
     }
     $global:LASTEXITCODE = 1
-    # -File 调用时退出进程；iex 时仅终止脚本（仍带上退出码供调用方读取）
+    # Exit the process for -File; under iex, stop only the script and retain the exit code.
     if (-not [string]::IsNullOrEmpty($PSCommandPath)) {
         exit 1
     }
 }
 
-# 返回值: macos / windows / linux / unknown
+# Returns macos, windows, linux, or unknown.
 function Get-Os {
     if (($env:OS -eq 'Windows_NT') -or (($null -ne (Get-Variable IsWindows -ErrorAction SilentlyContinue)) -and $IsWindows)) {
         return 'windows'
@@ -68,13 +68,13 @@ function Get-Os {
 
 if ($InstallProfile -match '^(-h|--help|help)$') {
     Write-Host @'
-用法: install.ps1 [lite|full]
+Usage: install.ps1 [lite|full]
 
-  lite  尝鲜版
-  full  完整版
-  （省略则初始化时交互选择）
+  lite  Lite setup
+  full  Full setup
+  (omit to choose interactively during initialization)
 
-示例:
+Examples:
   irm <url> | iex
   $env:USE_PROFILE='lite'; irm <url> | iex
   $env:USE_PROFILE='full'; irm <url> | iex
@@ -86,20 +86,20 @@ try {
 
 $os = Get-Os
 if ($os -ne 'windows') {
-    Write-ErrorAndExit "检测到 $os。请改用: curl -fsSL https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash"
+    Write-ErrorAndExit "$os detected. Use: curl -fsSL https://raw.githubusercontent.com/wwlight/use/main/install.sh | bash"
 }
 
-# 切换控制台为 UTF-8 代码页，确保中文正常显示
+# Switch the console to UTF-8.
 & chcp 65001 > $null
 
 switch -Regex ($InstallProfile) {
     '^(--)?lite$' { $InstallProfile = 'lite' }
     '^(--)?full$' { $InstallProfile = 'full' }
     '^$' { }
-    default { Write-ErrorAndExit "未知参数: $InstallProfile（使用 lite / full）" }
+    default { Write-ErrorAndExit "Unknown argument: $InstallProfile (use lite or full)" }
 }
 
-# 规范化 git remote，便于比较是否同一仓库
+# Normalize Git remotes for repository comparison.
 function Remove-GithubAccelPrefix {
   param([string]$Url)
   foreach ($prefix in $GithubAccelPrefixes) {
@@ -145,11 +145,11 @@ function Copy-UseRepository {
 
   foreach ($url in (Get-GithubRepoCandidates)) {
     Remove-Item $Target -Recurse -Force -ErrorAction SilentlyContinue
-    Write-Info "正在尝试克隆: $url"
+    Write-Info "Trying clone URL: $url"
     git clone --depth=1 $url $Target
     if ($LASTEXITCODE -eq 0) { return }
   }
-  Write-ErrorAndExit '克隆仓库失败'
+  Write-ErrorAndExit 'Failed to clone repository'
 }
 
 function Update-UseRepository {
@@ -158,15 +158,15 @@ function Update-UseRepository {
   foreach ($url in (Get-GithubRepoCandidates)) {
     git -C $Target remote set-url origin $url
     if ($LASTEXITCODE -ne 0) { continue }
-    Write-Info "正在尝试同步: $url"
+    Write-Info "Trying sync URL: $url"
     git -C $Target fetch origin main
     if ($LASTEXITCODE -eq 0) {
       git -C $Target reset --hard origin/main
-      if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '重置本地失败' }
+      if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Failed to reset local repository' }
       return
     }
   }
-  Write-ErrorAndExit '拉取远程失败'
+  Write-ErrorAndExit 'Failed to fetch remote repository'
 }
 
 function Get-NextTimestampedDir {
@@ -182,16 +182,16 @@ function Get-NextTimestampedDir {
 }
 
 if (-not (Test-Path $InstallDir)) {
-  Write-Info "正在克隆仓库到 $InstallDir ..."
+  Write-Info "Cloning repository to $InstallDir ..."
   Copy-UseRepository $InstallDir
 }
 elseif (Test-SameRemoteRepo $InstallDir) {
-  Write-Info "检测到已有仓库 $InstallDir，正在同步到 origin/main ..."
+  Write-Info "Existing repository found at $InstallDir; syncing with origin/main ..."
   Update-UseRepository $InstallDir
 }
 else {
   $InstallDir = Get-NextTimestampedDir $InstallDir
-  Write-Info "目录已占用，正在克隆到 $InstallDir ..."
+  Write-Info "Directory is in use; cloning to $InstallDir ..."
   Copy-UseRepository $InstallDir
 }
 
@@ -199,19 +199,19 @@ Set-Location $InstallDir
 
 $pwsh = if ($PSVersionTable.PSEdition -eq 'Core') { 'pwsh.exe' } else { 'powershell.exe' }
 
-# 进度：入口完成第 1 步，总数含后续 init 步数
+# The installer completes step 1; the total includes subsequent init steps.
 $initSteps = 4
 $env:USE_STEP_CHAIN = '1'
 $env:USE_STEP_CURRENT = '1'
 $env:USE_STEP_TOTAL = "$([int]$env:USE_STEP_CURRENT + $initSteps)"
-Write-Step "步骤 $($env:USE_STEP_CURRENT)/$($env:USE_STEP_TOTAL): 安装包管理器 ..."
+Write-Step "Step $($env:USE_STEP_CURRENT)/$($env:USE_STEP_TOTAL): Installing package manager ..."
 
 if (Get-Command scoop -ErrorAction SilentlyContinue) {
-    Write-Info 'scoop 已安装，跳过'
+    Write-Info 'scoop is already installed; skipping'
 }
 else {
     & $pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/scoop-install.ps1
-    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '包管理器安装失败' }
+    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Package manager installation failed' }
 }
 
 $env:SYNC_INTERACTIVE = '1'
@@ -221,9 +221,9 @@ if ($InstallProfile) {
 } else {
   & $pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/init.ps1
 }
-if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '初始化失败' }
+if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Initialization failed' }
 
-Write-Info '安装完成！'
+Write-Info 'Installation complete!'
 
 } catch {
     Complete-UseFatal $_

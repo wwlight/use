@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Manifest 读取与用法文案生成。
+ * Manifest access and usage-text generation.
  */
 import fs from 'node:fs'
 import path from 'node:path'
@@ -19,7 +19,7 @@ export function hasProfile(name, common = loadManifest('common')) {
 
 export function profileLabel(name, common = loadManifest('common')) {
   const label = common.profiles?.[name]?.label
-  if (!label) throw new Error(`未知 profile: ${name}`)
+  if (!label) throw new Error(`Unknown profile: ${name}`)
   return label
 }
 
@@ -31,11 +31,11 @@ export function formatInitUsage(common = loadManifest('common')) {
   const keys = Object.keys(common.profiles)
   const pad = Math.max(...keys.map((k) => k.length))
   return [
-    `用法: vpr init [${keys.join('|')}]`,
+    `Usage: vpr init [${keys.join('|')}]`,
     '',
     ...keys.map((k) => `  ${k.padEnd(pad)}  ${common.profiles[k].label}`),
     '',
-    '示例:',
+    'Examples:',
     '  vpr init',
     ...keys.map((k) => `  vpr init -- ${k}`),
   ].join('\n')
@@ -53,11 +53,11 @@ export function formatPmUsage(macos = loadManifest('macos')) {
   const keys = Object.keys(macos.brewMirrors)
   const pad = Math.max(...keys.map((k) => k.length))
   return [
-    `用法: vpr pm [${keys.join('|')}]`,
+    `Usage: vpr pm [${keys.join('|')}]`,
     '',
     ...keys.map((k) => `  ${k.padEnd(pad)}  ${macos.brewMirrors[k].label}`),
     '',
-    '示例:',
+    'Examples:',
     '  vpr pm',
     ...keys.map((k) => `  vpr pm -- ${k}`),
   ].join('\n')
@@ -67,21 +67,21 @@ export function formatPmUsage(macos = loadManifest('macos')) {
 export function mirrorInstallMode(cfg, officialScript) {
   if (cfg?.installGitRepo) return { mode: 'git', url: cfg.installGitRepo }
   const url = cfg?.installScript || officialScript
-  if (!url) throw new Error('缺少 installScript / installGitRepo')
+  if (!url) throw new Error('installScript / installGitRepo missing')
   return { mode: 'script', url }
 }
 
 export function resolveProfileArtifact(scope, profile) {
   const m = loadManifest(scope)
   const artifactKey = m.profileArtifacts?.[profile]
-  if (!artifactKey) throw new Error(`${scope} 缺少 profileArtifacts.${profile}`)
+  if (!artifactKey) throw new Error(`${scope} is missing profileArtifacts.${profile}`)
   const rel = m[artifactKey]
-  if (!rel) throw new Error(`${scope} 缺少字段: ${artifactKey}`)
+  if (!rel) throw new Error(`${scope} is missing field: ${artifactKey}`)
   return rel
 }
 
 export function zshPluginsDir(common = loadManifest('common')) {
-  if (!common.zshPluginsDir) throw new Error('common manifest 缺少 zshPluginsDir')
+  if (!common.zshPluginsDir) throw new Error('common manifest is missing zshPluginsDir')
   return common.zshPluginsDir
 }
 
@@ -123,7 +123,7 @@ function main(argv) {
       break
     }
     default:
-      console.error(`用法: manifest-config.mjs <usage-init|usage-pm|has-profile|profile-label|menu-profiles|menu-mirrors|has-mirror|profile-artifact|zsh-plugins-dir|mirror-install>`)
+      console.error(`Usage: manifest-config.mjs <usage-init|usage-pm|has-profile|profile-label|menu-profiles|menu-mirrors|has-mirror|profile-artifact|zsh-plugins-dir|mirror-install>`)
       process.exit(1)
   }
 }

@@ -8,8 +8,8 @@
   ],
   "zshPluginsDir": "~/.zsh/plugins",
   "profiles": {
-    "lite": { "label": "尝鲜版" },
-    "full": { "label": "完整版" }
+    "lite": { "label": "Lite" },
+    "full": { "label": "Full" }
   },
   "git": {
     "credentialHelper": "store",

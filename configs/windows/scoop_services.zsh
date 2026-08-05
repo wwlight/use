@@ -95,7 +95,7 @@ _scoop_manifest_val() {
 
 _ensure_winsw_xml() {
   local app="$1"
-  _scoop_manifest_has "$app" || { echo "'$app' is not in service manifest" >&2; return 1 }
+  _scoop_manifest_has "$app" || { echo "'$app' is not in the service manifest" >&2; return 1 }
 
   local xml="${SCOOP}/persist/${app}/${app}-winsw-service.xml"
   [[ -f "$xml" ]] && return 0
@@ -175,14 +175,14 @@ _scoop_services() {
     ls|list) _scoop_services_list ;;
     install)
       if [[ -n "$svc" ]]; then
-        _scoop_manifest_has "$svc" || { echo "'$svc' is not in service manifest"; return 1 }
+        _scoop_manifest_has "$svc" || { echo "'$svc' is not in the service manifest"; return 1 }
         _ensure_winsw_xml "$svc" || return
         local _s=$(winsw status "$svc")
         _s="${_s%"${_s##*[![:space:]]}"}"
         if [[ "$_s" == *NonExistent* ]]; then
           winsw install "$svc" && winsw start "$svc"
         else
-          echo "Service '$svc ($svc)' already registered ($_s)"
+          echo "Service '$svc' is already registered ($_s)"
         fi
       else
         echo "Usage: scoop services install <name>"
@@ -197,7 +197,7 @@ _scoop_services() {
           winsw uninstall "$svc"
           rm -f "${SCOOP}/persist/${svc}/${svc}-winsw-service.xml"
         else
-          echo "Service '$svc ($svc)' not registered"
+          echo "Service '$svc' is not registered"
         fi
       else
         echo "Usage: scoop services uninstall <name>"
@@ -213,7 +213,7 @@ _scoop_services() {
     help|-h|--help) _scoop_services_help ;;
     *)
       echo "Usage: scoop services <command> [name]"
-      echo "  Use 'scoop services help' for details"
+      echo "  Run 'scoop services help' for details"
       ;;
   esac
 }

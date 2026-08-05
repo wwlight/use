@@ -17,7 +17,7 @@ alias gl='git pull'
 alias grt='cd "$(git rev-parse --show-toplevel)"'
 alias gc='git branch | fzf | xargs git checkout'
 
-# 其它
+# Other
 alias cls="clear"
 alias reload='source ~/.zshrc'
 alias of="onefetch"

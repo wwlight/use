@@ -15,7 +15,7 @@ const task = process.argv[2]
 const scriptArgs = stripArgSeparator(process.argv.slice(3))
 
 if (!task || !TASK_MAP[task]) {
-  console.error(`用法: node dispatch.mjs <${Object.keys(TASK_MAP).join('|')}> [args...]`)
+  console.error(`Usage: node dispatch.mjs <${Object.keys(TASK_MAP).join('|')}> [args...]`)
   process.exit(1)
 }
 

@@ -1,21 +1,21 @@
 /**
- * 同步方向文案与交互入口（单一来源）。
- * CLI: node sync-direction.mjs          → 交互选择，stdout 输出 1|2
- *      node sync-direction.mjs --hint   → 打印非交互错误提示片段
+ * Shared sync-direction text and interactive entry point.
+ * CLI: node sync-direction.mjs          -> choose interactively; write 1|2 to stdout
+ *      node sync-direction.mjs --hint   -> print the non-interactive hint
  */
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { runMenuSelect } from './menu-select.mjs'
 
-export const SYNC_DIRECTION_MESSAGE = '请选择拷贝方向'
+export const SYNC_DIRECTION_MESSAGE = 'Choose a copy direction'
 
 export const SYNC_DIRECTION_CHOICES = [
-  { value: '1', label: '1) 备份配置 → 仓库' },
-  { value: '2', label: '2) 恢复配置 → 本地' },
+  { value: '1', label: '1) Back up configuration -> repository' },
+  { value: '2', label: '2) Restore configuration -> local machine' },
 ]
 
-export const SYNC_DIRECTION_HINT = '1=备份配置→仓库, 2=恢复配置→本地'
-export const SYNC_DIRECTION_EXAMPLE = '示例: vpr sync 2'
+export const SYNC_DIRECTION_HINT = '1=back up config to repository, 2=restore config locally'
+export const SYNC_DIRECTION_EXAMPLE = 'Example: vpr sync 2'
 
 export function isSyncDirection(value) {
   return value === '1' || value === '2'
@@ -28,7 +28,7 @@ export async function promptSyncDirectionMenu() {
   })
   const value = String(direction).trim()
   if (!isSyncDirection(value)) {
-    throw new Error(`无效选择: ${value}`)
+    throw new Error(`Invalid selection: ${value}`)
   }
   return value
 }
@@ -48,7 +48,7 @@ if (isCli) {
   }
   catch (err) {
     if (err?.code === 'CANCELLED') process.exit(130)
-    console.error(`\x1b[31m[ERROR] ${err?.message || '无法选择同步方向'}\x1b[0m`)
+    console.error(`\x1b[31m[ERROR] ${err?.message || 'Could not select sync direction'}\x1b[0m`)
     process.exit(1)
   }
 }

@@ -1,4 +1,4 @@
-# GitHub 加速（与 scripts/common/_manifest.json → githubAccel 保持一致）
+# GitHub acceleration (keep aligned with githubAccel in scripts/common/_manifest.json).
 # BEGIN GENERATED GITHUB ACCEL
 typeset -ga GITHUB_ACCEL_MIRRORS=(
   'https://ghfast.top/'
@@ -20,7 +20,7 @@ _github_accel_needed() {
   [[ "$bare" == https://github.com/* || "$bare" == https://raw.githubusercontent.com/* ]]
 }
 
-# 默认加速 → 其它加速 → 官方
+# Default mirror, other mirrors, then upstream.
 _github_accel_candidates() {
   local url="$1" bare p candidate
   bare=$(_github_accel_strip "$url")
@@ -34,11 +34,11 @@ _github_accel_candidates() {
   print -r -- "$bare"
 }
 
-# 用法: _git_clone_accel <repo> <target_dir>
+# Usage: _git_clone_accel <repo> <target_dir>
 _git_clone_accel() {
   local repo="$1" target="$2" url
 
-  # ssh 不走 http 加速前缀
+  # SSH URLs do not use HTTP acceleration prefixes.
   if [[ "$repo" == git@* || "$repo" == ssh://* ]]; then
     git clone "$repo" "$target"
     return $?

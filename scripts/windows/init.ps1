@@ -3,7 +3,7 @@ param(
     [string]$InstallProfile = ''
 )
 
-# 切换控制台为 UTF-8 代码页，确保中文正常显示
+# Switch the console to UTF-8.
 & chcp 65001 > $null
 
 $ScriptDir = Split-Path $PSScriptRoot -Parent
@@ -14,7 +14,7 @@ $ManifestConfig = Join-Path $ScriptDir 'lib/manifest-config.mjs'
 
 function Show-InitUsage {
     & node $ManifestConfig usage-init
-    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '无法生成用法说明' }
+    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Could not generate usage text' }
 }
 
 function Resolve-ScoopInstallProfile {
@@ -32,27 +32,27 @@ function Resolve-ScoopInstallProfile {
         & node $ManifestConfig has-profile $profileName
         if ($LASTEXITCODE -ne 0) {
             Show-InitUsage
-            Write-ErrorAndExit "未知参数: $Arg"
+            Write-ErrorAndExit "Unknown argument: $Arg"
         }
         return $profileName
     }
 
     if (-not (Test-InteractivePrompt)) {
-        Write-ErrorAndExit '非交互环境请传入参数（示例: vpr init -- lite）'
+        Write-ErrorAndExit 'Pass an argument in non-interactive environments (example: vpr init -- lite)'
     }
 
     $menuLines = & node $ManifestConfig menu-profiles
-    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '无法读取安装档位' }
-    $menuArgs = @('请选择 Scoop 安装范围') + @($menuLines | Where-Object { $_ })
+    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Could not read installation profile' }
+    $menuArgs = @('Choose the Scoop installation profile') + @($menuLines | Where-Object { $_ })
 
     $menuScript = Join-Path $ScriptDir 'lib/menu-select.mjs'
     $outFile = [System.IO.Path]::GetTempFileName()
     try {
         $env:MENU_SELECT_OUT = $outFile
-        # 不捕获 stdout，保留 TTY，菜单才能在 Cursor 终端显示
+        # Do not capture stdout; preserve the TTY so the menu is visible in Cursor.
         & node $menuScript @menuArgs
         if ($LASTEXITCODE -ne 0) {
-            Write-ErrorAndExit '非交互环境请传入参数（示例: vpr init -- lite）'
+            Write-ErrorAndExit 'Pass an argument in non-interactive environments (example: vpr init -- lite)'
         }
         $choice = (Get-Content -LiteralPath $outFile -Raw -Encoding UTF8 -ErrorAction SilentlyContinue)
         $choice = "$choice".Trim()
@@ -62,24 +62,24 @@ function Resolve-ScoopInstallProfile {
         Remove-Item -LiteralPath $outFile -Force -ErrorAction SilentlyContinue
     }
     if ([string]::IsNullOrWhiteSpace($choice)) {
-        Write-ErrorAndExit '非交互环境请传入参数（示例: vpr init -- lite）'
+        Write-ErrorAndExit 'Pass an argument in non-interactive environments (example: vpr init -- lite)'
     }
     & node $ManifestConfig has-profile $choice
     if ($LASTEXITCODE -ne 0) {
-        Write-ErrorAndExit "无效选择: $choice"
+        Write-ErrorAndExit "Invalid selection: $choice"
     }
     return $choice
 }
 
 function Setup-Directories {
-    Write-NextStep '正在创建目录结构...'
+    Write-NextStep 'Creating directory structure...'
     foreach ($dir in (Get-ManifestDirectories)) {
         $path = Get-ExpandedPath $dir
         try {
             New-Item -ItemType Directory -Path $path -Force | Out-Null
         }
         catch {
-            Write-Warn "目录创建失败或已存在: $path"
+            Write-Warn "Directory could not be created or already exists: $path"
         }
     }
 }
@@ -88,47 +88,47 @@ function Install-OrRestoreScoop {
     param([string]$ScoopProfile)
 
     $label = & node $ManifestConfig profile-label $ScoopProfile
-    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit "未知 profile: $ScoopProfile" }
-    Write-NextStep "正在安装/恢复 scoop 应用（${label}）..."
+    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit "Unknown profile: $ScoopProfile" }
+    Write-NextStep "Installing/restoring Scoop apps (${label})..."
 
     $rel = & node $ManifestConfig profile-artifact windows $ScoopProfile
     if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($rel)) {
-        Write-ErrorAndExit "无法解析 profile 产物: $ScoopProfile"
+        Write-ErrorAndExit "Could not resolve profile artifact: $ScoopProfile"
     }
     $scoopBackup = Join-Path $Script:ProjectRoot "$rel".Trim()
 
     if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
-        Write-ErrorAndExit 'scoop 未安装！请先运行: vpr pm'
+        Write-ErrorAndExit 'Scoop is not installed. Run: vpr pm'
     }
 
     . (Join-Path $PSScriptRoot 'scoop-accel.ps1')
     Enable-ScoopAccel -Manifest $manifest
 
     if (Test-Path $scoopBackup) {
-        Write-Info "正在从 $(Split-Path $scoopBackup -Leaf) 恢复依赖..."
+        Write-Info "Restoring dependencies from $(Split-Path $scoopBackup -Leaf)..."
         scoop import $scoopBackup
-        if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'scoop 应用恢复失败！' }
+        if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Scoop app restore failed!' }
     }
     else {
-        Write-ErrorAndExit "找不到 scoop 备份文件: $scoopBackup"
+        Write-ErrorAndExit "Scoop backup file not found: $scoopBackup"
     }
 }
 
 function Install-Zsh {
-    Write-NextStep '正在安装 zsh 及插件...'
+    Write-NextStep 'Installing Zsh and plugins...'
     $zshScript = Join-Path $PSScriptRoot 'zsh-install.ps1'
     & $zshScript
-    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'zsh 安装失败' }
+    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Zsh installation failed' }
 
     $pluginScript = Join-Path $ScriptDir 'common/zsh-plugins-install.ps1'
     & $pluginScript
-    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'zsh 插件安装失败' }
+    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Zsh plugin installation failed' }
 }
 
 function Sync-Configurations {
     param([string]$ScoopProfile)
 
-    Write-NextStep '正在同步配置...'
+    Write-NextStep 'Syncing configuration...'
 
     $configScript = Join-Path $PSScriptRoot 'config-sync.ps1'
     $baseScript = Join-Path $ScriptDir 'common/git-setup.ps1'
@@ -139,18 +139,18 @@ function Sync-Configurations {
         & $configScript 2
         Remove-Item Env:SYNC_SELECT_ALL -ErrorAction SilentlyContinue
         Remove-Item Env:SYNC_PROFILE -ErrorAction SilentlyContinue
-        if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '同步配置失败！' }
+        if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Configuration sync failed!' }
     }
     else {
-        Write-ErrorAndExit "找不到配置同步脚本: $configScript"
+        Write-ErrorAndExit "Configuration sync script not found: $configScript"
     }
 
     if (Test-Path $baseScript) {
         & $baseScript
-        if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit '基础配置初始化失败！' }
+        if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Base configuration initialization failed!' }
     }
     else {
-        Write-Warn "找不到基础配置初始化脚本: $baseScript"
+        Write-Warn "Base configuration initialization script not found: $baseScript"
     }
 }
 
@@ -166,4 +166,4 @@ Install-OrRestoreScoop -ScoopProfile $scoopProfile
 Install-Zsh
 Sync-Configurations -ScoopProfile $scoopProfile
 
-Write-Info '所有操作完成！系统已准备就绪。'
+Write-Info 'All operations complete. The system is ready.'

@@ -11,11 +11,11 @@ while [[ "${1:-}" == --* ]]; do
     case "$1" in
         --update) UPDATE_MODE=1; shift ;;
         --) shift; break ;;
-        *) error "未知参数: $1（支持 --update）" ;;
+        *) error "Unknown argument: $1 (supported: --update)" ;;
     esac
 done
 
-info '正在安装 zsh 插件...'
+info 'Installing Zsh plugins...'
 plugins_json=$(manifest_get "zshPlugins")
 plugins_dir=$(expand_path "$(node "$SCRIPT_DIR/lib/manifest-config.mjs" zsh-plugins-dir)")
 mkdir -p "$plugins_dir"

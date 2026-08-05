@@ -7,10 +7,10 @@ $ScriptDir = Split-Path $PSScriptRoot -Parent
 
 $manifest = Read-Manifest -Scope common
 
-Write-Info '正在安装 zsh 插件...'
+Write-Info 'Installing Zsh plugins...'
 $pluginsDirEntry = & node (Join-Path $ScriptDir 'lib/manifest-config.mjs') zsh-plugins-dir
 if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($pluginsDirEntry)) {
-    Write-ErrorAndExit '无法读取 zshPluginsDir'
+    Write-ErrorAndExit 'Could not read zshPluginsDir'
 }
 $pluginsDir = Get-ExpandedPath "$pluginsDirEntry".Trim()
 if (-not (Test-Path $pluginsDir)) {
