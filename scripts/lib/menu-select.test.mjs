@@ -91,5 +91,9 @@ const syncIdle = formatSyncChoiceLine('x', { active: false })
 assert.equal(syncActive.indexOf('['), syncIdle.indexOf('['))
 assert.match(syncSource, /alignMenuCheck\(active\)/)
 assert.ok(!syncSource.includes('alignMenuCheck(selected)'))
+assert.match(syncSource, /allowWindowsConsole:\s*true/)
+
+const syncDirectionSource = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'sync-direction.mjs'), 'utf8')
+assert.match(syncDirectionSource, /MENU_SELECT_OUT/)
 
 console.log('menu-select.test.mjs: ok')

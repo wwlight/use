@@ -2,7 +2,9 @@
  * Shared sync-direction text and interactive entry point.
  * CLI: node sync-direction.mjs          -> choose interactively; write 1|2 to stdout
  *      node sync-direction.mjs --hint   -> print the non-interactive hint
+ *      MENU_SELECT_OUT=<file>           -> write selection to file (keep TTY for menu)
  */
+import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { runMenuSelect } from './menu-select.mjs'
@@ -44,7 +46,14 @@ if (isCli) {
 
   try {
     const direction = await promptSyncDirectionMenu()
-    process.stdout.write(`${direction}\n`)
+    const text = `${direction}\n`
+    const outFile = process.env.MENU_SELECT_OUT
+    if (outFile) {
+      fs.writeFileSync(outFile, text, 'utf8')
+    }
+    else {
+      process.stdout.write(text)
+    }
   }
   catch (err) {
     if (err?.code === 'CANCELLED') process.exit(130)
