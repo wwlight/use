@@ -104,7 +104,9 @@ function Install-OrRestoreScoop {
     $gitInitiallyAvailable = [bool](Get-Command git.exe -ErrorAction SilentlyContinue)
 
     . (Join-Path $PSScriptRoot 'scoop\accel.ps1')
-    Enable-ScoopAccel -Manifest $manifest
+    # Reuse mirror from vpr pm; do not prompt again.
+    $activePrefix = Get-ScoopMirrorActivePrefix
+    Enable-ScoopAccel -Manifest $manifest -ActivePrefix $activePrefix
 
     if (Test-Path $scoopBackup) {
         Write-Info "Restoring dependencies from $(Split-Path $scoopBackup -Leaf)..."

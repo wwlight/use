@@ -51,7 +51,9 @@ function requireWindows(platform) {
 }
 
 function markCliInteractive() {
-  if (process.stdin.isTTY || process.stdout.isTTY) {
+  // Require stdin TTY. stdout-only would force menus under piped input
+  // (e.g. Get-Content x | vpr init) and hang instead of the non-interactive path.
+  if (process.stdin.isTTY) {
     process.env.SYNC_INTERACTIVE = '1'
   }
 }
@@ -69,6 +71,11 @@ function runPlatformPm(platform) {
   return platform === 'macos'
     ? exitStatus(runBash(path.join(__dirname, 'macos/brew/install.sh'), scriptArgs))
     : runSubDispatch('windows/_dispatch.mjs', 'scoop', scriptArgs)
+}
+
+function runPlatformGitSetup() {
+  markCliInteractive()
+  return runSubDispatch('common/_dispatch.mjs', 'setup', scriptArgs)
 }
 
 function readManifest(scope) {
@@ -158,9 +165,7 @@ async function promptSyncDirection(args) {
 }
 
 function markSyncInteractive() {
-  if (process.stdin.isTTY) {
-    process.env.SYNC_INTERACTIVE = '1'
-  }
+  markCliInteractive()
 }
 
 async function runSyncSelect(direction, lines) {
@@ -257,8 +262,9 @@ async function runCrossPlatformTask(platform) {
     case 'sync':
       return runUnifiedSync(platform, scriptArgs)
     case 'zsh-plugin':
+      return runSubDispatch('common/_dispatch.mjs', 'zsh-plugin', scriptArgs)
     case 'git-setup':
-      return runSubDispatch('common/_dispatch.mjs', task === 'git-setup' ? 'setup' : task, scriptArgs)
+      return runPlatformGitSetup()
     default:
       return 1
   }

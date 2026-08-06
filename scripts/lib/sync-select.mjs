@@ -191,7 +191,7 @@ export async function runSyncSelectPrompt({ direction, rawLines, outPath }) {
     return 0
   }
 
-  const term = openTerminal()
+  const term = openTerminal({ allowWindowsConsole: true })
   if (!term) {
     if (process.env.SYNC_INTERACTIVE === '1') {
       throw new Error('Could not open an interactive terminal; use SYNC_SELECT_ALL=1 to skip selection')

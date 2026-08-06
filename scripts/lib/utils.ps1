@@ -650,9 +650,22 @@ function Resolve-SyncDirection {
         Write-ErrorAndExit "Pass a direction in non-interactive environments: $hint`n$Example"
     }
 
-    $choice = & node $dirScript
-    $choice = "$choice".Trim()
-    if ($LASTEXITCODE -ne 0 -or ($choice -ne '1' -and $choice -ne '2')) {
+    $outFile = [System.IO.Path]::GetTempFileName()
+    try {
+        $env:MENU_SELECT_OUT = $outFile
+        # Do not capture stdout; preserve the TTY so the menu is visible in Cursor.
+        & node $dirScript
+        if ($LASTEXITCODE -ne 0) {
+            Write-ErrorAndExit "Pass a direction in non-interactive environments: $hint`n$Example"
+        }
+        $choice = (Get-Content -LiteralPath $outFile -Raw -Encoding UTF8 -ErrorAction SilentlyContinue)
+        $choice = "$choice".Trim()
+    }
+    finally {
+        Remove-Item Env:MENU_SELECT_OUT -ErrorAction SilentlyContinue
+        Remove-Item -LiteralPath $outFile -Force -ErrorAction SilentlyContinue
+    }
+    if ($choice -ne '1' -and $choice -ne '2') {
         Write-ErrorAndExit "Pass a direction in non-interactive environments: $hint`n$Example"
     }
     return $choice

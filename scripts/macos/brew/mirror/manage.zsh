@@ -236,7 +236,7 @@ _brew_mirror_menu_cli() {
 
 # Interactive ↑↓ select via mirror/menu.mjs → menu-select.
 _brew_mirror_select_interactive() {
-    local menu_js active choice ec
+    local menu_js active choice ec out
     active="${USE_HOMEBREW_MIRROR:-}"
     [[ -n "$active" ]] || active=$(_brew_mirror_persisted_id)
 
@@ -256,12 +256,16 @@ _brew_mirror_select_interactive() {
         return 1
     }
 
-    choice=$(node "$menu_js" "$(_brew_mirror_catalog_file)" "$active")
+    # Do not capture node stdout; keep the TTY so the ↑↓ menu is visible.
+    out=$(mktemp) || return 1
+    MENU_SELECT_OUT="$out" node "$menu_js" "$(_brew_mirror_catalog_file)" "$active"
     ec=$?
     if (( ec != 0 )); then
+        rm -f "$out"
         return "$ec"
     fi
-    choice=$(printf '%s' "$choice" | tr -d '\r\n')
+    choice=$(tr -d '\r\n' <"$out" 2>/dev/null || true)
+    rm -f "$out"
     [[ -n "$choice" ]] || return 130
     printf '%s\n' "$choice"
     return 0

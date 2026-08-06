@@ -66,7 +66,14 @@ try {
     choices,
     initialValue: active,
   })
-  process.stdout.write(`${String(value).trim()}\n`)
+  const text = `${String(value).trim()}\n`
+  const outFile = process.env.MENU_SELECT_OUT
+  if (outFile) {
+    fs.writeFileSync(outFile, text, 'utf8')
+  }
+  else {
+    process.stdout.write(text)
+  }
 }
 catch (err) {
   if (err?.code === 'CANCELLED') process.exit(130)

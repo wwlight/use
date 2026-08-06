@@ -218,7 +218,29 @@ assert.match(rootDispatch, /scoop-import/)
 assert.match(rootDispatch, /function markCliInteractive/)
 assert.match(rootDispatch, /function runPlatformPm/)
 assert.match(rootDispatch, /runPlatformPm\(platform\)/)
+assert.match(rootDispatch, /function runPlatformGitSetup/)
+assert.match(rootDispatch, /runPlatformGitSetup\(\)/)
+assert.ok(!/process\.stdin\.isTTY \|\| process\.stdout\.isTTY/.test(rootDispatch))
 assert.ok(!/spawnSync\('scoop',\s*\[\s*'import'/.test(rootDispatch))
+
+const winInit = read('scripts/windows/init.ps1')
+assert.match(winInit, /Get-ScoopMirrorActivePrefix/)
+assert.match(winInit, /Enable-ScoopAccel -Manifest \$manifest -ActivePrefix \$activePrefix/)
+assert.ok(!/Enable-ScoopAccel -Manifest \$manifest\s*$/m.test(winInit))
+
+const utilsSh = read('scripts/lib/utils.sh')
+assert.match(utilsSh, /MENU_SELECT_OUT/)
+assert.ok(!/choice=\$\(node "\$\{SCRIPT_DIR\}\/lib\/sync-direction\.mjs"\)/.test(utilsSh))
+
+const utilsPs = read('scripts/lib/utils.ps1')
+assert.match(utilsPs, /MENU_SELECT_OUT/)
+assert.ok(!/\$choice = & node \$dirScript\s*$/m.test(utilsPs))
+
+const syncSelect = read('scripts/lib/sync-select.mjs')
+assert.match(syncSelect, /allowWindowsConsole:\s*true/)
+
+const syncDirection = read('scripts/lib/sync-direction.mjs')
+assert.match(syncDirection, /MENU_SELECT_OUT/)
 
 const menuSelect = read('scripts/lib/menu-select.mjs')
 assert.match(menuSelect, /escape/)
