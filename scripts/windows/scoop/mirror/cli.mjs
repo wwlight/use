@@ -5,8 +5,8 @@
  * Usage:
  *   node cli.mjs <clean|smudge>              # git filter (stdin/stdout)
  *   node cli.mjs repair                      # install/refresh download.ps1 hook
- *   node cli.mjs switch [<name>|official]    # switch mirror (interactive if omitted)
- *   node cli.mjs menu <title> <choice>...    # interactive ↑↓ select
+ *   node cli.mjs switch [<name>|official|status]  # switch / status (interactive if omitted)
+ *   node cli.mjs menu <title> <choice>...         # interactive ↑↓ select
  */
 import { Buffer } from 'node:buffer'
 import { spawnSync } from 'node:child_process'
@@ -470,10 +470,16 @@ async function runSwitchCli(choiceArg) {
   let choice = String(choiceArg || '').trim()
 
   if (['-h', '--help', 'help'].includes(choice)) {
-    console.log('Usage: scoop mirror [<name>|official]')
+    console.log('Usage: scoop mirror [<name>|official|status]')
     console.log('')
     console.log('  (no args)        interactive select (↑↓ / Enter; Esc or Ctrl+C cancel; Enter on * exits; * = active)')
     console.log('  <name>|official  switch directly')
+    console.log('  status           show active mirror')
+    return
+  }
+
+  if (choice === 'status') {
+    printMirrorStatus(config)
     return
   }
 

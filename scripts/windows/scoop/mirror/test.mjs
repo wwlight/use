@@ -213,6 +213,7 @@ const mirrorSection = readme.match(/### scoop mirror\n([\s\S]*?)\n### scoop serv
 assert.ok(mirrorSection)
 for (const command of [
   'scoop mirror',
+  'scoop mirror status',
   'scoop mirror ghfast',
   'scoop mirror ghproxy',
   'scoop mirror official',
@@ -220,7 +221,14 @@ for (const command of [
   assert.ok(mirrorSection[1].includes(command))
 }
 assert.ok(!mirrorSection[1].includes('scoop mirror list'))
-assert.ok(!mirrorSection[1].includes('scoop mirror status'))
+
+assert.match(cliSource, /choice === 'status'/)
+assert.match(cliSource, /printMirrorStatus\(config\)/)
+assert.match(cliSource, /status\s+show active mirror/)
+assert.match(manageSource, /\$Choice -eq 'status'/)
+assert.match(manageSource, /Write-ScoopMirrorStatus/)
+assert.match(scoopPs, /official\|status/)
+assert.match(scoopZsh, /official\|status/)
 
 const servicesSection = readme.match(/### scoop services\n([\s\S]*?)\n### clink/)
 assert.ok(servicesSection)

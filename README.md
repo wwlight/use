@@ -276,6 +276,7 @@ scripts/windows/scoop/
 
 ```sh
 scoop mirror                      # 交互选择（↑↓ / Enter；Esc/Ctrl+C 取消；回车选中当前 * 则直接退出）
+scoop mirror status               # 显示当前镜像
 scoop mirror ghfast               # 直接切换到 ghfast.top
 scoop mirror ghproxy              # 直接切换到 gh-proxy.com
 scoop mirror official             # 恢复官方源

@@ -128,7 +128,7 @@ scoop() {
   [[ -n "$SCOOP" ]] || { echo "scoop: \$SCOOP is not set" >&2; return 1 }
   if [[ "$1" == "mirror" ]]; then
     if (( $# > 2 )); then
-      echo "Usage: scoop mirror [<name>|official]" >&2
+      echo "Usage: scoop mirror [<name>|official|status]" >&2
       return 1
     fi
     _scoop_manage_mirror "${2:-}"

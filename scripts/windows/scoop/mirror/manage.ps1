@@ -118,10 +118,16 @@ function Invoke-ScoopMirrorManager {
     if (-not $config) { throw "Scoop mirror config not found at $env:SCOOP\config\scoop-mirror\config.json" }
 
     if ($Choice -in @('-h', '--help', 'help')) {
-        Write-Host 'Usage: scoop mirror [<name>|official]'
+        Write-Host 'Usage: scoop mirror [<name>|official|status]'
         Write-Host ''
         Write-Host '  (no args)        interactive select (↑↓ / Enter; Esc or Ctrl+C cancel; Enter on * exits; * = active)'
         Write-Host '  <name>|official  switch directly'
+        Write-Host '  status           show active mirror'
+        return
+    }
+
+    if ($Choice -eq 'status') {
+        Write-ScoopMirrorStatus -Config $config
         return
     }
 

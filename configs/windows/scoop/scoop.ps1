@@ -162,7 +162,7 @@ function scoop {
   if ($args.Count -ge 1) {
     if ($args[0] -eq 'mirror') {
       if ($args.Count -gt 2) {
-        $host.ui.WriteErrorLine('Usage: scoop mirror [<name>|official]')
+        $host.ui.WriteErrorLine('Usage: scoop mirror [<name>|official|status]')
         $global:LASTEXITCODE = 1
         return
       }
