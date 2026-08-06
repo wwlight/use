@@ -218,7 +218,7 @@ scripts/macos/brew/
 ├── mirrors.tsv                   # 本地镜像目录
 ├── mirror.zsh                    # 当前镜像环境变量
 ├── manage.zsh                    # brew mirror 子命令
-└── lib/                          # menu.mjs + ↑↓ 菜单（menu-select / tty-term）
+└── lib/                          # menu.mjs + ↑↓ 菜单（menu-select / string-width / tty-term）
 ```
 
 

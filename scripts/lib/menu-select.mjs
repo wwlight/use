@@ -7,11 +7,20 @@ import path from 'node:path'
 import fs from 'node:fs'
 import readline from 'node:readline'
 import { fileURLToPath } from 'node:url'
+import { alignGlyph } from './string-width.mjs'
 import { frameLines, openTerminal } from './tty-term.mjs'
 
-/** Active/idle pointers share the same display width. */
-function cursorPointer(active) {
-  return active ? '✓' : '  '
+const POINTER_ACTIVE = '✓'
+const POINTER_IDLE = ' '
+
+/** Active/idle pointers share one display width (CJK-aware). */
+export function formatChoiceLine(label, selected, widthOptions = {}) {
+  const pointer = alignGlyph(
+    selected ? POINTER_ACTIVE : POINTER_IDLE,
+    [POINTER_ACTIVE, POINTER_IDLE],
+    widthOptions,
+  )
+  return `${pointer} ${label}`
 }
 
 function createSelect({ message, choices, input, output, cursor: initialCursor = 0 }) {
@@ -25,9 +34,7 @@ function createSelect({ message, choices, input, output, cursor: initialCursor =
     const lines = [
       message,
       '',
-      ...choices.map((item, i) => {
-        return `${cursorPointer(i === cursor)} ${item.label}`
-      }),
+      ...choices.map((item, i) => formatChoiceLine(item.label, i === cursor)),
       '',
       '↑↓ Select  Enter Confirm',
     ]
@@ -35,7 +42,7 @@ function createSelect({ message, choices, input, output, cursor: initialCursor =
   }
 
   function renderSubmitFrame() {
-    return `${message}\n${cursorPointer(true)} ${choices[cursor].label}\n`
+    return `${message}\n${formatChoiceLine(choices[cursor].label, true)}\n`
   }
 
   function render() {
@@ -141,7 +148,7 @@ export function parseChoice(raw) {
 
 /**
  * Build menu choices as "* name ---- detail" (active) or "  name ---- detail".
- * ✓ marks the cursor; * marks activeValue.
+ * Cursor glyph is rendered separately via formatChoiceLine; * marks activeValue.
  * @param {{ value: string, name?: string, detail?: string }[]} items
  * @param {{ activeValue?: string, dashWidth?: number }} [options]
  */

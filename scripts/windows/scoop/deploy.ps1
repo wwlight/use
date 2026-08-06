@@ -74,7 +74,7 @@ function Install-ScoopMirrorAccelFiles {
     Copy-FileDataOnly -SourceFile $cliSrc -DestinationFile (Join-Path $mirrorDir 'cli.mjs')
 
     $sharedLib = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\lib'))
-    foreach ($name in @('menu-select.mjs', 'tty-term.mjs')) {
+    foreach ($name in @('menu-select.mjs', 'string-width.mjs', 'tty-term.mjs')) {
         $menuSrc = Join-Path $sharedLib $name
         if (-not (Test-Path -LiteralPath $menuSrc)) {
             Write-ErrorAndExit "Shared menu helper not found: $menuSrc"

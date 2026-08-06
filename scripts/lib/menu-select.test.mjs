@@ -2,7 +2,8 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { formatAlignedChoices, parseChoice } from './menu-select.mjs'
+import { formatAlignedChoices, formatChoiceLine, parseChoice } from './menu-select.mjs'
+import { stringWidth } from './string-width.mjs'
 import { isSyncDirection, SYNC_DIRECTION_CHOICES, SYNC_DIRECTION_HINT } from './sync-direction.mjs'
 
 assert.deepEqual(parseChoice('lite) 尝鲜版'), { value: 'lite', label: '尝鲜版' })
@@ -41,8 +42,12 @@ assert.equal(aligned[0].label.indexOf('http'), aligned[1].label.indexOf('http'))
 assert.equal(aligned[1].label.indexOf('http'), aligned[2].label.indexOf('http'))
 
 const menuSource = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'menu-select.mjs'), 'utf8')
-assert.match(menuSource, /function cursorPointer/)
-assert.match(menuSource, /active \? '✓' : ' {2}'/)
+assert.match(menuSource, /formatChoiceLine/)
+assert.match(menuSource, /alignGlyph/)
+assert.match(menuSource, /string-width\.mjs/)
+assert.match(menuSource, /POINTER_ACTIVE = '✓'/)
+assert.ok(!menuSource.includes("POINTER_ACTIVE = '❯'"))
+assert.ok(!menuSource.includes('function cursorPointer'))
 
 assert.equal(isSyncDirection('1'), true)
 assert.equal(isSyncDirection('2'), true)
@@ -56,5 +61,15 @@ assert.ok(SYNC_DIRECTION_HINT.includes('restore config'))
 assert.match(menuSource, /\\x1B\[J/)
 assert.match(menuSource, /One write/)
 assert.ok(!menuSource.includes('clearPreviousFrame'))
+
+const wide = { ambiguousWide: true }
+const narrow = { ambiguousWide: false }
+for (const opts of [wide, narrow]) {
+  const active = formatChoiceLine('label', true, opts)
+  const idle = formatChoiceLine('label', false, opts)
+  const activePrefix = active.slice(0, active.indexOf('label'))
+  const idlePrefix = idle.slice(0, idle.indexOf('label'))
+  assert.equal(stringWidth(activePrefix, opts), stringWidth(idlePrefix, opts))
+}
 
 console.log('menu-select.test.mjs: ok')

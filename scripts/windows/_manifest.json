@@ -61,6 +61,7 @@
       { "local": "D:/SoftwareApps/Scoop/config/scoop-mirror/shared.ps1", "repo": "scripts/windows/scoop/mirror/shared.ps1", "restoreOnly": true, "encoding": "utf8Bom" },
       { "local": "D:/SoftwareApps/Scoop/config/scoop-mirror/cli.mjs", "repo": "scripts/windows/scoop/mirror/cli.mjs", "restoreOnly": true },
       { "local": "D:/SoftwareApps/Scoop/config/scoop-mirror/lib/menu-select.mjs", "repo": "scripts/lib/menu-select.mjs", "restoreOnly": true },
+      { "local": "D:/SoftwareApps/Scoop/config/scoop-mirror/lib/string-width.mjs", "repo": "scripts/lib/string-width.mjs", "restoreOnly": true },
       { "local": "D:/SoftwareApps/Scoop/config/scoop-mirror/lib/tty-term.mjs", "repo": "scripts/lib/tty-term.mjs", "restoreOnly": true },
       { "local": "D:/SoftwareApps/Scoop/persist/clash-party/data/mihomo.yaml", "repo": "configs/common/mihomo.yaml", "lite": false, "defaultSelected": false },
       { "local": "~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1", "repo": "configs/windows/pwsh5_profile.ps1", "backup": true },
