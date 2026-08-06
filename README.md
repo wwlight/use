@@ -150,8 +150,8 @@ vpr git-setup                     # Git 全局配置
 ```sh
 vpr generate:github-accel         # 从 manifest 更新 GitHub 加速配置与 README
 vpr check:github-accel            # 检查生成内容是否需要更新
-vpr generate:homebrew             # 从 manifest 更新 Homebrew 镜像目录与 Brewfile.lite
-vpr check:homebrew                # 检查 Homebrew 生成内容是否需要更新
+vpr generate:brew             # 从 manifest 更新 Homebrew 镜像目录与 Brewfile.lite
+vpr check:brew                # 检查 Homebrew 生成内容是否需要更新
 vpr test                          # 运行项目检查
 ```
 
@@ -159,12 +159,44 @@ vpr test                          # 运行项目检查
 > zip 下载解压后需先解除脚本封锁
 
 ```powershell
-Get-ChildItem scripts,configs -Recurse -Include *.ps1,*.psm1 | Unblock-File
+Get-ChildItem runtime,configs -Recurse -Include *.ps1,*.psm1 | Unblock-File
 ```
 
+## 目录结构
 
+```text
+.
+├── install.sh / install.ps1      # 一键安装（拉仓库 → Node CLI）
+├── package.json                  # vpr / npm → src/cli.js
+├── manifests/                    # SSOT：镜像、Brewfile/Scoop 备份路径、sync 清单
+│   ├── common.json
+│   ├── macos.json
+│   └── windows.json
+├── configs/                      # 用户配置（vpr sync 源）
+│   ├── common/                   # 跨平台公共配置
+│   ├── macos/                    # macOS + brew 备份 / mirrors.tsv
+│   └── windows/                  # Windows + scoop 备份 / shell 扩展
+├── runtime/                      # brew/scoop 壳侧运行时（部署或被 CLI 调用）
+│   ├── brew/
+│   │   ├── mirror-cli.zsh        # → ~/.config/homebrew/mirror-cli.zsh
+│   │   └── mirror-menu.js        # → ~/.config/homebrew/lib/mirror-menu.js
+│   └── scoop/
+│       ├── install.ps1           # vpr pm（Windows）
+│       ├── accel.ps1 / deploy.ps1 / import-backup.ps1 / utils.ps1
+│       ├── mirror/               # → $SCOOP/config/scoop-mirror/
+│       └── services/             # → $SCOOP/config/scoop-services/
+├── src/                          # Node CLI（业务逻辑）
+│   ├── cli.js
+│   ├── commands/                 # init / backup / setup / sync / …
+│   ├── core/                     # manifest / paths / platform
+│   ├── generate/                 # brew catalog、github-accel、scoop-lite
+│   ├── lib/                      # ↑↓ 菜单（部署到 brew/scoop lib）
+│   ├── pm/                       # brew 安装与镜像
+│   └── sync/                     # 配置同步引擎
+└── assets/                       # README 流程图
+```
 
-## macos
+职责一眼区分：`manifests` 定清单，`configs` 存配置，`runtime` 给壳/部署，`src` 跑 CLI。
 
 ```sh
 vpr pm                            # 安装 brew，交互选镜像
@@ -195,30 +227,23 @@ configs/macos/
 ├── brew/
 │   ├── Brewfile                  # Homebrew 应用备份
 │   ├── Brewfile.lite             # 尝鲜版（由 Brewfile + brewLiteItems 生成）
-│   └── mirrors.tsv               # 镜像目录（由 _manifest.json 生成）
+│   └── mirrors.tsv               # 镜像目录（由 manifests/macos.json 生成）
 ├── ghostty_config                # Ghostty 终端配置
 └── utils.zsh                     # zsh 自定义函数
 ```
 
-```text
-scripts/macos/brew/
-├── install.sh                    # vpr pm 入口
-├── run.sh                        # 应用当前镜像后执行 brew
-├── generated.mjs                 # 生成 mirrors.tsv / Brewfile.lite
-└── mirror/
-    ├── manage.zsh                # → ~/.config/homebrew/manage.zsh
-    ├── menu.mjs                  # → ~/.config/homebrew/lib/menu.mjs
-    └── test.mjs
-```
-
-运行时文件：
+本机 brew 镜像运行时（由 `vpr pm` / sync 部署）：
 
 ```text
 ~/.config/homebrew/
 ├── mirrors.tsv                   # 本地镜像目录
 ├── mirror.zsh                    # 当前镜像环境变量
-├── manage.zsh                    # brew mirror 子命令
-└── lib/                          # menu.mjs + ↑↓ 菜单（menu-select / string-width / tty-term）
+├── mirror-cli.zsh                # brew mirror 子命令 + brew() wrapper
+└── lib/
+    ├── mirror-menu.js            # 交互选镜像入口
+    ├── menu-select.js            # ↑↓ 菜单（共用）
+    ├── string-width.js
+    └── tty-term.js
 ```
 
 
@@ -267,23 +292,7 @@ configs/windows/
 
 ### scoop mirror
 
-一键同步切换 Scoop 仓库、GitHub bucket 远端及后续安装、更新使用的下载镜像。
-
-```text
-scripts/windows/scoop/
-├── install.ps1(.sh)              # vpr pm 入口
-├── accel.ps1                     # 镜像 / aria2 / hook 编排
-├── deploy.ps1                    # 部署 scoop-mirror / scoop-services 到 $SCOOP/config
-├── lite-backup.mjs               # 生成 backup.lite.json
-├── mirror/
-│   ├── hook.ps1                  # → $SCOOP/config/scoop-mirror/hook.ps1（下载改写）
-│   ├── shared.ps1                # → $SCOOP/config/scoop-mirror/shared.ps1
-│   ├── cli.mjs                   # → $SCOOP/config/scoop-mirror/cli.mjs（switch / repair / filter）
-│   └── test.mjs
-├── services/
-│   └── manage.ps1                # → $SCOOP/config/scoop-services/manage.ps1
-└── import-backup.ps1             # vpr setup：按当前镜像 import
-```
+一键同步切换 Scoop 仓库、GitHub bucket 远端及后续安装、更新使用的下载镜像（仓库侧见上方 `runtime/scoop/`）。
 
 运行时在 `$SCOOP/config/scoop-mirror/` 生成 `config.json`；菜单依赖同步到同目录 `lib/`。
 

@@ -8,8 +8,10 @@ if ([string]::IsNullOrWhiteSpace($InstallProfile)) {
 }
 
 $Repo = 'https://github.com/wwlight/use.git'
+$RepoZip = 'https://github.com/wwlight/use/archive/refs/heads/main.zip'
+$ZipExtractName = 'use-main'
 $InstallDir = "$env:USERPROFILE\Desktop\use"
-# Keep aligned with scripts/windows/_manifest.json (clone has not happened yet).
+# Keep aligned with manifests/windows.json defaults (clone has not happened yet).
 $ScoopDir = if (-not [string]::IsNullOrWhiteSpace($env:SCOOP)) { $env:SCOOP } else { 'D:\SoftwareApps\Scoop' }
 $SoftwareAppsDir = 'D:\SoftwareApps'
 $ScoopInstallScript = 'https://raw.githubusercontent.com/ScoopInstaller/Install/master/install.ps1'
@@ -212,6 +214,123 @@ function Get-GithubRepoCandidates {
   Get-GithubUrlCandidates -Url $Repo
 }
 
+function Get-GithubZipCandidates {
+  Get-GithubUrlCandidates -Url $RepoZip
+}
+
+function Expand-UseZipRepository {
+  param([string]$Target)
+
+  $parent = Split-Path $Target -Parent
+  if (-not (Test-Path -LiteralPath $parent)) {
+    New-Item -ItemType Directory -Path $parent -Force | Out-Null
+  }
+  $tmp = Join-Path $parent ("use-zip-" + [guid]::NewGuid().ToString('N'))
+  New-Item -ItemType Directory -Path $tmp -Force | Out-Null
+  $zipFile = Join-Path $tmp 'use-main.zip'
+
+  try {
+    foreach ($url in (Get-GithubZipCandidates)) {
+      Write-Info "Trying zip URL: $url"
+      try {
+        Invoke-WebRequest -Uri $url -OutFile $zipFile -UseBasicParsing
+        $extractRoot = Join-Path $tmp 'extract'
+        if (Test-Path -LiteralPath $extractRoot) {
+          Remove-Item -LiteralPath $extractRoot -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        New-Item -ItemType Directory -Path $extractRoot -Force | Out-Null
+        Expand-Archive -LiteralPath $zipFile -DestinationPath $extractRoot -Force
+        $extracted = Join-Path $extractRoot $ZipExtractName
+        if (-not (Test-Path -LiteralPath $extracted)) {
+          throw "Expected folder missing: $ZipExtractName"
+        }
+        if (Test-Path -LiteralPath $Target) {
+          Remove-Item -LiteralPath $Target -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        Move-Item -LiteralPath $extracted -Destination $Target
+        Write-Info "Extracted repository to $Target"
+        return $true
+      }
+      catch {
+        Write-Warn "Zip fetch failed ($url): $($_.Exception.Message)"
+      }
+    }
+    return $false
+  }
+  finally {
+    Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
+  }
+}
+
+function Unblock-UseScripts {
+  param([string]$Root)
+  Get-ChildItem -LiteralPath $Root -Recurse -Include *.ps1,*.psm1 -ErrorAction SilentlyContinue |
+    Unblock-File -ErrorAction SilentlyContinue
+}
+
+function Ensure-NodeRuntime {
+  $node = Get-Command node -ErrorAction SilentlyContinue
+  if (-not $node) {
+    Write-ErrorAndExit 'Node.js >= 22 is required. Install Node, then rerun. (https://nodejs.org/)'
+  }
+  $major = 0
+  try {
+    $major = [int]((node -p "process.versions.node.split('.')[0]").Trim())
+  }
+  catch {
+    $major = 0
+  }
+  if ($major -lt 22) {
+    $ver = & node -v
+    Write-ErrorAndExit "Node.js >= 22 is required (found $ver). Upgrade Node, then rerun."
+  }
+  Write-Info "Using Node $(node -v)"
+}
+
+function Invoke-UseCli {
+  param([Parameter(ValueFromRemainingArguments = $true)][string[]]$CliArgs)
+  & node (Join-Path $InstallDir 'src/cli.js') @CliArgs
+  if ($LASTEXITCODE -ne 0) {
+    Write-ErrorAndExit "CLI failed: node src/cli.js $($CliArgs -join ' ')"
+  }
+}
+
+function Copy-UseRepository {
+  param([string]$Target)
+
+  if (-not (Test-GitAvailable)) {
+    return $false
+  }
+
+  foreach ($url in (Get-GithubRepoCandidates)) {
+    Remove-Item $Target -Recurse -Force -ErrorAction SilentlyContinue
+    Write-Info "Trying clone URL: $url"
+    git clone --depth=1 $url $Target
+    if ($LASTEXITCODE -eq 0) { return $true }
+  }
+  return $false
+}
+
+function Fetch-UseRepository {
+  param([string]$Target)
+
+  if (Expand-UseZipRepository -Target $Target) {
+    Unblock-UseScripts -Root $Target
+    return
+  }
+
+  Write-Warn 'Zip download failed; falling back to git clone...'
+  if (Copy-UseRepository -Target $Target) {
+    Unblock-UseScripts -Root $Target
+    return
+  }
+
+  if (Test-Path -LiteralPath $Target) {
+    Remove-Item -LiteralPath $Target -Recurse -Force -ErrorAction SilentlyContinue
+  }
+  Write-ErrorAndExit 'Failed to fetch repository (zip and git clone both failed). Try another USE_ACCEL mirror or check the network.'
+}
+
 function Get-ScoopBootstrapAttempts {
   $preferred = Resolve-GithubAccelPrefix
   $attempts = New-Object System.Collections.Generic.List[object]
@@ -395,22 +514,6 @@ function Install-ScoopBootstrapApps {
   }
 }
 
-function Copy-UseRepository {
-  param([string]$Target)
-
-  if (-not (Test-GitAvailable)) {
-    Write-ErrorAndExit 'Git is required to clone the repository'
-  }
-
-  foreach ($url in (Get-GithubRepoCandidates)) {
-    Remove-Item $Target -Recurse -Force -ErrorAction SilentlyContinue
-    Write-Info "Trying clone URL: $url"
-    git clone --depth=1 $url $Target
-    if ($LASTEXITCODE -eq 0) { return }
-  }
-  Write-ErrorAndExit 'Failed to clone repository'
-}
-
 function Update-UseRepository {
   param([string]$Target)
 
@@ -450,8 +553,8 @@ $null = Install-ScoopBootstrap
 Install-ScoopBootstrapApps
 
 if (-not (Test-Path $InstallDir)) {
-  Write-Info "Cloning repository to $InstallDir ..."
-  Copy-UseRepository $InstallDir
+  Write-Info "Fetching repository to $InstallDir ..."
+  Fetch-UseRepository $InstallDir
 }
 elseif (Test-SameRemoteRepo $InstallDir) {
   Write-Info "Existing repository found at $InstallDir; syncing with origin/main ..."
@@ -459,13 +562,12 @@ elseif (Test-SameRemoteRepo $InstallDir) {
 }
 else {
   $InstallDir = Get-NextTimestampedDir $InstallDir
-  Write-Info "Directory is in use; cloning to $InstallDir ..."
-  Copy-UseRepository $InstallDir
+  Write-Info "Directory is in use; fetching to $InstallDir ..."
+  Fetch-UseRepository $InstallDir
 }
 
 Set-Location $InstallDir
-
-$pwsh = if ($PSVersionTable.PSEdition -eq 'Core') { 'pwsh.exe' } else { 'powershell.exe' }
+Ensure-NodeRuntime
 
 # The installer completes step 1; the total includes subsequent init steps.
 $initSteps = 4
@@ -479,17 +581,17 @@ $scoopInstallArgs = @()
 if (-not [string]::IsNullOrWhiteSpace($env:USE_ACCEL)) {
     $scoopInstallArgs = @("$($env:USE_ACCEL.Trim())")
 }
-& $pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/scoop/install.ps1 @scoopInstallArgs
-if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Package manager configuration failed' }
+$pmArgs = @('pm')
+if ($scoopInstallArgs.Count -gt 0) { $pmArgs += $scoopInstallArgs }
+Invoke-UseCli @pmArgs
 
 $env:SYNC_INTERACTIVE = '1'
 
 if ($InstallProfile) {
-  & $pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/init.ps1 $InstallProfile
+  Invoke-UseCli @('init', '--', $InstallProfile)
 } else {
-  & $pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/init.ps1
+  Invoke-UseCli @('init')
 }
-if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Initialization failed' }
 
 Write-Info 'Installation complete!'
 

@@ -1,4 +1,4 @@
-# Generated from Brewfile using scripts/macos/_manifest.json brewLiteItems.
+# Generated from Brewfile using manifests/macos.json brewLiteItems.
 # Modern, maintained replacement for ls
 brew "eza"
 # Command-line fuzzy finder written in Go

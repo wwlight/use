@@ -1,0 +1,54 @@
+{
+  "brewfile": "configs/macos/brew/Brewfile",
+  "brewfileLite": "configs/macos/brew/Brewfile.lite",
+  "brewMirrorCatalog": "configs/macos/brew/mirrors.tsv",
+  "profileArtifacts": {
+    "lite": "brewfileLite",
+    "full": "brewfile"
+  },
+  "brewLiteItems": [
+    { "type": "brew", "name": "eza" },
+    { "type": "brew", "name": "fzf" },
+    { "type": "brew", "name": "git" },
+    { "type": "brew", "name": "starship" },
+    { "type": "brew", "name": "zoxide" },
+    { "type": "cask", "name": "ghostty" },
+    { "type": "cask", "name": "font-fira-code-nerd-font" }
+  ],
+  "brewMirrors": {
+    "ustc": {
+      "label": "中科大镜像",
+      "apiDomain": "https://mirrors.ustc.edu.cn/homebrew-bottles/api",
+      "bottleDomain": "https://mirrors.ustc.edu.cn/homebrew-bottles",
+      "brewGitRemote": "https://mirrors.ustc.edu.cn/brew.git",
+      "installScript": "https://mirrors.ustc.edu.cn/misc/brew-install.sh"
+    },
+    "tuna": {
+      "label": "清华镜像",
+      "apiDomain": "https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api",
+      "bottleDomain": "https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles",
+      "brewGitRemote": "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git",
+      "installGitRepo": "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/install.git"
+    },
+    "official": {
+      "label": "官方源",
+      "installScript": "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
+    }
+  },
+  "sync": {
+    "toRepo": [
+      { "local": "~/.zshrc", "repo": "configs/macos/.zshrc", "backup": true },
+      { "local": "~/.bashrc", "repo": "configs/macos/.bashrc" },
+      { "local": "~/.config/homebrew/mirror-cli.zsh", "repo": "runtime/brew/mirror-cli.zsh", "restoreOnly": true },
+      { "local": "~/.config/homebrew/mirrors.tsv", "repo": "configs/macos/brew/mirrors.tsv", "restoreOnly": true },
+      { "local": "~/.config/homebrew/lib/mirror-menu.js", "repo": "runtime/brew/mirror-menu.js", "restoreOnly": true },
+      { "local": "~/.config/homebrew/lib/menu-select.js", "repo": "src/lib/menu-select.js", "restoreOnly": true },
+      { "local": "~/.config/homebrew/lib/string-width.js", "repo": "src/lib/string-width.js", "restoreOnly": true },
+      { "local": "~/.config/homebrew/lib/tty-term.js", "repo": "src/lib/tty-term.js", "restoreOnly": true },
+      { "local": "~/.zsh/functions/utils.zsh", "repo": "configs/macos/utils.zsh" },
+      { "local": "~/.config/ghostty/config", "repo": "configs/macos/ghostty_config" },
+      { "local": "~/Library/Application Support/mihomo-party/mihomo.yaml", "repo": "configs/common/mihomo.yaml", "lite": false, "defaultSelected": false }
+    ]
+  },
+  "zprofile": "~/.zprofile"
+}

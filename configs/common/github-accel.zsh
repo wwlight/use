@@ -1,4 +1,4 @@
-# GitHub acceleration (keep aligned with githubAccel in scripts/common/_manifest.json).
+# GitHub acceleration (keep aligned with githubAccel in manifests/common.json).
 # BEGIN GENERATED GITHUB ACCEL
 typeset -ga GITHUB_ACCEL_MIRRORS=(
   'https://ghfast.top/'

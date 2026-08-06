@@ -35,7 +35,7 @@ winsw() {
 }
 
 _scoop_mirror_cli() {
-  print -r -- "${SCOOP}/config/scoop-mirror/cli.mjs"
+  print -r -- "${SCOOP}/config/scoop-mirror/cli.js"
 }
 
 _scoop_require_node() {

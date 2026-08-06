@@ -46,7 +46,7 @@ function _scoop_invoke_helper {
 }
 
 function _scoop_mirror_cli {
-  return "$env:SCOOP\config\scoop-mirror\cli.mjs"
+  return "$env:SCOOP\config\scoop-mirror\cli.js"
 }
 
 function _scoop_require_node {

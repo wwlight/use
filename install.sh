@@ -2,7 +2,9 @@
 set -e
 
 REPO="https://github.com/wwlight/use.git"
+REPO_ZIP="https://github.com/wwlight/use/archive/refs/heads/main.zip"
 INSTALL_DIR="${HOME}/Desktop/use"
+ZIP_EXTRACT_NAME="use-main"
 # BEGIN GENERATED GITHUB ACCEL
 GITHUB_ACCEL_IDS=(
   "ghfast"
@@ -130,8 +132,55 @@ github_repo_candidates() {
   printf '%s\n' "$REPO"
 }
 
+github_zip_candidates() {
+  local preferred prefix
+  preferred=$(resolve_accel_prefix)
+  if [ -n "$preferred" ]; then
+    printf '%s%s\n' "$preferred" "$REPO_ZIP"
+  fi
+  for prefix in "${GITHUB_ACCEL_PREFIXES[@]}"; do
+    [ "$prefix" = "$preferred" ] && continue
+    printf '%s%s\n' "$prefix" "$REPO_ZIP"
+  done
+  printf '%s\n' "$REPO_ZIP"
+}
+
+download_zip_repo() {
+  local target="$1" url tmp zipfile parent
+  parent=$(dirname "$target")
+  mkdir -p "$parent"
+  tmp=$(mktemp -d "${parent}/use-zip.XXXXXX") || return 1
+  zipfile="${tmp}/use-main.zip"
+
+  while IFS= read -r url; do
+    [ -n "$url" ] || continue
+    info "Trying zip URL: $url"
+    rm -f "$zipfile"
+    if ! curl -fsSL --connect-timeout 15 --max-time 300 -o "$zipfile" "$url"; then
+      continue
+    fi
+    rm -rf "${tmp}/${ZIP_EXTRACT_NAME}" "$target"
+    if ! unzip -q "$zipfile" -d "$tmp"; then
+      continue
+    fi
+    if [ ! -d "${tmp}/${ZIP_EXTRACT_NAME}" ]; then
+      continue
+    fi
+    mv "${tmp}/${ZIP_EXTRACT_NAME}" "$target"
+    rm -rf "$tmp"
+    info "Extracted repository to $target"
+    return 0
+  done < <(github_zip_candidates)
+
+  rm -rf "$tmp"
+  return 1
+}
+
 clone_repo() {
   local target="$1" url
+  if ! command -v git >/dev/null 2>&1; then
+    return 1
+  fi
   while IFS= read -r url; do
     [ -n "$url" ] || continue
     rm -rf "$target"
@@ -140,11 +189,27 @@ clone_repo() {
       return 0
     fi
   done < <(github_repo_candidates)
-  error "Failed to clone repository"
+  return 1
+}
+
+fetch_repo() {
+  local target="$1"
+  if download_zip_repo "$target"; then
+    return 0
+  fi
+  printf "\033[33m[WARN] %s\033[0m\n" "Zip download failed; falling back to git clone..." >&2
+  if clone_repo "$target"; then
+    return 0
+  fi
+  rm -rf "$target"
+  error "Failed to fetch repository (zip and git clone both failed). Try another USE_ACCEL mirror or check the network."
 }
 
 update_repo() {
   local target="$1" url
+  if ! command -v git >/dev/null 2>&1; then
+    error "Git is required to update an existing repository checkout"
+  fi
   while IFS= read -r url; do
     [ -n "$url" ] || continue
     git -C "$target" remote set-url origin "$url" || continue
@@ -175,8 +240,8 @@ ensure_repo() {
 
   if [ ! -e "$target" ]; then
     INSTALL_DIR="$target"
-    info "Cloning repository to $INSTALL_DIR ..."
-    clone_repo "$INSTALL_DIR"
+    info "Fetching repository to $INSTALL_DIR ..."
+    fetch_repo "$INSTALL_DIR"
     return
   fi
 
@@ -189,28 +254,48 @@ ensure_repo() {
 
   target=$(next_timestamped_dir "$INSTALL_DIR")
   INSTALL_DIR="$target"
-  info "Directory is in use; cloning to $INSTALL_DIR ..."
-  clone_repo "$INSTALL_DIR"
+  info "Directory is in use; fetching to $INSTALL_DIR ..."
+  fetch_repo "$INSTALL_DIR"
+}
+
+ensure_node() {
+  if ! command -v node >/dev/null 2>&1; then
+    error "Node.js >= 22 is required. Install Node, then rerun. (https://nodejs.org/)"
+  fi
+  local major
+  major=$(node -p "process.versions.node.split('.')[0]" 2>/dev/null || echo 0)
+  if [ "${major:-0}" -lt 22 ]; then
+    error "Node.js >= 22 is required (found $(node -v)). Upgrade Node, then rerun."
+  fi
+  info "Using Node $(node -v)"
+}
+
+run_cli() {
+  node "$INSTALL_DIR/src/cli.js" "$@"
 }
 
 install_macos() {
   local profile="$1"
   ensure_repo
   cd "$INSTALL_DIR"
+  ensure_node
 
   # The installer completes step 1; the total includes subsequent init steps.
   local init_steps=4
   export USE_STEP_CHAIN=1
   export USE_STEP_CURRENT=1
   export USE_STEP_TOTAL=$((USE_STEP_CURRENT + init_steps))
+  # curl|bash pipes stdin; menus still talk to /dev/tty when present.
+  if [[ -c /dev/tty ]]; then
+    export SYNC_INTERACTIVE=1
+  fi
   step "Step ${USE_STEP_CURRENT}/${USE_STEP_TOTAL}: Installing package manager ..."
-  # Same path as vpr pm: interactive select, or USE_BREW_MIRROR=<id> for non-interactive.
-  bash scripts/macos/brew/install.sh
+  run_cli pm
 
   if [ -n "$profile" ]; then
-    bash scripts/macos/init.sh "$profile"
+    run_cli init -- "$profile"
   else
-    bash scripts/macos/init.sh
+    run_cli init
   fi
 
   info "Installation complete!"
