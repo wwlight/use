@@ -82,12 +82,14 @@ assert.equal(
   stringWidth(formatChoiceLine('label', false).slice(0, 2), narrow),
 )
 
-// Multi-select (vpr sync file picker): leading ✓ and [✓] share the same chrome
+// Multi-select (vpr sync file picker): only the leading ✓ cursor is width-fixed
 assert.equal(formatSyncChoiceLine('a.txt', { selected: true, active: false }), '  [✓] a.txt')
 assert.equal(formatSyncChoiceLine('b.txt', { selected: false, active: true }), '✓ [ ] b.txt')
 assert.equal(formatSyncChoiceLine('c.txt', { selected: true, active: true }), '✓ [✓] c.txt')
 const syncActive = formatSyncChoiceLine('x', { active: true })
 const syncIdle = formatSyncChoiceLine('x', { active: false })
 assert.equal(syncActive.indexOf('['), syncIdle.indexOf('['))
+assert.match(syncSource, /alignMenuCheck\(active\)/)
+assert.ok(!syncSource.includes('alignMenuCheck(selected)'))
 
 console.log('menu-select.test.mjs: ok')

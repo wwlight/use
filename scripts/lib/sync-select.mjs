@@ -12,8 +12,8 @@ import { alignMenuCheck, truncateWidth } from './string-width.mjs'
 import { openTerminal, restoreFrame } from './tty-term.mjs'
 
 export function formatSyncChoiceLine(label, { selected = false, active = false, labelMax = 30, widthOptions = {} } = {}) {
-  // Leading ✓ cursor + [✓] toggle both use the same fixed 1-column chrome.
-  return `${alignMenuCheck(active)} [${alignMenuCheck(selected)}] ${truncateWidth(label, labelMax, widthOptions)}`
+  const mark = selected ? '✓' : ' '
+  return `${alignMenuCheck(active)} [${mark}] ${truncateWidth(label, labelMax, widthOptions)}`
 }
 
 function parseItems(rawLines) {
