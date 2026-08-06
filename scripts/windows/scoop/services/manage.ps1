@@ -1,6 +1,8 @@
 # Scoop services (WinSW). Deployed to $env:SCOOP\config\scoop-services\manage.ps1.
 param(
     [switch]$PrepareUninstall,
+    [switch]$PrepareUpdate,
+    [switch]$RestartChanged,
     [Parameter(ValueFromRemainingArguments = $true)]
     [string[]]$CommandArgs
 )
@@ -35,9 +37,69 @@ function Get-ScoopServicesManifest {
     return $ht
 }
 
+function Get-ScoopServicesSnapshotPath {
+    return (Join-Path $env:SCOOP 'config\scoop-services\.update-snapshot.json')
+}
+
+function Get-ScoopServiceXmlPath {
+    param([string]$Name)
+    return (Join-Path $env:SCOOP "persist\$Name\$Name-winsw-service.xml")
+}
+
+function Test-ScoopServiceRestartOnUpdate {
+    param($Cfg)
+    if ($null -eq $Cfg) { return $true }
+    if ($null -eq $Cfg.PSObject.Properties['restartOnUpdate']) { return $true }
+    return [bool]$Cfg.restartOnUpdate
+}
+
+function Get-ScoopAppVersion {
+    param([string]$Name)
+    $manifest = Join-Path $env:SCOOP "apps\$Name\current\manifest.json"
+    if (-not (Test-Path -LiteralPath $manifest)) { return $null }
+    try {
+        $version = [string]((Get-Content -LiteralPath $manifest -Raw -Encoding UTF8 | ConvertFrom-Json).version)
+        if ([string]::IsNullOrWhiteSpace($version)) { return $null }
+        return $version
+    }
+    catch {
+        return $null
+    }
+}
+
+function Get-ScoopWinSwStatusText {
+    param([string]$Name)
+    return "$(Invoke-ScoopWinSw status $Name)".Trim()
+}
+
+function Resolve-ScoopServicesUpdateTargets {
+    param([string[]]$Apps)
+
+    $manifest = Get-ScoopServicesManifest
+    if ($manifest.Count -eq 0) { return @() }
+
+    $all = $false
+    if (-not $Apps -or $Apps.Count -eq 0) { $all = $true }
+    elseif ($Apps.Count -eq 1 -and "$($Apps[0])".Trim() -eq '*') { $all = $true }
+
+    $names = if ($all) {
+        @($manifest.Keys)
+    }
+    else {
+        @($Apps | ForEach-Object { "$_".Trim() } | Where-Object { $_ -and $manifest.ContainsKey($_) })
+    }
+
+    $targets = New-Object System.Collections.Generic.List[string]
+    foreach ($name in $names) {
+        if (-not (Test-Path -LiteralPath (Get-ScoopServiceXmlPath -Name $name))) { continue }
+        [void]$targets.Add($name)
+    }
+    return $targets.ToArray()
+}
+
 function Invoke-ScoopWinSw {
     if ($args.Count -ge 2) {
-        $xml = Join-Path $env:SCOOP "persist\$($args[1])\$($args[1])-winsw-service.xml"
+        $xml = Get-ScoopServiceXmlPath -Name $args[1]
         if (Test-Path -LiteralPath $xml) {
             $winswExe = Join-Path $env:SCOOP 'apps\winsw-pre\current\WinSW.exe'
             if (-not (Test-Path -LiteralPath $winswExe)) {
@@ -72,7 +134,7 @@ function Ensure-ScoopServiceXml {
     $cfg = $manifest[$Name]
     if (-not $cfg) { return $false }
 
-    $xml = Join-Path $env:SCOOP "persist\$Name\$Name-winsw-service.xml"
+    $xml = Get-ScoopServiceXmlPath -Name $Name
     if (Test-Path -LiteralPath $xml) { return $true }
 
     $persistDir = Join-Path $env:SCOOP "persist\$Name"
@@ -162,7 +224,7 @@ function Invoke-ScoopServicesManager {
                 return
             }
             if (Ensure-ScoopServiceXml -Name $svc) {
-                $status = "$(Invoke-ScoopWinSw status $svc)".Trim()
+                $status = Get-ScoopWinSwStatusText -Name $svc
                 if ($status -eq 'NonExistent') {
                     Invoke-ScoopWinSw install $svc
                     Invoke-ScoopWinSw start $svc
@@ -177,12 +239,11 @@ function Invoke-ScoopServicesManager {
                 Write-Host 'Usage: scoop services uninstall <name>'
                 return
             }
-            $status = "$(Invoke-ScoopWinSw status $svc)".Trim()
+            $status = Get-ScoopWinSwStatusText -Name $svc
             if ($status -ne 'NonExistent') {
                 Invoke-ScoopWinSw stop $svc
                 Invoke-ScoopWinSw uninstall $svc
-                $xml = Join-Path $env:SCOOP "persist\$svc\$svc-winsw-service.xml"
-                Remove-Item -LiteralPath $xml -Force -ErrorAction SilentlyContinue
+                Remove-Item -LiteralPath (Get-ScoopServiceXmlPath -Name $svc) -Force -ErrorAction SilentlyContinue
             }
             else {
                 Write-Host "Service '$svc' is not registered"
@@ -216,9 +277,9 @@ function Invoke-ScoopServicesPrepareUninstall {
     $manifest = Get-ScoopServicesManifest
     foreach ($app in @($Apps)) {
         if (-not $manifest.ContainsKey($app)) { continue }
-        $xml = Join-Path $env:SCOOP "persist\$app\$app-winsw-service.xml"
+        $xml = Get-ScoopServiceXmlPath -Name $app
         if (-not (Test-Path -LiteralPath $xml)) { continue }
-        $status = "$(Invoke-ScoopWinSw status $app)".Trim()
+        $status = Get-ScoopWinSwStatusText -Name $app
         if ($status -eq 'NonExistent') { continue }
         Invoke-ScoopWinSw stop $app
         Invoke-ScoopWinSw uninstall $app
@@ -226,9 +287,96 @@ function Invoke-ScoopServicesPrepareUninstall {
     }
 }
 
+# Snapshot registered services before scoop update (brew restart_service: :changed).
+function Invoke-ScoopServicesPrepareUpdate {
+    param([string[]]$Apps)
+
+    $snapshotPath = Get-ScoopServicesSnapshotPath
+    Remove-Item -LiteralPath $snapshotPath -Force -ErrorAction SilentlyContinue
+
+    $manifest = Get-ScoopServicesManifest
+    $targets = @(Resolve-ScoopServicesUpdateTargets -Apps $Apps)
+    if ($targets.Count -eq 0) { return }
+
+    $entries = [ordered]@{}
+    foreach ($name in $targets) {
+        $cfg = $manifest[$name]
+        if (-not (Test-ScoopServiceRestartOnUpdate -Cfg $cfg)) { continue }
+        $status = Get-ScoopWinSwStatusText -Name $name
+        if ($status -eq 'NonExistent') { continue }
+        $version = Get-ScoopAppVersion -Name $name
+        $entries[$name] = [ordered]@{
+            version = $version
+            running = ($status -eq 'Active (running)')
+        }
+    }
+
+    if ($entries.Count -eq 0) { return }
+
+    $dir = Split-Path -Parent $snapshotPath
+    if (-not (Test-Path -LiteralPath $dir)) {
+        New-Item -ItemType Directory -Force -Path $dir | Out-Null
+    }
+    $encoding = New-Object Text.UTF8Encoding $false
+    [IO.File]::WriteAllText($snapshotPath, (($entries | ConvertTo-Json -Depth 5) + "`n"), $encoding)
+}
+
+# After successful scoop update: restart services whose version changed and were running.
+function Invoke-ScoopServicesRestartChanged {
+    $snapshotPath = Get-ScoopServicesSnapshotPath
+    if (-not (Test-Path -LiteralPath $snapshotPath)) { return }
+
+    try {
+        $snapshot = Get-Content -LiteralPath $snapshotPath -Raw -Encoding UTF8 | ConvertFrom-Json
+    }
+    catch {
+        Remove-Item -LiteralPath $snapshotPath -Force -ErrorAction SilentlyContinue
+        return
+    }
+    finally {
+        Remove-Item -LiteralPath $snapshotPath -Force -ErrorAction SilentlyContinue
+    }
+
+    if (-not $snapshot) { return }
+    $manifest = Get-ScoopServicesManifest
+
+    foreach ($prop in @($snapshot.PSObject.Properties)) {
+        $name = $prop.Name
+        $before = $prop.Value
+        if (-not $manifest.ContainsKey($name)) { continue }
+        if (-not (Test-ScoopServiceRestartOnUpdate -Cfg $manifest[$name])) { continue }
+        if (-not (Test-Path -LiteralPath (Get-ScoopServiceXmlPath -Name $name))) { continue }
+
+        $status = Get-ScoopWinSwStatusText -Name $name
+        if ($status -eq 'NonExistent') { continue }
+
+        $afterVersion = Get-ScoopAppVersion -Name $name
+        $beforeVersion = [string]$before.version
+        if ([string]::IsNullOrWhiteSpace($afterVersion) -or [string]::IsNullOrWhiteSpace($beforeVersion)) { continue }
+        if ($afterVersion -eq $beforeVersion) { continue }
+        if (-not [bool]$before.running) { continue }
+
+        try {
+            Write-Host "Restarting service '$name' after update ($beforeVersion -> $afterVersion)" -ForegroundColor Cyan
+            Invoke-ScoopWinSw restart $name
+        }
+        catch {
+            Write-Host "Warning: failed to restart service '$name': $($_.Exception.Message)" -ForegroundColor Yellow
+        }
+    }
+}
+
 try {
     if ($PrepareUninstall) {
         Invoke-ScoopServicesPrepareUninstall -Apps $CommandArgs
+        Stop-ScoopServicesCli -Code 0
+    }
+    if ($PrepareUpdate) {
+        Invoke-ScoopServicesPrepareUpdate -Apps $CommandArgs
+        Stop-ScoopServicesCli -Code 0
+    }
+    if ($RestartChanged) {
+        Invoke-ScoopServicesRestartChanged
         Stop-ScoopServicesCli -Code 0
     }
     Invoke-ScoopServicesManager -Args $CommandArgs

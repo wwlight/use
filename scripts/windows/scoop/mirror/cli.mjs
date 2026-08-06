@@ -120,6 +120,43 @@ function quoteForGitFilter(filePath) {
   return `"${filePath.replace(/\\/g, '/')}"`
 }
 
+function gitConfigValue(repo, key) {
+  const result = runGit(repo, ['config', '--local', '--get', key])
+  if (result.status !== 0) return ''
+  return String(result.stdout || '').trim()
+}
+
+function hasCurrentHookMarkers(bytes) {
+  const begin = Buffer.from('# >>> scoop-mirror')
+  const end = Buffer.from('# <<< scoop-mirror')
+  const beginAt = findByteSequence(bytes, begin)
+  if (beginAt < 0) return false
+  const endAt = findByteSequence(bytes, end, beginAt)
+  if (endAt < 0) return false
+  const slice = bytes.subarray(beginAt, endAt + end.length).toString('utf8')
+  return slice.includes('scoop-mirror\\hook.ps1') || slice.includes('scoop-mirror/hook.ps1')
+}
+
+function attributesReady(attributesPath) {
+  if (!fs.existsSync(attributesPath)) return false
+  const lines = fs.readFileSync(attributesPath, 'utf8').split(/\r?\n/)
+  return lines.some((line) => /^\s*lib\/download\.ps1\s+filter=scoop-mirror\b/.test(line)
+    && !/filter=scoop-mirror-accel\b/.test(line))
+}
+
+/** Cheap preflight: skip full rewrite when hook, filter, attributes, and worktree are already healthy. */
+function isRepairHealthy({ scoopRepo, download, clean, smudge }) {
+  if (!hasCurrentHookMarkers(fs.readFileSync(download))) return false
+  if (gitConfigValue(scoopRepo, 'filter.scoop-mirror.clean') !== clean) return false
+  if (gitConfigValue(scoopRepo, 'filter.scoop-mirror.smudge') !== smudge) return false
+  if (gitConfigValue(scoopRepo, 'filter.scoop-mirror.required') !== 'true') return false
+  if (!attributesReady(path.join(scoopRepo, '.git', 'info', 'attributes'))) return false
+
+  const status = runGit(scoopRepo, ['status', '--porcelain', '--untracked-files=no'])
+  if (status.status !== 0) return false
+  return !String(status.stdout || '').trim()
+}
+
 function repairHook() {
   const scoop = process.env.SCOOP
   if (!scoop || !scoop.trim()) throw new Error('SCOOP environment variable is not set')
@@ -136,6 +173,8 @@ function repairHook() {
   const nodePath = process.execPath
   const clean = `${quoteForGitFilter(nodePath)} ${quoteForGitFilter(selfPath)} clean`
   const smudge = `${quoteForGitFilter(nodePath)} ${quoteForGitFilter(selfPath)} smudge`
+
+  if (isRepairHealthy({ scoopRepo, download, clean, smudge })) return
 
   for (const [key, value] of [
     ['filter.scoop-mirror.clean', clean],

@@ -154,6 +154,42 @@ function Get-ScoopMirrorAccelFilterCommand {
     }
 }
 
+function Test-ScoopMirrorRepairHealthy {
+    param(
+        [string]$ScoopRepo,
+        [string]$Download,
+        [string]$Clean,
+        [string]$Smudge
+    )
+
+    if (-not (Test-Path -LiteralPath $Download)) { return $false }
+    $bytes = [IO.File]::ReadAllBytes($Download)
+    if ((Find-ByteSequence -Bytes $bytes -Sequence $script:ScoopMirrorHookBegin) -lt 0) { return $false }
+    if ((Find-ByteSequence -Bytes $bytes -Sequence $script:ScoopMirrorHookEnd) -lt 0) { return $false }
+
+    $cleanCfg = "$(& git.exe -C $ScoopRepo config --local --get filter.scoop-mirror.clean 2>$null)".Trim()
+    if ($LASTEXITCODE -ne 0 -or $cleanCfg -cne $Clean) { return $false }
+    $smudgeCfg = "$(& git.exe -C $ScoopRepo config --local --get filter.scoop-mirror.smudge 2>$null)".Trim()
+    if ($LASTEXITCODE -ne 0 -or $smudgeCfg -cne $Smudge) { return $false }
+    $required = "$(& git.exe -C $ScoopRepo config --local --get filter.scoop-mirror.required 2>$null)".Trim()
+    if ($LASTEXITCODE -ne 0 -or $required -cne 'true') { return $false }
+
+    $attributes = Join-Path $ScoopRepo '.git\info\attributes'
+    if (-not (Test-Path -LiteralPath $attributes)) { return $false }
+    $attrOk = $false
+    foreach ($line in @(Get-Content -LiteralPath $attributes -Encoding UTF8 -ErrorAction SilentlyContinue)) {
+        if ($line -match '^\s*lib/download\.ps1\s+.*filter=scoop-mirror\b' -and $line -notmatch 'filter=scoop-mirror-accel\b') {
+            $attrOk = $true
+            break
+        }
+    }
+    if (-not $attrOk) { return $false }
+
+    $dirty = @(& git.exe -C $ScoopRepo status --porcelain --untracked-files=no)
+    if ($LASTEXITCODE -ne 0) { return $false }
+    return ($dirty.Count -eq 0)
+}
+
 function Initialize-ScoopMirrorAccelFilter {
     if ([string]::IsNullOrWhiteSpace($env:SCOOP)) { throw 'SCOOP environment variable is not set' }
 
@@ -162,6 +198,7 @@ function Initialize-ScoopMirrorAccelFilter {
     if (-not (Test-Path -LiteralPath $helper)) { throw "Scoop mirror hook not found: $helper" }
 
     # Prefer the Node repair path: avoids powershell.exe cold starts (often 5-15s each).
+    # Node repair owns the fast-path + full rewrite; PS below is no-Node fallback only.
     $node = Get-Command node.exe -ErrorAction SilentlyContinue
     if ($node -and (Test-Path -LiteralPath $cliJs)) {
         $output = & $node.Source $cliJs repair 2>&1
@@ -179,6 +216,10 @@ function Initialize-ScoopMirrorAccelFilter {
     if (-not (Test-Path -LiteralPath $download)) { throw "Scoop download.ps1 not found: $download" }
 
     $filter = Get-ScoopMirrorAccelFilterCommand -HelperPath $helper
+    if (Test-ScoopMirrorRepairHealthy -ScoopRepo $scoopRepo -Download $download -Clean $filter.Clean -Smudge $filter.Smudge) {
+        return
+    }
+
     & git.exe -C $scoopRepo config --local filter.scoop-mirror.clean $filter.Clean
     if ($LASTEXITCODE -ne 0) { throw 'Could not configure the Scoop mirror clean filter' }
     & git.exe -C $scoopRepo config --local filter.scoop-mirror.smudge $filter.Smudge

@@ -105,6 +105,7 @@ function Invoke-ScoopMirrorManager {
     if ([string]::IsNullOrWhiteSpace($env:SCOOP)) { throw 'SCOOP environment variable is not set' }
 
     $Choice = "$Choice".Trim()
+    # Node cli.mjs is the switch source of truth; PS path below is no-Node fallback only.
     $cliJs = Resolve-ScoopMirrorMenuSelectScript
     $node = Get-Command node.exe -ErrorAction SilentlyContinue
     if ($node -and $cliJs) {

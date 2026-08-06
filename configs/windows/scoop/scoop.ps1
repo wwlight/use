@@ -1,6 +1,7 @@
 # Scoop PowerShell shell extensions (winsw + scoop wrappers).
 # Deployed to $env:SCOOP\config\scoop.ps1 and dotted from pwsh5/pwsh7 profiles.
 # Core logic stays in scoop-mirror/ and scoop-services/.
+# winsw shim stays here for interactive hot path; services manager has its own WinSW helper.
 
 $__scoop = "$env:SCOOP\shims\scoop.ps1"
 
@@ -51,6 +52,7 @@ function _scoop_ensure_mirror_accel {
   $p = "$env:SCOOP\config\scoop-mirror\hook.ps1"
   $cli = "$env:SCOOP\config\scoop-mirror\cli.mjs"
   if (-not (Test-Path $p)) { return }
+  # Node repair owns fast-path + rewrite; PS -RepairHook is no-Node fallback only.
   if ((Test-Path $cli) -and (Get-Command node.exe -ErrorAction SilentlyContinue)) {
     & node.exe $cli repair | Out-Null
     return
@@ -94,8 +96,12 @@ function _scoop_manage_mirror {
   _scoop_invoke_helper -Path $p -ArgumentList @('-MirrorChoice', $Choice)
 }
 
+function _scoop_services_helper {
+  return "$env:SCOOP\config\scoop-services\manage.ps1"
+}
+
 function _scoop_manage_services {
-  $p = "$env:SCOOP\config\scoop-services\manage.ps1"
+  $p = _scoop_services_helper
   if (-not (Test-Path $p)) {
     $host.ui.WriteErrorLine("scoop: services helper not found at $p (re-run vpr pm / sync)")
     $global:LASTEXITCODE = 1
@@ -105,7 +111,7 @@ function _scoop_manage_services {
 }
 
 function _scoop_prepare_uninstall {
-  $p = "$env:SCOOP\config\scoop-services\manage.ps1"
+  $p = _scoop_services_helper
   if ($args.Count -eq 0) { return }
   if (-not (Test-Path $p)) {
     $host.ui.WriteErrorLine("scoop: services helper not found at $p (re-run vpr pm / sync); refusing uninstall without service cleanup")
@@ -116,6 +122,31 @@ function _scoop_prepare_uninstall {
   [void]$argList.Add('-PrepareUninstall')
   foreach ($a in $args) { [void]$argList.Add($a) }
   _scoop_invoke_helper -Path $p -ArgumentList $argList.ToArray()
+}
+
+function _scoop_prepare_update_services {
+  $p = _scoop_services_helper
+  if (-not (Test-Path $p)) { return }
+  $argList = [System.Collections.Generic.List[object]]::new()
+  [void]$argList.Add('-PrepareUpdate')
+  foreach ($a in $args) { [void]$argList.Add($a) }
+  try {
+    _scoop_invoke_helper -Path $p -ArgumentList $argList.ToArray()
+  }
+  catch {
+    # Snapshot is best-effort; never block scoop update.
+  }
+}
+
+function _scoop_restart_changed_services {
+  $p = _scoop_services_helper
+  if (-not (Test-Path $p)) { return }
+  try {
+    _scoop_invoke_helper -Path $p -ArgumentList @('-RestartChanged')
+  }
+  catch {
+    $host.ui.WriteErrorLine("scoop: service restart after update failed: $($_.Exception.Message)")
+  }
 }
 
 function _scoop_apps {
@@ -163,9 +194,15 @@ function scoop {
       return
     }
   }
+  $updateApps = @()
+  if ($args.Count -ge 1 -and $args[0] -eq 'update') {
+    $updateApps = @(_scoop_apps @args)
+    _scoop_prepare_update_services @updateApps
+  }
   & $__scoop @args
   $ec = $LASTEXITCODE
   if ($args.Count -ge 1 -and $args[0] -eq 'update') {
+    if ($ec -eq 0) { _scoop_restart_changed_services }
     _scoop_ensure_mirror_accel
   }
   $global:LASTEXITCODE = $ec
