@@ -179,11 +179,11 @@ vpr setup                         # 从 Brewfile 恢复完整软件清单
 初始化后可用独立命令切换镜像（读取本地 `~/.config/homebrew/mirrors.tsv`）：
 
 ```sh
-brew-mirror                       # 交互选择（fzf / 编号；Esc/Ctrl+C 取消；回车选中当前 * 则直接退出）
-brew-mirror status                # 显示当前镜像
-brew-mirror ustc                  # 中科大镜像
-brew-mirror tuna                  # 清华镜像
-brew-mirror official              # 恢复官方源
+brew mirror                       # 交互 ↑↓ 选择（Esc/Ctrl+C 取消；回车选中当前 * 则直接退出）
+brew mirror status                # 显示当前镜像
+brew mirror ustc                  # 中科大镜像
+brew mirror tuna                  # 清华镜像
+brew mirror official              # 恢复官方源
 ```
 
 ```text
@@ -204,7 +204,8 @@ configs/macos/
 ~/.config/homebrew/
 ├── mirrors.tsv                   # 本地镜像目录
 ├── mirror.zsh                    # 当前镜像环境变量
-└── brew-mirror.zsh               # brew-mirror 命令
+├── brew-mirror.zsh               # brew mirror 子命令
+└── lib/                          # ↑↓ 菜单（menu-select / tty-term）
 ```
 
 

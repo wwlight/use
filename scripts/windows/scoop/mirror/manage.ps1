@@ -39,16 +39,25 @@ function Invoke-ScoopMirrorMenuSelect {
         throw 'Interactive mirror menu requires Node.js on PATH'
     }
 
+    # nrm-style labels; value) description — menu shows description (after ")").
     $items = New-Object System.Collections.Generic.List[string]
     $activeId = Get-ScoopMirrorAccelId -Prefix $Config.ActivePrefix -Config $Config
     $ids = @(@($Config.Mirrors) | ForEach-Object { [string]$_.Id }) + @('official')
     $idWidth = ($ids | Measure-Object -Property Length -Maximum).Maximum
-    foreach ($mirror in @($Config.Mirrors)) {
-        $mark = if ($mirror.Prefix -eq $Config.ActivePrefix) { '* ' } else { '  ' }
-        [void]$items.Add(('{0}) {1}{2}' -f $mirror.Id.PadRight($idWidth), $mark, $mirror.Prefix))
+    $dashBase = 10
+    foreach ($name in $ids) {
+        $detail = if ($name -eq 'official') {
+            'https://github.com/ScoopInstaller/Scoop'
+        }
+        else {
+            [string](@($Config.Mirrors) | Where-Object { $_.Id -eq $name } | Select-Object -First 1).Prefix
+        }
+        $mark = if ($name -eq $activeId) { '*' } else { ' ' }
+        # Shorter names get more dashes so the URL column stays aligned; menu shows text after ")".
+        $pad = [Math]::Max(0, $idWidth - $name.Length)
+        $dashes = '-' * ($pad + $dashBase)
+        [void]$items.Add(('{0}) {1} {2} {3} {4}' -f $name, $mark, $name, $dashes, $detail))
     }
-    $officialMark = if ([string]::IsNullOrWhiteSpace($Config.ActivePrefix)) { '* ' } else { '  ' }
-    [void]$items.Add(('{0}) {1}{2}' -f 'official'.PadRight($idWidth), $officialMark, 'https://github.com/ScoopInstaller/Scoop'))
 
     $outFile = [IO.Path]::GetTempFileName()
     $previousOut = $env:MENU_SELECT_OUT

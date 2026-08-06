@@ -100,6 +100,13 @@ function _scoop_services_helper {
   return "$env:SCOOP\config\scoop-services\manage.ps1"
 }
 
+function Test-ScoopHasManagedServices {
+  $persist = Join-Path $env:SCOOP 'persist'
+  if (-not (Test-Path -LiteralPath $persist)) { return $false }
+  # Same depth as scoop.zsh: persist/<app>/*-winsw-service.xml (avoid full-tree recurse).
+  return [bool](Get-ChildItem -Path (Join-Path $persist '*\*-winsw-service.xml') -File -ErrorAction SilentlyContinue | Select-Object -First 1)
+}
+
 function _scoop_manage_services {
   $p = _scoop_services_helper
   if (-not (Test-Path $p)) {
@@ -125,6 +132,8 @@ function _scoop_prepare_uninstall {
 }
 
 function _scoop_prepare_update_services {
+  # Cheap gate: avoid loading manage.ps1 when nothing is registered.
+  if (-not (Test-ScoopHasManagedServices)) { return }
   $p = _scoop_services_helper
   if (-not (Test-Path $p)) { return }
   $argList = [System.Collections.Generic.List[object]]::new()
@@ -139,6 +148,8 @@ function _scoop_prepare_update_services {
 }
 
 function _scoop_restart_changed_services {
+  $snapshot = Join-Path $env:SCOOP 'config\scoop-services\.update-snapshot.json'
+  if (-not (Test-Path -LiteralPath $snapshot)) { return }
   $p = _scoop_services_helper
   if (-not (Test-Path $p)) { return }
   try {

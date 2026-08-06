@@ -154,6 +154,34 @@ function Get-ScoopMirrorAccelFilterCommand {
     }
 }
 
+function Test-ScoopMirrorCurrentHookMarkers {
+    param([byte[]]$Bytes)
+
+    $searchFrom = 0
+    while ($true) {
+        $begin = Find-ByteSequence -Bytes $Bytes -Sequence $script:ScoopMirrorHookBegin -Start $searchFrom
+        if ($begin -lt 0) { return $false }
+        $afterBegin = $begin + $script:ScoopMirrorHookBegin.Length
+        # Reject legacy `# >>> scoop-mirror-accel` (prefix of current begin marker).
+        if ($afterBegin -lt $Bytes.Length -and $Bytes[$afterBegin] -ne 10 -and $Bytes[$afterBegin] -ne 13) {
+            $searchFrom = $afterBegin
+            continue
+        }
+
+        $end = Find-ByteSequence -Bytes $Bytes -Sequence $script:ScoopMirrorHookEnd -Start $afterBegin
+        if ($end -lt 0) { return $false }
+        $afterEnd = $end + $script:ScoopMirrorHookEnd.Length
+        if ($afterEnd -lt $Bytes.Length -and $Bytes[$afterEnd] -ne 10 -and $Bytes[$afterEnd] -ne 13) {
+            $searchFrom = $afterBegin
+            continue
+        }
+
+        $sliceLen = ($end + $script:ScoopMirrorHookEnd.Length) - $begin
+        $slice = [Text.Encoding]::UTF8.GetString($Bytes, $begin, $sliceLen)
+        return ($slice -match 'scoop-mirror[/\\]hook\.ps1')
+    }
+}
+
 function Test-ScoopMirrorRepairHealthy {
     param(
         [string]$ScoopRepo,
@@ -164,8 +192,7 @@ function Test-ScoopMirrorRepairHealthy {
 
     if (-not (Test-Path -LiteralPath $Download)) { return $false }
     $bytes = [IO.File]::ReadAllBytes($Download)
-    if ((Find-ByteSequence -Bytes $bytes -Sequence $script:ScoopMirrorHookBegin) -lt 0) { return $false }
-    if ((Find-ByteSequence -Bytes $bytes -Sequence $script:ScoopMirrorHookEnd) -lt 0) { return $false }
+    if (-not (Test-ScoopMirrorCurrentHookMarkers -Bytes $bytes)) { return $false }
 
     $cleanCfg = "$(& git.exe -C $ScoopRepo config --local --get filter.scoop-mirror.clean 2>$null)".Trim()
     if ($LASTEXITCODE -ne 0 -or $cleanCfg -cne $Clean) { return $false }

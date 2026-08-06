@@ -80,6 +80,16 @@ _scoop_services_helper() {
   print -r -- "${SCOOP}/config/scoop-services/manage.ps1"
 }
 
+# Cheap gate before spawning pwsh for update-time service hooks.
+_scoop_has_managed_services() {
+  local d="${SCOOP}/persist" f
+  [[ -d "$d" ]] || return 1
+  for f in "$d"/*/*-winsw-service.xml(N); do
+    [[ -f "$f" ]] && return 0
+  done
+  return 1
+}
+
 _scoop_manage_services() {
   local p
   p="$(_scoop_services_helper)"
@@ -102,6 +112,7 @@ _scoop_prepare_uninstall() {
 }
 
 _scoop_prepare_update_services() {
+  _scoop_has_managed_services || return 0
   local p
   p="$(_scoop_services_helper)"
   [[ -f "$p" ]] || return 0
@@ -109,6 +120,8 @@ _scoop_prepare_update_services() {
 }
 
 _scoop_restart_changed_services() {
+  local snapshot="${SCOOP}/config/scoop-services/.update-snapshot.json"
+  [[ -f "$snapshot" ]] || return 0
   local p
   p="$(_scoop_services_helper)"
   [[ -f "$p" ]] || return 0

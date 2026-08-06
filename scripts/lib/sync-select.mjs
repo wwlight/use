@@ -69,7 +69,8 @@ function createMultiselect({ message, choices, input, output }) {
       '',
       ...choices.map((item, i) => {
         const mark = item.selected ? '✓' : ' '
-        const pointer = i === cursor ? '❯' : ' '
+        // ✓ is typically 2 terminal columns in CJK locales; pad empty pointer to match.
+        const pointer = i === cursor ? '✓' : '  '
         return `${pointer} [${mark}] ${truncate(item.label, labelMax)}`
       }),
       '',

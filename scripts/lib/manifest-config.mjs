@@ -24,7 +24,9 @@ export function profileLabel(name, common = loadManifest('common')) {
 }
 
 export function profileMenuItems(common = loadManifest('common')) {
-  return Object.entries(common.profiles).map(([k, v]) => `${k}) ${v.label}`)
+  const entries = Object.entries(common.profiles)
+  const pad = Math.max(0, ...entries.map(([k]) => k.length))
+  return entries.map(([k, v]) => `${k}) ${k.padEnd(pad)}  ${v.label}`)
 }
 
 export function formatInitUsage(common = loadManifest('common')) {
@@ -46,7 +48,9 @@ export function hasMirror(name, macos = loadManifest('macos')) {
 }
 
 export function mirrorMenuItems(macos = loadManifest('macos')) {
-  return Object.entries(macos.brewMirrors).map(([k, v]) => `${k}) ${v.label}`)
+  const entries = Object.entries(macos.brewMirrors)
+  const pad = Math.max(0, ...entries.map(([k]) => k.length))
+  return entries.map(([k, v]) => `${k}) ${k.padEnd(pad)}  ${v.label}`)
 }
 
 export function formatPmUsage(macos = loadManifest('macos')) {

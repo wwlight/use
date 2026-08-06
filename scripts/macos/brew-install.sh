@@ -70,17 +70,23 @@ resolve_brew_mirror() {
 }
 
 deploy_homebrew_runtime() {
-    local target_dir catalog_repo helper_repo
+    local target_dir catalog_repo helper_repo menu_src tty_src
     target_dir="${XDG_CONFIG_HOME:-$HOME/.config}/homebrew"
     catalog_repo="$PROJECT_ROOT/$(manifest_get brewMirrorCatalog)"
     helper_repo="$PROJECT_ROOT/configs/macos/brew-mirror.zsh"
+    menu_src="$PROJECT_ROOT/scripts/lib/menu-select.mjs"
+    tty_src="$PROJECT_ROOT/scripts/lib/tty-term.mjs"
 
     [[ -f "$catalog_repo" ]] || error "Homebrew mirror catalog not found: $catalog_repo"
     [[ -f "$helper_repo" ]] || error "Homebrew mirror helper not found: $helper_repo"
+    [[ -f "$menu_src" ]] || error "menu-select.mjs not found: $menu_src"
+    [[ -f "$tty_src" ]] || error "tty-term.mjs not found: $tty_src"
 
-    mkdir -p "$target_dir" || error "Failed to create $target_dir"
+    mkdir -p "$target_dir/lib" || error "Failed to create $target_dir/lib"
     cp "$catalog_repo" "$target_dir/mirrors.tsv" || error 'Failed to deploy Homebrew mirror catalog'
     cp "$helper_repo" "$target_dir/brew-mirror.zsh" || error 'Failed to deploy brew-mirror'
+    cp "$menu_src" "$target_dir/lib/menu-select.mjs" || error 'Failed to deploy menu-select.mjs'
+    cp "$tty_src" "$target_dir/lib/tty-term.mjs" || error 'Failed to deploy tty-term.mjs'
     _brew_mirror_remove_legacy || warn "Could not remove legacy brew-mirror helper"
 }
 
@@ -129,7 +135,9 @@ install_homebrew() {
 
     deploy_homebrew_runtime
 
-    if command -v brew &> /dev/null || _brew_mirror_find_brew >/dev/null 2>&1; then
+    # Do not use `command -v brew`: brew-mirror.zsh defines brew(), which would
+    # always look installed even when the Homebrew binary is missing.
+    if _brew_mirror_find_brew >/dev/null 2>&1; then
         apply_selected_mirror "$mirror"
         info "Homebrew is already installed; skipping"
         return 0
@@ -145,7 +153,9 @@ install_homebrew() {
     run_install_script "$mirror"
     apply_selected_mirror "$mirror"
 
-    brew update || {
+    local brew_bin
+    brew_bin=$(_brew_mirror_find_brew) || error "Homebrew binary not found after install"
+    "$brew_bin" update || {
         error "Homebrew update failed!"
     }
     info "Homebrew installation complete"

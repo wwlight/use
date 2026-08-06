@@ -24,9 +24,13 @@ function Stop-ScoopServicesCli {
 }
 
 function Get-ScoopServicesManifest {
+    param([switch]$WarnIfMissing)
+
     $path = Join-Path $env:SCOOP 'config\scoop-services\manifest.json'
     if (-not (Test-Path -LiteralPath $path)) {
-        Write-Host "Service manifest not found at $path"
+        if ($WarnIfMissing) {
+            Write-Host "Service manifest not found at $path"
+        }
         return @{}
     }
     $obj = Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -218,7 +222,7 @@ function Invoke-ScoopServicesManager {
                 Write-Host 'Usage: scoop services install <name>'
                 return
             }
-            $manifest = Get-ScoopServicesManifest
+            $manifest = Get-ScoopServicesManifest -WarnIfMissing
             if (-not $manifest.ContainsKey($svc)) {
                 Write-Host "'$svc' is not in the service manifest"
                 return
