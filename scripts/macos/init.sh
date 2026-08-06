@@ -115,8 +115,6 @@ sync_configurations() {
         error "Configuration sync script not found: $CONFIG_SCRIPT"
     fi
 
-    # Defense in depth: config-sync also removes this; keep init resilient if an
-    # older sync script is still on disk.
     _brew_mirror_remove_legacy || true
 
     if [ -f "$BASE_SCRIPT" ]; then

@@ -1,7 +1,4 @@
-# Scoop PowerShell shell extensions (winsw + scoop wrappers).
-# Deployed to $env:SCOOP\config\scoop.ps1 and dotted from pwsh5/pwsh7 profiles.
-# Core logic stays in scoop-mirror/ and scoop-services/.
-# winsw shim stays here for interactive hot path; services manager has its own WinSW helper.
+# Scoop PowerShell shell extensions (`scoop mirror` / `scoop services` / winsw).
 
 $__scoop = "$env:SCOOP\shims\scoop.ps1"
 

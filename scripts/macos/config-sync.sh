@@ -11,6 +11,4 @@ check_target_os "macos"
 
 run_config_sync macos "$@"
 
-# sync 2 restores ~/.config/homebrew/* but does not create the .zprofile block.
-# Always drop the legacy functions override so it cannot shadow the new helper.
 _brew_mirror_remove_legacy || true

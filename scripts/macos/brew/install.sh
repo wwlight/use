@@ -25,8 +25,7 @@ resolve_brew_mirror() {
         *) mirror="$arg" ;;
     esac
 
-    # Install-time override only (like Windows USE_ACCEL). Do not read
-    # USE_HOMEBREW_MIRROR — that is the runtime active-mirror marker from mirror.zsh.
+    # USE_BREW_MIRROR is install-time only; USE_HOMEBREW_MIRROR is the runtime marker.
     if [[ -z "$mirror" && -n "${USE_BREW_MIRROR:-}" ]]; then
         mirror="${USE_BREW_MIRROR}"
     fi

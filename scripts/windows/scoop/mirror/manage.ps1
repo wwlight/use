@@ -1,5 +1,4 @@
-# Scoop mirror CLI (scoop mirror).
-# Deployed to $env:SCOOP\config\scoop-mirror\manage.ps1
+# Scoop mirror CLI (`scoop mirror`).
 
 param(
     [Parameter(Position = 0)]
@@ -39,7 +38,6 @@ function Invoke-ScoopMirrorMenuSelect {
         throw 'Interactive mirror menu requires Node.js on PATH'
     }
 
-    # nrm-style labels; value) description — menu shows description (after ")").
     $items = New-Object System.Collections.Generic.List[string]
     $activeId = Get-ScoopMirrorAccelId -Prefix $Config.ActivePrefix -Config $Config
     $ids = @(@($Config.Mirrors) | ForEach-Object { [string]$_.Id }) + @('official')
@@ -53,7 +51,6 @@ function Invoke-ScoopMirrorMenuSelect {
             [string](@($Config.Mirrors) | Where-Object { $_.Id -eq $name } | Select-Object -First 1).Prefix
         }
         $mark = if ($name -eq $activeId) { '*' } else { ' ' }
-        # Shorter names get more dashes so the URL column stays aligned; menu shows text after ")".
         $pad = [Math]::Max(0, $idWidth - $name.Length)
         $dashes = '-' * ($pad + $dashBase)
         [void]$items.Add(('{0}) {1} {2} {3} {4}' -f $name, $mark, $name, $dashes, $detail))
@@ -148,7 +145,7 @@ function Invoke-ScoopMirrorManager {
             return
         }
         $activeId = Get-ScoopMirrorAccelId -Prefix $config.ActivePrefix -Config $config
-        # Same as active: exit quietly (like Esc, but without "Canceled").
+        # Already active: exit without switching.
         if ($selected -eq $activeId) { return }
         $Choice = $selected
     }

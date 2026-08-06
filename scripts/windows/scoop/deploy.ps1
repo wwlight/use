@@ -1,5 +1,4 @@
-# Deploy scoop-mirror / scoop-services helpers into $SCOOP/config.
-# Dot-sourced from accel.ps1 (requires utils.ps1 + Get-ScoopMirrorPrefixes / Get-GithubAccelMirrors).
+# Write scoop-mirror / scoop-services files under $SCOOP/config.
 
 function Write-Utf8NoBomFile {
     param(

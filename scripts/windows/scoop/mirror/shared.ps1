@@ -1,5 +1,4 @@
 # Shared Scoop mirror helpers (config + download URL selection).
-# Deployed to $env:SCOOP\config\scoop-mirror\shared.ps1
 
 function Get-ScoopMirrorAccelConfig {
     if ($script:ScoopMirrorAccelConfig) { return $script:ScoopMirrorAccelConfig }

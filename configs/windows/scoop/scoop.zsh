@@ -1,5 +1,4 @@
-# Scoop shell wrappers (mirror + services). Logic lives under $SCOOP/config/.
-# Prefer pwsh over Windows PowerShell 5 to cut helper cold-start cost.
+# Scoop shell wrappers (`scoop mirror` / `scoop services` / winsw).
 
 _scoop_ps() {
   local file="$1"
@@ -15,7 +14,6 @@ _scoop_ps() {
   powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$file" "$@"
 }
 
-# Interactive winsw hot path (kept in-shell; services/manage.ps1 has the manager copy).
 winsw() {
   if (( $# >= 2 )); then
     [[ -n "$SCOOP" ]] || { echo "winsw: \$SCOOP is not set" >&2; return 1 }

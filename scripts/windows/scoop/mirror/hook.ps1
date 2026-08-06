@@ -1,9 +1,4 @@
-# Scoop mirror helper.
-# Deployed to $env:SCOOP\config\scoop-mirror\hook.ps1 and sourced from download.ps1.
-# Download hot path only; CLI lives in manage.ps1.
-# Repair/preflight: node cli.mjs repair
-# Fallback: powershell -NoProfile -File hook.ps1 -RepairHook
-# Interactive: scoop mirror → manage.ps1
+# Scoop download hook: rewrite URLs and aria2 retries for the active mirror.
 
 param(
     [switch]$RepairHook,

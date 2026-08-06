@@ -74,9 +74,8 @@ assert.match(dispatch, /brew\/generated\.mjs/)
 assert.match(source, /_brew_mirror_persisted_id/)
 assert.match(source, /_brew_mirror_remove_legacy/)
 assert.match(source, /Canceled/)
-assert.match(source, /Same as active/)
+assert.match(source, /Already active/)
 assert.match(source, /ec == 130/)
-assert.match(source, /no mirror rewrite/)
 assert.match(source, /_brew_mirror_ensure_profile/)
 assert.ok(!/^brew-mirror\(\)/m.test(source))
 assert.match(readme, /brew mirror\s+# 交互/)
@@ -121,7 +120,6 @@ export HOMEBREW_API_DOMAIN=old-api
 export HOMEBREW_BOTTLE_DOMAIN=old-bottle
 export HOMEBREW_BREW_GIT_REMOTE=old-git
 
-# Primary UX: brew mirror (scoop-style subcommand)
 brew mirror ustc >/dev/null
 test "$USE_HOMEBREW_MIRROR" = ustc
 test "$HOMEBREW_API_DOMAIN" = "https://mirrors.ustc.edu.cn/homebrew-bottles/api"

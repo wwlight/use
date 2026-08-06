@@ -1,6 +1,4 @@
-# Homebrew mirror switcher. Deployed to ~/.config/homebrew/manage.zsh.
-# Portable for bash (installer) and zsh (interactive shells).
-# User-facing command: brew mirror (shell-function wrap, scoop mirror style).
+# Homebrew mirror switcher (bash/zsh). Provides `brew mirror` and a brew() wrapper.
 
 _brew_mirror_root() {
     printf '%s\n' "${XDG_CONFIG_HOME:-$HOME/.config}/homebrew"
@@ -18,7 +16,7 @@ _brew_mirror_helper_file() {
     printf '%s/manage.zsh\n' "$(_brew_mirror_root)"
 }
 
-# Older releases used ~/.zsh/functions/brew-mirror.zsh or ~/.config/homebrew/brew-mirror.zsh.
+# Remove obsolete helper copies that would shadow this file.
 _brew_mirror_remove_legacy() {
     local path
     for path in \
@@ -67,7 +65,7 @@ _brew_mirror_apply_shellenv() {
 _brew_mirror_apply_env() {
     local config
     config=$(_brew_mirror_config_file) || return 1
-    # Match .zprofile order: shellenv first, then mirror exports.
+    # shellenv first, then mirror exports.
     _brew_mirror_apply_shellenv
     [[ -r "$config" ]] || return 0
     # shellcheck disable=SC1090
@@ -227,7 +225,7 @@ _brew_mirror_menu_script() {
     return 1
 }
 
-# nrm-style " * name ---- detail" lines for ↑↓ menu / numbered fallback.
+# Build menu lines: id) * name ---- detail
 _brew_mirror_aligned_choices() {
     local active="${1:-}"
     local id label api bottle git detail mark dashes
@@ -253,11 +251,9 @@ _brew_mirror_aligned_choices() {
         fi
         mark=' '
         [[ "$id" == "$active" ]] && mark='*'
-        # Shorter names get more dashes so the URL column stays aligned.
         pad=$((max - ${#id}))
         (( pad < 0 )) && pad=0
         dashes=$(printf '%*s' $((pad + dash_base)) '' | tr ' ' '-')
-        # value) description — menu-select shows description only (after ")")
         printf '%s) %s %s %s %s\n' "$id" "$mark" "$id" "$dashes" "$detail"
     done
 }
@@ -286,7 +282,6 @@ _brew_mirror_select_interactive() {
         return 1
     fi
 
-    # Prefer shared Node ↑↓ menu (same as scoop mirror).
     if command -v node >/dev/null 2>&1 && menu_js=$(_brew_mirror_menu_script); then
         local out
         out=$(mktemp "${TMPDIR:-/tmp}/brew-mirror-menu.XXXXXX") || return 1
@@ -381,7 +376,6 @@ _brew_mirror_cli() {
     fi
 
     if [[ -z "$choice" ]]; then
-        # Align with scoop mirror: cancel → "Canceled"/130; select active * → quiet exit.
         if ! choice=$(_brew_mirror_select_interactive); then
             local ec=$?
             if (( ec == 130 )); then
@@ -392,7 +386,7 @@ _brew_mirror_cli() {
         local active
         active="${USE_HOMEBREW_MIRROR:-}"
         [[ -n "$active" ]] || active=$(_brew_mirror_persisted_id)
-        # Same as active: no mirror rewrite (like scoop), but still repair profile/legacy.
+        # Already active: skip rewrite, still refresh profile/env.
         if [[ -n "$active" && "$choice" == "$active" ]]; then
             _brew_mirror_remove_legacy || true
             _brew_mirror_ensure_profile || return 1
@@ -411,9 +405,7 @@ _brew_mirror_cli() {
     _brew_mirror_status
 }
 
-# scoop-style: brew mirror … (intercept brew; other subcommands pass through).
-# Always resolve the real binary via _brew_mirror_find_brew — never `command brew`,
-# so PATH-less installs (/opt/homebrew) still work and we never recurse into brew().
+# Intercept `brew mirror`; other subcommands call the real brew binary.
 brew() {
     if [[ "${1:-}" == "mirror" ]]; then
         if (( $# > 2 )); then
