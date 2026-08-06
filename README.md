@@ -172,13 +172,13 @@ vpr init -- lite                  # 尝鲜版
 vpr init -- full                  # 完整版
 ```
 
-初始化后可用独立命令切换镜像，不会拦截 `brew`：
+初始化后可用独立命令切换镜像：
 
 ```sh
 brew-mirror                       # 交互选择镜像
 brew-mirror status                # 显示当前镜像
-brew-mirror ustc                  # 直接切换（适合脚本）
-brew-mirror tuna
+brew-mirror ustc                  # 中科大镜像
+brew-mirror tuna                  # 清华镜像
 brew-mirror official              # 恢复官方源
 ```
 
