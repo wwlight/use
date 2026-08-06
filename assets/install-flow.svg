@@ -908,9 +908,8 @@
 
     <rect x="30" y="510" width="175" height="56" rx="6" class="c-mask" />
     <rect x="30" y="510" width="175" height="56" rx="6" class="c-backend" stroke-width="1.5" />
-    <text x="117.5" y="536" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">brew-install
-      ustc</text>
-    <text x="117.5" y="552" class="t-muted" font-size="9" text-anchor="middle">安装包管理器</text>
+    <text x="117.5" y="536" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">brew-install</text>
+    <text x="117.5" y="552" class="t-muted" font-size="9" text-anchor="middle">交互选镜像 · 部署 catalog</text>
 
     <rect x="595" y="510" width="175" height="56" rx="6" class="c-mask" />
     <rect x="595" y="510" width="175" height="56" rx="6" class="c-backend" stroke-width="1.5" />

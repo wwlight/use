@@ -1,20 +1,136 @@
-# Homebrew mirror switcher. Loaded from ~/.zsh/functions/brew-mirror.zsh.
+# Homebrew mirror switcher. Deployed to ~/.config/homebrew/brew-mirror.zsh.
+# Portable for bash (installer) and zsh (interactive shells).
+
+_brew_mirror_root() {
+    printf '%s\n' "${XDG_CONFIG_HOME:-$HOME/.config}/homebrew"
+}
+
+_brew_mirror_catalog_file() {
+    printf '%s/mirrors.tsv\n' "$(_brew_mirror_root)"
+}
 
 _brew_mirror_config_file() {
-    printf '%s\n' "${XDG_CONFIG_HOME:-$HOME/.config}/homebrew/mirror.zsh"
+    printf '%s/mirror.zsh\n' "$(_brew_mirror_root)"
+}
+
+_brew_mirror_helper_file() {
+    printf '%s/brew-mirror.zsh\n' "$(_brew_mirror_root)"
+}
+
+_brew_mirror_legacy_helper_file() {
+    printf '%s\n' "${HOME}/.zsh/functions/brew-mirror.zsh"
+}
+
+# Older releases deployed brew-mirror into ~/.zsh/functions. That copy is sourced
+# after .zprofile by .zshrc_core and would override the catalog-based helper.
+_brew_mirror_remove_legacy() {
+    local legacy
+    legacy=$(_brew_mirror_legacy_helper_file) || return 0
+    [[ -e "$legacy" ]] || return 0
+    rm -f "$legacy" 2>/dev/null || return 1
+}
+
+_brew_mirror_quote() {
+    printf '%q' "$1"
+}
+
+_brew_mirror_find_brew() {
+    if command -v brew >/dev/null 2>&1; then
+        command -v brew
+        return 0
+    fi
+    local candidate
+    for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do
+        if [[ -x "$candidate" ]]; then
+            printf '%s\n' "$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
+_brew_mirror_apply_shellenv() {
+    local brew_path
+    brew_path=$(_brew_mirror_find_brew) || return 0
+    eval "$("$brew_path" shellenv)"
+}
+
+_brew_mirror_apply_env() {
+    local config
+    config=$(_brew_mirror_config_file) || return 1
+    # Match .zprofile order: shellenv first, then mirror exports.
+    _brew_mirror_apply_shellenv
+    [[ -r "$config" ]] || return 0
+    # shellcheck disable=SC1090
+    . "$config"
+}
+
+_brew_mirror_ensure_catalog() {
+    local catalog header
+    catalog=$(_brew_mirror_catalog_file) || return 1
+    if [[ ! -r "$catalog" ]]; then
+        printf 'brew-mirror: catalog not found at %s\n' "$catalog" >&2
+        return 1
+    fi
+    IFS= read -r header < "$catalog" || true
+    if [[ "$header" != '# use-homebrew-mirrors-v1' ]]; then
+        printf 'brew-mirror: unsupported catalog header in %s\n' "$catalog" >&2
+        return 1
+    fi
+}
+
+_brew_mirror_rows() {
+    local catalog
+    catalog=$(_brew_mirror_catalog_file) || return 1
+    tail -n +2 "$catalog"
+}
+
+_brew_mirror_lookup() {
+    local target="$1" id label api bottle git
+    _brew_mirror_ensure_catalog || return 1
+    while IFS=$'\t' read -r id label api bottle git || [[ -n "${id:-}" ]]; do
+        [[ -z "${id:-}" || "$id" == \#* ]] && continue
+        if [[ "$id" == "$target" ]]; then
+            if [[ -z "$label" || -z "$api" || -z "$bottle" || -z "$git" ]]; then
+                printf 'brew-mirror: invalid catalog row for %s\n' "$id" >&2
+                return 1
+            fi
+            printf '%s\t%s\t%s\t%s\t%s\n' "$id" "$label" "$api" "$bottle" "$git"
+            return 0
+        fi
+    done < <(_brew_mirror_rows)
+    return 1
 }
 
 _brew_mirror_ensure_profile() {
     local profile="${HOME}/.zprofile"
     local begin='# >>> use-homebrew'
     local end='# <<< use-homebrew'
-    local source_line='[[ -r "${XDG_CONFIG_HOME:-$HOME/.config}/homebrew/mirror.zsh" ]] && . "${XDG_CONFIG_HOME:-$HOME/.config}/homebrew/mirror.zsh"'
-    local brew_path
-    brew_path=$(command -v brew 2>/dev/null) || brew_path=''
+    local helper config brew_path
+    helper=$(_brew_mirror_helper_file)
+    config=$(_brew_mirror_config_file)
+    brew_path=$(_brew_mirror_find_brew) || brew_path=''
+
+    _brew_mirror_remove_legacy || true
+
     local tmp
     tmp=$(mktemp "${TMPDIR:-/tmp}/use-zprofile.XXXXXX") || return 1
 
     if [[ -f "$profile" ]]; then
+        local begin_count end_count
+        begin_count=$(grep -cF "$begin" "$profile" || true)
+        end_count=$(grep -cF "$end" "$profile" || true)
+        if [[ "$begin_count" -ne "$end_count" ]]; then
+            rm -f "$tmp"
+            printf 'brew-mirror: incomplete %s markers in %s; refusing to modify\n' "$begin" "$profile" >&2
+            return 1
+        fi
+        if [[ "$begin_count" -gt 1 ]]; then
+            rm -f "$tmp"
+            printf 'brew-mirror: duplicate %s markers in %s; refusing to modify\n' "$begin" "$profile" >&2
+            return 1
+        fi
+
         awk -v begin="$begin" -v end="$end" '
             $0 == begin { managed = 1; next }
             $0 == end { managed = 0; next }
@@ -29,49 +145,53 @@ _brew_mirror_ensure_profile() {
         [[ ! -s "$tmp" ]] || printf '\n'
         printf '%s\n' "$begin"
         [[ -z "$brew_path" ]] || printf 'eval "$(%s shellenv)"\n' "$brew_path"
-        printf '%s\n%s\n' "$source_line" "$end"
+        printf '[[ -r %s ]] && . %s\n' "$(_brew_mirror_quote "$config")" "$(_brew_mirror_quote "$config")"
+        printf '[[ -r %s ]] && . %s\n' "$(_brew_mirror_quote "$helper")" "$(_brew_mirror_quote "$helper")"
+        printf '%s\n' "$end"
     } >> "$tmp"
     mv "$tmp" "$profile"
 }
 
 _brew_mirror_write_config() {
     local mirror="$1"
-    local config
+    local row id label api bottle git config tmp
+    row=$(_brew_mirror_lookup "$mirror") || {
+        printf 'Unknown Homebrew mirror: %s\n' "$mirror" >&2
+        return 1
+    }
+    IFS=$'\t' read -r id label api bottle git <<< "$row"
+
     config=$(_brew_mirror_config_file) || return 1
     mkdir -p "${config%/*}" || return 1
 
-    local tmp
     tmp=$(mktemp "${config}.XXXXXX") || return 1
     {
         printf '# Managed by brew-mirror. Do not edit.\n'
-        printf 'export USE_HOMEBREW_MIRROR=%q\n' "$mirror"
-        case "$mirror" in
-            ustc)
-                printf '%s\n' \
-                    'export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.ustc.edu.cn/brew.git"' \
-                    'export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.ustc.edu.cn/homebrew-bottles"' \
-                    'export HOMEBREW_API_DOMAIN="https://mirrors.ustc.edu.cn/homebrew-bottles/api"'
-                ;;
-            tuna)
-                printf '%s\n' \
-                    'export HOMEBREW_BREW_GIT_REMOTE="https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git"' \
-                    'export HOMEBREW_BOTTLE_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles"' \
-                    'export HOMEBREW_API_DOMAIN="https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api"'
-                ;;
-            official)
-                printf '%s\n' \
-                    'unset HOMEBREW_BREW_GIT_REMOTE' \
-                    'unset HOMEBREW_BOTTLE_DOMAIN' \
-                    'unset HOMEBREW_API_DOMAIN'
-                ;;
-            *)
-                rm -f "$tmp"
-                printf 'Unknown Homebrew mirror: %s\n' "$mirror" >&2
-                return 1
-                ;;
-        esac
+        printf 'export USE_HOMEBREW_MIRROR=%q\n' "$id"
+        if [[ "$id" == "official" || "$api" == "-" ]]; then
+            printf '%s\n' \
+                'unset HOMEBREW_API_DOMAIN' \
+                'unset HOMEBREW_BOTTLE_DOMAIN' \
+                'unset HOMEBREW_BREW_GIT_REMOTE'
+        else
+            printf 'export HOMEBREW_API_DOMAIN=%q\n' "$api"
+            printf 'export HOMEBREW_BOTTLE_DOMAIN=%q\n' "$bottle"
+            printf 'export HOMEBREW_BREW_GIT_REMOTE=%q\n' "$git"
+        fi
     } > "$tmp"
     mv "$tmp" "$config"
+}
+
+_brew_mirror_persisted_id() {
+    local config
+    config=$(_brew_mirror_config_file) || return 0
+    [[ -r "$config" ]] || return 0
+    # shellcheck disable=SC1090
+    (
+        unset USE_HOMEBREW_MIRROR
+        . "$config"
+        printf '%s' "${USE_HOMEBREW_MIRROR:-}"
+    )
 }
 
 _brew_mirror_status() {
@@ -79,6 +199,95 @@ _brew_mirror_status() {
     printf '  API:    %s\n' "${HOMEBREW_API_DOMAIN:-https://formulae.brew.sh/api}"
     printf '  Bottle: %s\n' "${HOMEBREW_BOTTLE_DOMAIN:-https://ghcr.io/v2/homebrew/core}"
     printf '  Brew:   %s\n' "${HOMEBREW_BREW_GIT_REMOTE:-https://github.com/Homebrew/brew}"
+}
+
+_brew_mirror_can_prompt() {
+    [[ -t 0 && -t 1 ]] && return 0
+    { true </dev/tty; } 2>/dev/null
+}
+
+_brew_mirror_select_interactive() {
+    local id label api bottle git mark selected choice n=0
+    local items=""
+    _brew_mirror_ensure_catalog || return 1
+
+    while IFS=$'\t' read -r id label api bottle git || [[ -n "${id:-}" ]]; do
+        [[ -z "${id:-}" || "$id" == \#* ]] && continue
+        n=$((n + 1))
+        mark='  '
+        [[ "$id" == "${USE_HOMEBREW_MIRROR:-}" ]] && mark='* '
+        items+="${id}"$'\t'"${mark}${label}"$'\n'
+    done < <(_brew_mirror_rows)
+
+    if (( n == 0 )); then
+        printf 'brew-mirror: catalog is empty\n' >&2
+        return 1
+    fi
+
+    if ! _brew_mirror_can_prompt; then
+        printf 'brew-mirror: interactive selection requires a terminal\n' >&2
+        return 1
+    fi
+
+    if command -v fzf >/dev/null 2>&1; then
+        # Keep fzf selection on stdout for command substitution; only UI input uses /dev/tty when needed.
+        if [[ -t 0 ]]; then
+            selected=$(printf '%s' "$items" |
+                fzf --height=40% --reverse --border --prompt='Homebrew mirror > ') || return 130
+        else
+            selected=$(printf '%s' "$items" |
+                fzf --height=40% --reverse --border --prompt='Homebrew mirror > ' </dev/tty) || return 130
+        fi
+        choice="${selected%%$'\t'*}"
+        printf '%s\n' "$choice"
+        return 0
+    fi
+
+    {
+        printf 'Choose a Homebrew mirror:\n'
+        n=0
+        while IFS=$'\t' read -r id label api bottle git || [[ -n "${id:-}" ]]; do
+            [[ -z "${id:-}" || "$id" == \#* ]] && continue
+            n=$((n + 1))
+            mark='  '
+            [[ "$id" == "${USE_HOMEBREW_MIRROR:-}" ]] && mark='* '
+            printf '  %d) %s%s\n' "$n" "$mark" "$label"
+        done < <(_brew_mirror_rows)
+        printf 'Selection [1-%d]: ' "$n"
+    } >/dev/tty
+
+    local line
+    if [[ -t 0 ]]; then
+        IFS= read -r line || return 130
+    else
+        IFS= read -r line </dev/tty || return 130
+    fi
+    [[ "$line" =~ ^[0-9]+$ ]] || {
+        printf 'brew-mirror: invalid selection\n' >&2
+        return 1
+    }
+    if (( line < 1 || line > n )); then
+        printf 'brew-mirror: invalid selection\n' >&2
+        return 1
+    fi
+    n=0
+    while IFS=$'\t' read -r id label api bottle git || [[ -n "${id:-}" ]]; do
+        [[ -z "${id:-}" || "$id" == \#* ]] && continue
+        n=$((n + 1))
+        if (( n == line )); then
+            printf '%s\n' "$id"
+            return 0
+        fi
+    done < <(_brew_mirror_rows)
+    return 1
+}
+
+_brew_mirror_apply() {
+    local mirror="$1"
+    _brew_mirror_remove_legacy || true
+    _brew_mirror_write_config "$mirror" || return 1
+    _brew_mirror_ensure_profile || return 1
+    _brew_mirror_apply_env || return 1
 }
 
 brew-mirror() {
@@ -99,34 +308,29 @@ brew-mirror() {
     fi
 
     if [[ -z "$choice" ]]; then
-        if [[ ! -t 0 || ! -t 1 ]]; then
-            printf 'brew-mirror: interactive selection requires a terminal\n' >&2
-            return 1
+        choice=$(_brew_mirror_select_interactive) || return $?
+        local active
+        active="${USE_HOMEBREW_MIRROR:-}"
+        [[ -n "$active" ]] || active=$(_brew_mirror_persisted_id)
+        # Same as active: still migrate profile / remove legacy, but skip rewriting.
+        if [[ -n "$active" && "$choice" == "$active" ]]; then
+            _brew_mirror_remove_legacy || true
+            _brew_mirror_ensure_profile || return 1
+            _brew_mirror_apply_env || return 1
+            return 0
         fi
-        if ! command -v fzf >/dev/null 2>&1; then
-            printf 'brew-mirror: fzf is required for interactive selection\n' >&2
-            return 1
-        fi
-        local selected
-        selected=$(printf '%s\n' \
-            $'ustc\t中科大镜像' \
-            $'tuna\t清华镜像' \
-            $'official\t官方源' |
-            fzf --height=40% --reverse --border --prompt='Homebrew mirror > ') || return 130
-        choice="${selected%%$'\t'*}"
     fi
 
-    case "$choice" in
-        ustc|tuna|official) ;;
-        *)
-            printf 'Unknown Homebrew mirror: %s\n' "$choice" >&2
-            return 1
-            ;;
-    esac
+    _brew_mirror_lookup "$choice" >/dev/null || {
+        printf 'Unknown Homebrew mirror: %s\n' "$choice" >&2
+        return 1
+    }
 
-    _brew_mirror_write_config "$choice" || return 1
-    _brew_mirror_ensure_profile || return 1
-    . "$(_brew_mirror_config_file)" || return 1
+    _brew_mirror_apply "$choice" || return 1
     printf 'Homebrew mirror switched to %s\n' "$choice"
     _brew_mirror_status
 }
+
+# When this helper is sourced from .zprofile before .zshrc_core, drop the legacy
+# override so the functions glob cannot reload the old implementation.
+_brew_mirror_remove_legacy || true

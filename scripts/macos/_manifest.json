@@ -1,27 +1,37 @@
 {
   "brewfile": "configs/macos/Brewfile",
   "brewfileLite": "configs/macos/Brewfile.lite",
+  "brewMirrorCatalog": "configs/macos/brew-mirrors.tsv",
   "profileArtifacts": {
     "lite": "brewfileLite",
     "full": "brewfile"
   },
+  "brewLiteItems": [
+    { "type": "brew", "name": "eza" },
+    { "type": "brew", "name": "fzf" },
+    { "type": "brew", "name": "git" },
+    { "type": "brew", "name": "starship" },
+    { "type": "brew", "name": "zoxide" },
+    { "type": "cask", "name": "ghostty" },
+    { "type": "cask", "name": "font-fira-code-nerd-font" }
+  ],
   "brewMirrors": {
     "ustc": {
-      "label": "USTC mirror",
+      "label": "中科大镜像",
       "apiDomain": "https://mirrors.ustc.edu.cn/homebrew-bottles/api",
       "bottleDomain": "https://mirrors.ustc.edu.cn/homebrew-bottles",
       "brewGitRemote": "https://mirrors.ustc.edu.cn/brew.git",
       "installScript": "https://mirrors.ustc.edu.cn/misc/brew-install.sh"
     },
     "tuna": {
-      "label": "TUNA mirror",
+      "label": "清华镜像",
       "apiDomain": "https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api",
       "bottleDomain": "https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles",
       "brewGitRemote": "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git",
       "installGitRepo": "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/install.git"
     },
     "official": {
-      "label": "Official",
+      "label": "官方源",
       "installScript": "https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh"
     }
   },
@@ -29,7 +39,8 @@
     "toRepo": [
       { "local": "~/.zshrc", "repo": "configs/macos/.zshrc", "backup": true },
       { "local": "~/.bashrc", "repo": "configs/macos/.bashrc" },
-      { "local": "~/.zsh/functions/brew-mirror.zsh", "repo": "configs/macos/brew-mirror.zsh", "restoreOnly": true },
+      { "local": "~/.config/homebrew/brew-mirror.zsh", "repo": "configs/macos/brew-mirror.zsh", "restoreOnly": true },
+      { "local": "~/.config/homebrew/mirrors.tsv", "repo": "configs/macos/brew-mirrors.tsv", "restoreOnly": true },
       { "local": "~/.zsh/functions/utils.zsh", "repo": "configs/macos/utils.zsh" },
       { "local": "~/.config/ghostty/config", "repo": "configs/macos/ghostty_config" },
       { "local": "~/Library/Application Support/mihomo-party/mihomo.yaml", "repo": "configs/common/mihomo.yaml", "lite": false, "defaultSelected": false }
