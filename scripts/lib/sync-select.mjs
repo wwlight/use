@@ -8,7 +8,27 @@ import path from 'node:path'
 import readline from 'node:readline'
 import { fileURLToPath } from 'node:url'
 import { formatLocalDisplay, formatRepoDisplay } from './sync-pairs.mjs'
+import { alignGlyph, truncateWidth } from './string-width.mjs'
 import { openTerminal, restoreFrame } from './tty-term.mjs'
+
+const POINTER_ACTIVE = '✓'
+const POINTER_IDLE = ' '
+const MARK_ON = '✓'
+const MARK_OFF = ' '
+
+export function formatSyncChoiceLine(label, { selected = false, active = false, labelMax = 30, widthOptions = {} } = {}) {
+  const pointer = alignGlyph(
+    active ? POINTER_ACTIVE : POINTER_IDLE,
+    [POINTER_ACTIVE, POINTER_IDLE],
+    widthOptions,
+  )
+  const mark = alignGlyph(
+    selected ? MARK_ON : MARK_OFF,
+    [MARK_ON, MARK_OFF],
+    widthOptions,
+  )
+  return `${pointer} [${mark}] ${truncateWidth(label, labelMax, widthOptions)}`
+}
 
 function parseItems(rawLines) {
   return rawLines.map((line) => {
@@ -42,13 +62,6 @@ function columns(output) {
   return 80
 }
 
-function truncate(text, max) {
-  if (text.length <= max) return text
-  const head = Math.floor((max - 1) / 2)
-  const tail = max - 1 - head
-  return `${text.slice(0, head)}…${text.slice(-tail)}`
-}
-
 function isToggleKey(str, key) {
   return str === ' ' || key?.name === 'space' || key?.name === 'x'
 }
@@ -67,12 +80,11 @@ function createMultiselect({ message, choices, input, output }) {
     const lines = [
       message,
       '',
-      ...choices.map((item, i) => {
-        const mark = item.selected ? '✓' : ' '
-        // ✓ is typically 2 terminal columns in CJK locales; pad empty pointer to match.
-        const pointer = i === cursor ? '✓' : '  '
-        return `${pointer} [${mark}] ${truncate(item.label, labelMax)}`
-      }),
+      ...choices.map((item, i) => formatSyncChoiceLine(item.label, {
+        selected: item.selected,
+        active: i === cursor,
+        labelMax,
+      })),
       '',
       '↑↓ Move  Space/x Toggle  Enter Confirm',
     ]

@@ -69,18 +69,20 @@ resolve_brew_mirror() {
 }
 
 deploy_homebrew_runtime() {
-    local target_dir catalog_repo helper_repo menu_cli_src menu_src tty_src
+    local target_dir catalog_repo helper_repo menu_cli_src menu_src width_src tty_src
     target_dir="${XDG_CONFIG_HOME:-$HOME/.config}/homebrew"
     catalog_repo="$PROJECT_ROOT/$(manifest_get brewMirrorCatalog)"
     helper_repo="$PROJECT_ROOT/scripts/macos/brew/mirror/manage.zsh"
     menu_cli_src="$PROJECT_ROOT/scripts/macos/brew/mirror/menu.mjs"
     menu_src="$PROJECT_ROOT/scripts/lib/menu-select.mjs"
+    width_src="$PROJECT_ROOT/scripts/lib/string-width.mjs"
     tty_src="$PROJECT_ROOT/scripts/lib/tty-term.mjs"
 
     [[ -f "$catalog_repo" ]] || error "Homebrew mirror catalog not found: $catalog_repo"
     [[ -f "$helper_repo" ]] || error "Homebrew mirror helper not found: $helper_repo"
     [[ -f "$menu_cli_src" ]] || error "brew mirror menu.mjs not found: $menu_cli_src"
     [[ -f "$menu_src" ]] || error "menu-select.mjs not found: $menu_src"
+    [[ -f "$width_src" ]] || error "string-width.mjs not found: $width_src"
     [[ -f "$tty_src" ]] || error "tty-term.mjs not found: $tty_src"
 
     mkdir -p "$target_dir/lib" || error "Failed to create $target_dir/lib"
@@ -88,6 +90,7 @@ deploy_homebrew_runtime() {
     cp "$helper_repo" "$target_dir/manage.zsh" || error 'Failed to deploy brew mirror manage.zsh'
     cp "$menu_cli_src" "$target_dir/lib/menu.mjs" || error 'Failed to deploy brew mirror menu.mjs'
     cp "$menu_src" "$target_dir/lib/menu-select.mjs" || error 'Failed to deploy menu-select.mjs'
+    cp "$width_src" "$target_dir/lib/string-width.mjs" || error 'Failed to deploy string-width.mjs'
     cp "$tty_src" "$target_dir/lib/tty-term.mjs" || error 'Failed to deploy tty-term.mjs'
     _brew_mirror_remove_legacy || warn "Could not remove legacy brew-mirror helper"
 }
