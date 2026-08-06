@@ -17,7 +17,7 @@
     "check:homebrew": "node ./scripts/lib/generate-homebrew.mjs --check",
     "generate:github-accel": "node ./scripts/lib/generate-github-accel.mjs",
     "check:github-accel": "node ./scripts/lib/generate-github-accel.mjs --check",
-    "test": "node ./scripts/lib/menu-select.test.mjs && node ./scripts/lib/manifest-config.test.mjs && node ./scripts/macos/homebrew-generated.test.mjs && node ./scripts/macos/brew-mirror.test.mjs && node ./scripts/windows/scoop/mirror/test.mjs && npm run check:homebrew && npm run check:github-accel"
+    "test": "node ./scripts/lib/menu-select.test.mjs && node ./scripts/lib/manifest-config.test.mjs && node ./scripts/macos/brew/generated.test.mjs && node ./scripts/macos/brew/mirror/test.mjs && node ./scripts/windows/scoop/mirror/test.mjs && npm run check:homebrew && npm run check:github-accel"
   },
   "author": "wwlight",
   "license": "ISC",

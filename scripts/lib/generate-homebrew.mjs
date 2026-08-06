@@ -7,7 +7,7 @@ import {
   renderHomebrewMirrorCatalog,
   writeBrewLiteBackup,
   writeHomebrewMirrorCatalog,
-} from '../macos/homebrew-generated.mjs'
+} from '../macos/brew/generated.mjs'
 
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const manifest = JSON.parse(fs.readFileSync(path.join(projectRoot, 'scripts/macos/_manifest.json'), 'utf8'))

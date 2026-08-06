@@ -205,7 +205,7 @@ install_macos() {
   export USE_STEP_TOTAL=$((USE_STEP_CURRENT + init_steps))
   step "Step ${USE_STEP_CURRENT}/${USE_STEP_TOTAL}: Installing package manager ..."
   # Same path as vpr pm: interactive select, or USE_BREW_MIRROR=<id> for non-interactive.
-  bash scripts/macos/brew-install.sh
+  bash scripts/macos/brew/install.sh
 
   if [ -n "$profile" ]; then
     bash scripts/macos/init.sh "$profile"

@@ -1,10 +1,10 @@
 #!/bin/bash
 
 SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
+SCRIPT_DIR="$(cd "$SCRIPT_PATH/../.." && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
-source "$PROJECT_ROOT/configs/macos/brew-mirror.zsh"
+source "$PROJECT_ROOT/scripts/macos/brew/mirror/brew-mirror.zsh"
 
 init_manifest macos
 
@@ -73,7 +73,7 @@ deploy_homebrew_runtime() {
     local target_dir catalog_repo helper_repo menu_src tty_src
     target_dir="${XDG_CONFIG_HOME:-$HOME/.config}/homebrew"
     catalog_repo="$PROJECT_ROOT/$(manifest_get brewMirrorCatalog)"
-    helper_repo="$PROJECT_ROOT/configs/macos/brew-mirror.zsh"
+    helper_repo="$PROJECT_ROOT/scripts/macos/brew/mirror/brew-mirror.zsh"
     menu_src="$PROJECT_ROOT/scripts/lib/menu-select.mjs"
     tty_src="$PROJECT_ROOT/scripts/lib/tty-term.mjs"
 

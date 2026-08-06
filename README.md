@@ -190,12 +190,22 @@ brew mirror official              # 恢复官方源
 configs/macos/
 ├── .bashrc                       # bash 配置
 ├── .zshrc                        # zsh 平台配置
-├── Brewfile                      # Homebrew 应用备份
-├── Brewfile.lite                 # 尝鲜版（由 Brewfile + brewLiteItems 生成）
-├── brew-mirror.zsh               # Homebrew 镜像切换逻辑
-├── brew-mirrors.tsv              # 镜像目录（由 _manifest.json 生成）
+├── brew/
+│   ├── Brewfile                  # Homebrew 应用备份
+│   ├── Brewfile.lite             # 尝鲜版（由 Brewfile + brewLiteItems 生成）
+│   └── mirrors.tsv               # 镜像目录（由 _manifest.json 生成）
 ├── ghostty_config                # Ghostty 终端配置
 └── utils.zsh                     # zsh 自定义函数
+```
+
+```text
+scripts/macos/brew/
+├── install.sh                    # vpr pm 入口
+├── run-brew.sh                   # 应用当前镜像后执行 brew
+├── generated.mjs                 # 生成 mirrors.tsv / Brewfile.lite
+└── mirror/
+    ├── brew-mirror.zsh           # → ~/.config/homebrew/brew-mirror.zsh
+    └── test.mjs
 ```
 
 运行时文件：

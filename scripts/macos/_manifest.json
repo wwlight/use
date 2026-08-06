@@ -1,7 +1,7 @@
 {
-  "brewfile": "configs/macos/Brewfile",
-  "brewfileLite": "configs/macos/Brewfile.lite",
-  "brewMirrorCatalog": "configs/macos/brew-mirrors.tsv",
+  "brewfile": "configs/macos/brew/Brewfile",
+  "brewfileLite": "configs/macos/brew/Brewfile.lite",
+  "brewMirrorCatalog": "configs/macos/brew/mirrors.tsv",
   "profileArtifacts": {
     "lite": "brewfileLite",
     "full": "brewfile"
@@ -39,8 +39,8 @@
     "toRepo": [
       { "local": "~/.zshrc", "repo": "configs/macos/.zshrc", "backup": true },
       { "local": "~/.bashrc", "repo": "configs/macos/.bashrc" },
-      { "local": "~/.config/homebrew/brew-mirror.zsh", "repo": "configs/macos/brew-mirror.zsh", "restoreOnly": true },
-      { "local": "~/.config/homebrew/mirrors.tsv", "repo": "configs/macos/brew-mirrors.tsv", "restoreOnly": true },
+      { "local": "~/.config/homebrew/brew-mirror.zsh", "repo": "scripts/macos/brew/mirror/brew-mirror.zsh", "restoreOnly": true },
+      { "local": "~/.config/homebrew/mirrors.tsv", "repo": "configs/macos/brew/mirrors.tsv", "restoreOnly": true },
       { "local": "~/.config/homebrew/lib/menu-select.mjs", "repo": "scripts/lib/menu-select.mjs", "restoreOnly": true },
       { "local": "~/.config/homebrew/lib/tty-term.mjs", "repo": "scripts/lib/tty-term.mjs", "restoreOnly": true },
       { "local": "~/.zsh/functions/utils.zsh", "repo": "configs/macos/utils.zsh" },

@@ -3,11 +3,11 @@
 # Used by init / setup / backup so bash entry points honor the selected mirror.
 
 SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
+SCRIPT_DIR="$(cd "$SCRIPT_PATH/../.." && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 HELPER_DEPLOYED="${XDG_CONFIG_HOME:-$HOME/.config}/homebrew/brew-mirror.zsh"
-HELPER_REPO="$PROJECT_ROOT/configs/macos/brew-mirror.zsh"
+HELPER_REPO="$PROJECT_ROOT/scripts/macos/brew/mirror/brew-mirror.zsh"
 
 if [[ -r "$HELPER_DEPLOYED" ]]; then
     # shellcheck disable=SC1090

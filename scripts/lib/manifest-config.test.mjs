@@ -50,7 +50,7 @@ assert.match(pmUsage, /vpr pm -- ustc/)
 assert.match(pmUsage, /vpr pm -- tuna/)
 assert.match(pmUsage, /vpr pm -- official/)
 assert.match(pmUsage, /中科大镜像/)
-assert.equal(macos.brewMirrorCatalog, 'configs/macos/brew-mirrors.tsv')
+assert.equal(macos.brewMirrorCatalog, 'configs/macos/brew/mirrors.tsv')
 assert.ok(Array.isArray(macos.brewLiteItems) && macos.brewLiteItems.length > 0)
 
 assert.deepEqual(

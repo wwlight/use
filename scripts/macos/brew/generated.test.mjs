@@ -5,9 +5,9 @@ import {
   homebrewMirrors,
   renderBrewLite,
   renderHomebrewMirrorCatalog,
-} from './homebrew-generated.mjs'
+} from './generated.mjs'
 
-const root = path.resolve(import.meta.dirname, '../..')
+const root = path.resolve(import.meta.dirname, '../../..')
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/macos/_manifest.json'), 'utf8'))
 const full = fs.readFileSync(path.join(root, manifest.brewfile), 'utf8')
 
@@ -39,4 +39,4 @@ assert.match(tapped.content, /tap "owner\/tap"/)
 assert.match(tapped.content, /brew "owner\/tap\/tool"/)
 assert.ok(!tapped.content.includes('brew "other"'))
 
-console.log('macos/homebrew-generated.test.mjs: ok')
+console.log('macos/brew/generated.test.mjs: ok')

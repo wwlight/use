@@ -4,12 +4,12 @@ SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
-source "$PROJECT_ROOT/configs/macos/brew-mirror.zsh"
+source "$PROJECT_ROOT/scripts/macos/brew/mirror/brew-mirror.zsh"
 
 init_manifest macos
 
 MANIFEST_CONFIG="$SCRIPT_DIR/lib/manifest-config.mjs"
-RUN_BREW="$SCRIPT_PATH/run-brew.sh"
+RUN_BREW="$SCRIPT_PATH/brew/run-brew.sh"
 
 usage() {
     node "$MANIFEST_CONFIG" usage-init
