@@ -4,10 +4,12 @@ SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
+source "$PROJECT_ROOT/configs/macos/brew-mirror.zsh"
 
 init_manifest macos
 
 MANIFEST_CONFIG="$SCRIPT_DIR/lib/manifest-config.mjs"
+RUN_BREW="$SCRIPT_PATH/run-brew.sh"
 
 usage() {
     node "$MANIFEST_CONFIG" usage-init
@@ -79,13 +81,14 @@ install_or_restore_brew() {
     brewfile=$(node "$MANIFEST_CONFIG" profile-artifact macos "$profile")
     local BREWFILE="$PROJECT_ROOT/$brewfile"
 
+    _brew_mirror_apply_env || error 'Failed to apply Homebrew mirror environment'
     if ! command -v brew &> /dev/null; then
         error "Homebrew is not installed. Run: vpr pm"
     fi
 
     if [ -f "$BREWFILE" ]; then
         info "Installing dependencies from $(basename "$BREWFILE")..."
-        brew bundle install --file="$BREWFILE" || {
+        bash "$RUN_BREW" bundle install --file="$BREWFILE" || {
             error "Brewfile dependency installation failed!"
         }
         info "Brewfile dependencies installed"
@@ -110,6 +113,10 @@ sync_configurations() {
     else
         error "Configuration sync script not found: $CONFIG_SCRIPT"
     fi
+
+    # Defense in depth: config-sync also removes this; keep init resilient if an
+    # older sync script is still on disk.
+    _brew_mirror_remove_legacy || true
 
     if [ -f "$BASE_SCRIPT" ]; then
         bash "$BASE_SCRIPT" || error "Base configuration initialization failed!"

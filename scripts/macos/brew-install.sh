@@ -4,6 +4,7 @@ SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
+source "$PROJECT_ROOT/configs/macos/brew-mirror.zsh"
 
 init_manifest macos
 
@@ -24,10 +25,16 @@ resolve_brew_mirror() {
         *) mirror="$arg" ;;
     esac
 
+    # Install-time override only (like Windows USE_ACCEL). Do not read
+    # USE_HOMEBREW_MIRROR — that is the runtime active-mirror marker from mirror.zsh.
+    if [[ -z "$mirror" && -n "${USE_BREW_MIRROR:-}" ]]; then
+        mirror="${USE_BREW_MIRROR}"
+    fi
+
     if [[ -n "$mirror" ]]; then
         node "$MANIFEST_CONFIG" has-mirror "$mirror" || {
             usage >&2
-            error "Unknown argument: $arg"
+            error "Unknown argument: ${arg:-$mirror}"
         }
         echo "$mirror"
         return 0
@@ -62,41 +69,37 @@ resolve_brew_mirror() {
     echo "$choice"
 }
 
-mirror_exports() {
-    local mirror="$1"
-    node -e "
-        const m = require(process.argv[1]);
-        const mirror = process.argv[2];
-        const cfg = m.brewMirrors[mirror] || {};
-        const lines = [];
-        if (cfg.label) lines.push('# Homebrew mirror configuration - ' + cfg.label);
-        if (cfg.brewGitRemote) lines.push('export HOMEBREW_BREW_GIT_REMOTE=\"' + cfg.brewGitRemote + '\"');
-        if (cfg.bottleDomain) lines.push('export HOMEBREW_BOTTLE_DOMAIN=\"' + cfg.bottleDomain + '\"');
-        if (cfg.apiDomain) lines.push('export HOMEBREW_API_DOMAIN=\"' + cfg.apiDomain + '\"');
-        process.stdout.write(lines.join('\n'));
-    " "$MANIFEST_PATH" "$mirror"
+deploy_homebrew_runtime() {
+    local target_dir catalog_repo helper_repo
+    target_dir="${XDG_CONFIG_HOME:-$HOME/.config}/homebrew"
+    catalog_repo="$PROJECT_ROOT/$(manifest_get brewMirrorCatalog)"
+    helper_repo="$PROJECT_ROOT/configs/macos/brew-mirror.zsh"
+
+    [[ -f "$catalog_repo" ]] || error "Homebrew mirror catalog not found: $catalog_repo"
+    [[ -f "$helper_repo" ]] || error "Homebrew mirror helper not found: $helper_repo"
+
+    mkdir -p "$target_dir" || error "Failed to create $target_dir"
+    cp "$catalog_repo" "$target_dir/mirrors.tsv" || error 'Failed to deploy Homebrew mirror catalog'
+    cp "$helper_repo" "$target_dir/brew-mirror.zsh" || error 'Failed to deploy brew-mirror'
+    _brew_mirror_remove_legacy || warn "Could not remove legacy brew-mirror helper"
 }
 
-load_mirror_env() {
-    eval "$(mirror_exports "$1" | grep '^export HOMEBREW_' || true)"
-}
-
-persist_zprofile() {
+apply_selected_mirror() {
     local mirror="$1"
-    local file_display file
+    local file_display
     file_display=$(manifest_get "zprofile")
-    file=$(expand_path "$file_display")
-    local brew_path
 
-    brew_path=$(command -v brew) || error "brew not found; cannot write $file_display"
-
-    {
-        echo "eval \"\$($brew_path shellenv)\""
-        echo
-        mirror_exports "$mirror"
-    } > "$file"
-
+    _brew_mirror_write_config "$mirror" || error 'Failed to write Homebrew mirror configuration'
+    _brew_mirror_ensure_profile || error "Failed to update $file_display"
+    _brew_mirror_apply_env || error 'Failed to apply Homebrew mirror environment'
     info "Configured Homebrew mirror ($mirror) in $file_display"
+}
+
+load_mirror_env_for_install() {
+    local mirror="$1"
+    _brew_mirror_write_config "$mirror" || error 'Failed to write Homebrew mirror configuration'
+    # shellcheck disable=SC1090
+    . "$(_brew_mirror_config_file)" || error 'Failed to load Homebrew mirror configuration'
 }
 
 run_install_script() {
@@ -122,10 +125,12 @@ run_install_script() {
 }
 
 install_homebrew() {
-    local mirror="${1:-ustc}"
+    local mirror="$1"
 
-    if command -v brew &> /dev/null; then
-        persist_zprofile "$mirror"
+    deploy_homebrew_runtime
+
+    if command -v brew &> /dev/null || _brew_mirror_find_brew >/dev/null 2>&1; then
+        apply_selected_mirror "$mirror"
         info "Homebrew is already installed; skipping"
         return 0
     fi
@@ -136,11 +141,10 @@ install_homebrew() {
         info "Homebrew is not installed; installing from the $mirror mirror..."
     fi
 
-    load_mirror_env "$mirror"
+    load_mirror_env_for_install "$mirror"
     run_install_script "$mirror"
-    persist_zprofile "$mirror"
+    apply_selected_mirror "$mirror"
 
-    source "$(expand_path "$(manifest_get "zprofile")")"
     brew update || {
         error "Homebrew update failed!"
     }

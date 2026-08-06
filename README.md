@@ -148,6 +148,8 @@ vpr git-setup                     # Git 全局配置
 ```sh
 vpr generate:github-accel         # 从 manifest 更新 GitHub 加速配置与 README
 vpr check:github-accel            # 检查生成内容是否需要更新
+vpr generate:homebrew             # 从 manifest 更新 Homebrew 镜像目录与 Brewfile.lite
+vpr check:homebrew                # 检查 Homebrew 生成内容是否需要更新
 vpr test                          # 运行项目检查
 ```
 
@@ -168,8 +170,20 @@ vpr pm -- ustc                    # 中科大镜像
 vpr pm -- tuna                    # 清华镜像
 vpr pm -- official                # 官方源
 vpr init                          # 初始化
-vpr init -- lite                  # 尝鲜版
-vpr init -- full                  # 完整版
+vpr init -- lite                  # 尝鲜版（Brewfile.lite）
+vpr init -- full                  # 完整版（Brewfile）
+vpr backup                        # 导出 Brewfile，并生成 Brewfile.lite
+vpr setup                         # 从 Brewfile 恢复完整软件清单
+```
+
+初始化后可用独立命令切换镜像（读取本地 `~/.config/homebrew/mirrors.tsv`）：
+
+```sh
+brew-mirror                       # 交互选择镜像
+brew-mirror status                # 显示当前镜像
+brew-mirror ustc                  # 中科大镜像
+brew-mirror tuna                  # 清华镜像
+brew-mirror official              # 恢复官方源
 ```
 
 ```text
@@ -177,9 +191,20 @@ configs/macos/
 ├── .bashrc                       # bash 配置
 ├── .zshrc                        # zsh 平台配置
 ├── Brewfile                      # Homebrew 应用备份
-├── Brewfile.lite                 # 尝鲜版最小依赖
+├── Brewfile.lite                 # 尝鲜版（由 Brewfile + brewLiteItems 生成）
+├── brew-mirror.zsh               # Homebrew 镜像切换逻辑
+├── brew-mirrors.tsv              # 镜像目录（由 _manifest.json 生成）
 ├── ghostty_config                # Ghostty 终端配置
 └── utils.zsh                     # zsh 自定义函数
+```
+
+运行时文件：
+
+```text
+~/.config/homebrew/
+├── mirrors.tsv                   # 本地镜像目录
+├── mirror.zsh                    # 当前镜像环境变量
+└── brew-mirror.zsh               # brew-mirror 命令
 ```
 
 

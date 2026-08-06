@@ -6,6 +6,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { cleanupSyncTempFile, readSyncPairLines } from './lib/sync-pairs.mjs'
 import { writeScoopLiteBackup } from './windows/scoop/lite-backup.mjs'
+import { writeBrewLiteBackup } from './macos/homebrew-generated.mjs'
 import {
   SYNC_DIRECTION_EXAMPLE,
   SYNC_DIRECTION_HINT,
@@ -63,11 +64,29 @@ function readManifest(scope) {
   return JSON.parse(fs.readFileSync(path.join(__dirname, `${scope}/_manifest.json`), 'utf8'))
 }
 
+function runMacBrew(args) {
+  return exitStatus(runBash(path.join(__dirname, 'macos/run-brew.sh'), args))
+}
+
 function runMacBackup() {
-  const { brewfile } = readManifest('macos')
-  return exitStatus(spawnSync('brew', [
-    'bundle', 'dump', '--no-vscode', '--no-npm', '--force', `--file=./${brewfile}`,
-  ], { stdio: 'inherit', cwd: projectRoot }))
+  const manifest = readManifest('macos')
+  const dumpStatus = runMacBrew([
+    'bundle', 'dump', '--no-vscode', '--no-npm', '--force', `--file=./${manifest.brewfile}`,
+  ])
+  if (dumpStatus !== 0) return dumpStatus
+
+  try {
+    const { missing, written } = writeBrewLiteBackup(projectRoot, manifest)
+    console.log(`\x1b[32m[INFO] Generated lite Brewfile (${written} items): ${manifest.brewfileLite}\x1b[0m`)
+    if (missing.length > 0) {
+      console.warn(`\x1b[33m[WARN] Not installed from the lite manifest; skipped: ${missing.join(', ')}\x1b[0m`)
+    }
+    return 0
+  }
+  catch (err) {
+    console.error(`\x1b[31m[ERROR] Failed to generate lite Brewfile: ${err.message}\x1b[0m`)
+    return 1
+  }
 }
 
 function runWinBackup() {
@@ -221,9 +240,7 @@ async function runCrossPlatformTask(platform) {
     case 'setup':
       if (platform === 'macos') {
         const { brewfile } = readManifest('macos')
-        return exitStatus(spawnSync('brew', [
-          'bundle', 'install', `--file=./${brewfile}`,
-        ], { stdio: 'inherit', cwd: projectRoot }))
+        return runMacBrew(['bundle', 'install', `--file=./${brewfile}`])
       }
       {
         return runSubDispatch('windows/_dispatch.mjs', 'scoop-import', scriptArgs)

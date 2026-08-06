@@ -1,0 +1,4 @@
+# use-homebrew-mirrors-v1
+ustc	中科大镜像	https://mirrors.ustc.edu.cn/homebrew-bottles/api	https://mirrors.ustc.edu.cn/homebrew-bottles	https://mirrors.ustc.edu.cn/brew.git
+tuna	清华镜像	https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles/api	https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles	https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git
+official	官方源	-	-	-
