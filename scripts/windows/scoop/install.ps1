@@ -30,8 +30,9 @@ if ($Mirror -in @('-h', '--help', 'help')) {
     exit 0
 }
 
-$activePrefix = Resolve-ScoopMirrorSelection -Choice $Mirror
-Write-Info "Selected mirror: $(Format-ScoopMirrorActiveLabel -ActivePrefix $activePrefix)"
+$selectedPrefix = Resolve-ScoopMirrorSelection -Choice $Mirror
+Write-Info "Selected mirror: $(Format-ScoopMirrorActiveLabel -ActivePrefix $selectedPrefix)"
+$activePrefix = $selectedPrefix
 
 if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
     Write-Info 'Scoop is not installed; installing automatically...'
@@ -46,7 +47,20 @@ if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
 
     try {
         $ErrorActionPreference = 'Stop'
-        Invoke-ScoopInstallScriptWithFallback -Accel $accel -PreferredPrefix $activePrefix
+        # Use the mirror that actually installed Scoop (preferred → fallback → official).
+        $activePrefix = Invoke-ScoopInstallScriptWithFallback -Accel $accel -PreferredPrefix $selectedPrefix
+        if (
+            [string]$activePrefix -ne [string]$selectedPrefix
+            -and -not (
+                [string]::IsNullOrWhiteSpace($activePrefix)
+                -and [string]::IsNullOrWhiteSpace($selectedPrefix)
+            )
+        ) {
+            Write-Warn (
+                "Selected mirror was $(Format-ScoopMirrorActiveLabel -ActivePrefix $selectedPrefix); " +
+                "active mirror is $(Format-ScoopMirrorActiveLabel -ActivePrefix $activePrefix) after install fallback"
+            )
+        }
     }
     catch {
         Write-ErrorAndExit "Scoop installation failed: $($_.Exception.Message)"

@@ -214,6 +214,56 @@ assert.match(installer, /Get-ScoopAccelConfig/)
 assert.match(installer, /\$GithubHosts -contains \$hostName/)
 assert.ok(!/raw\.githubusercontent\.com/.test(installer.match(/function ConvertTo-MirrorUrl[\s\S]*?\n}/)?.[0] || ''))
 
+// Interactive `vpr pm` must prompt even when USE_ACCEL is leftover from a one-liner.
+const resolveMirror = installer.match(/function Resolve-ScoopMirrorSelection[\s\S]*?\nfunction /)?.[0] || ''
+assert.match(resolveMirror, /USE_ACCEL/)
+assert.match(resolveMirror, /Test-InteractivePrompt/)
+assert.match(resolveMirror, /MENU_SELECT_INITIAL|InitialValue/)
+assert.ok(
+  /if\s*\([^)]*USE_ACCEL[\s\S]*?-not\s*\(Test-InteractivePrompt\)/.test(resolveMirror)
+  || /hintFromEnv[\s\S]*?-not\s*\(Test-InteractivePrompt\)[\s\S]*\$Choice\s*=\s*\$hintFromEnv/.test(resolveMirror),
+  'USE_ACCEL must only auto-select when non-interactive',
+)
+assert.match(installer, /\$env:MENU_SELECT_INITIAL/)
+
+const rootInstall = read('install.ps1')
+assert.match(rootInstall, /scoop\/install\.ps1 @scoopInstallArgs/)
+assert.match(rootInstall, /USE_ACCEL/)
+assert.match(rootInstall, /\$scoopInstallArgs/)
+
+// Bootstrap Scoop via selected mirror (preferred → other mirrors → upstream).
+const bootstrap = installer.match(/function Invoke-ScoopInstallScriptWithFallback[\s\S]*?\nfunction /)?.[0] || ''
+assert.match(bootstrap, /Get-ScoopMirrorFetchAttempts/)
+assert.match(bootstrap, /Rewrite-ScoopInstallerGithubUrls/)
+assert.match(bootstrap, /Trying installer/)
+assert.match(bootstrap, /Installer succeeded/)
+assert.match(bootstrap, /Installer failed/)
+assert.match(bootstrap, /active mirror set to/)
+assert.match(bootstrap, /return \$successPrefix/)
+assert.ok(!/\$null\s*=\s*\$PreferredPrefix/.test(bootstrap), 'must not discard PreferredPrefix')
+assert.ok(!/Mirror acceleration starts after Scoop installs/.test(bootstrap))
+
+const rewrite = installer.match(/function Rewrite-ScoopInstallerGithubUrls[\s\S]*?\nfunction /)?.[0] || ''
+assert.match(rewrite, /Get-ScoopInstallerBootstrapUrls|ScoopInstaller\/Scoop\/archive\/master\.zip/)
+assert.match(rewrite, /ScoopInstaller\/Scoop\.git|Get-ScoopInstallerBootstrapUrls/)
+assert.match(rewrite, /refusing to run against upstream GitHub|were not rewritten/)
+assert.match(rewrite, /produced no mirrored Scoop\/Main URLs|mirroredHit/)
+
+const bootstrapUrls = installer.match(/function Get-ScoopInstallerBootstrapUrls[\s\S]*?\nfunction /)?.[0] || ''
+assert.match(bootstrapUrls, /ScoopInstaller\/Scoop\/archive\/master\.zip/)
+assert.match(bootstrapUrls, /ScoopInstaller\/Main\/archive\/master\.zip/)
+assert.match(bootstrapUrls, /ScoopInstaller\/Scoop\.git/)
+assert.match(bootstrapUrls, /ScoopInstaller\/Main\.git/)
+
+const fetchAttempts = installer.match(/function Get-ScoopMirrorFetchAttempts[\s\S]*?\nfunction /)?.[0] || ''
+assert.match(fetchAttempts, /PreferredPrefix/)
+assert.match(fetchAttempts, /official: do not probe mirrors first|do not probe mirrors first/)
+
+const scoopInstall = read('scripts/windows/scoop/install.ps1')
+assert.match(scoopInstall, /\$selectedPrefix = Resolve-ScoopMirrorSelection/)
+assert.match(scoopInstall, /\$activePrefix = Invoke-ScoopInstallScriptWithFallback/)
+assert.match(scoopInstall, /after install fallback/)
+
 const rootDispatch = read('scripts/_dispatch.mjs')
 assert.match(rootDispatch, /scoop-import/)
 assert.match(rootDispatch, /function markCliInteractive/)

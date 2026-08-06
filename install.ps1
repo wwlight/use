@@ -233,7 +233,13 @@ if (Get-Command scoop -ErrorAction SilentlyContinue) {
     Write-Info 'scoop is already installed; skipping'
 }
 else {
-    & $pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/scoop/install.ps1
+    # Pass the one-click GitHub accel id as an explicit Scoop mirror arg so
+    # interactive `vpr pm` later is not forced by leftover USE_ACCEL.
+    $scoopInstallArgs = @()
+    if (-not [string]::IsNullOrWhiteSpace($env:USE_ACCEL)) {
+        $scoopInstallArgs = @("$($env:USE_ACCEL.Trim())")
+    }
+    & $pwsh -NoProfile -ExecutionPolicy Bypass -File scripts/windows/scoop/install.ps1 @scoopInstallArgs
     if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Package manager installation failed' }
 }
 
