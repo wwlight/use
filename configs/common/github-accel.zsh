@@ -1,8 +1,8 @@
-# GitHub acceleration (keep aligned with githubAccel in manifests/common.json).
+# GitHub acceleration (prefixes generated from manifests/common.json via generate:github-accel).
 # BEGIN GENERATED GITHUB ACCEL
 typeset -ga GITHUB_ACCEL_MIRRORS=(
-  'https://ghfast.top/'
   'https://gh-proxy.com/'
+  'https://ghfast.top/'
 )
 # END GENERATED GITHUB ACCEL
 

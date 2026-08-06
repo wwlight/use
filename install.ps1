@@ -18,12 +18,12 @@ $ScoopInstallScript = 'https://raw.githubusercontent.com/ScoopInstaller/Install/
 $ScoopRepo = 'https://github.com/ScoopInstaller/Scoop'
 # BEGIN GENERATED GITHUB ACCEL
 $GithubAccelIds = @(
-    'ghfast',
-    'ghproxy'
+    'ghproxy',
+    'ghfast'
 )
 $GithubAccelPrefixes = @(
-    'https://ghfast.top/',
-    'https://gh-proxy.com/'
+    'https://gh-proxy.com/',
+    'https://ghfast.top/'
 )
 # END GENERATED GITHUB ACCEL
 
@@ -547,8 +547,8 @@ function Get-NextTimestampedDir {
   return $target
 }
 
-# --- Scoop-first bootstrap (before cloning use) ---
-Write-Step 'Step 0: Ensuring Scoop, 7zip, and Git...'
+# Scoop/Git must exist before clone/sync; not part of the numbered init step chain.
+Write-Info 'Ensuring Scoop, 7zip, and Git...'
 $null = Install-ScoopBootstrap
 Install-ScoopBootstrapApps
 

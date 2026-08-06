@@ -7,12 +7,12 @@ INSTALL_DIR="${HOME}/Desktop/use"
 ZIP_EXTRACT_NAME="use-main"
 # BEGIN GENERATED GITHUB ACCEL
 GITHUB_ACCEL_IDS=(
-  "ghfast"
   "ghproxy"
+  "ghfast"
 )
 GITHUB_ACCEL_PREFIXES=(
-  "https://ghfast.top/"
   "https://gh-proxy.com/"
+  "https://ghfast.top/"
 )
 # END GENERATED GITHUB ACCEL
 

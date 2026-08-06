@@ -14,6 +14,14 @@ const MARKERS = {
         start: '<!-- BEGIN GENERATED GITHUB ACCEL DOCS -->',
         end: '<!-- END GENERATED GITHUB ACCEL DOCS -->',
     },
+    windowsPm: {
+        start: '<!-- BEGIN GENERATED GITHUB ACCEL WINDOWS PM -->',
+        end: '<!-- END GENERATED GITHUB ACCEL WINDOWS PM -->',
+    },
+    scoopMirror: {
+        start: '<!-- BEGIN GENERATED GITHUB ACCEL SCOOP MIRROR -->',
+        end: '<!-- END GENERATED GITHUB ACCEL SCOOP MIRROR -->',
+    },
 };
 function loadMirrors() {
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
@@ -112,6 +120,49 @@ function psInstallCommand(url, accel, profile) {
     parts.push(`irm ${url} | iex`);
     return parts.join('; ');
 }
+function hostLabel(prefix) {
+    try {
+        return new URL(prefix).host;
+    }
+    catch {
+        return prefix.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    }
+}
+function padComment(command, width) {
+    return command.padEnd(width);
+}
+function windowsPmDocs(mirrors) {
+    const width = 34;
+    const lines = [
+        `${padComment('vpr pm', width)}# 安装 scoop，交互选加速镜像`,
+        ...mirrors.map(({ id, prefix }) => (
+            `${padComment(`vpr pm -- ${id}`, width)}# ${hostLabel(prefix)} 加速镜像`
+        )),
+        `${padComment('vpr pm -- official', width)}# 官方源`,
+        `${padComment('vpr init', width)}# 初始化（会启用已选加速）`,
+        `${padComment('vpr init -- lite', width)}# 尝鲜版`,
+        `${padComment('vpr init -- full', width)}# 完整版`,
+    ];
+    return codeBlock('sh', lines.join('\n'));
+}
+function scoopMirrorDocs(mirrors) {
+    const width = 34;
+    const lines = [
+        `${padComment('scoop mirror', width)}# 交互选择（↑↓ / Enter；Esc/Ctrl+C 取消；回车选中当前 * 则直接退出）`,
+        `${padComment('scoop mirror status', width)}# 显示当前镜像`,
+        ...mirrors.map(({ id, prefix }) => (
+            `${padComment(`scoop mirror ${id}`, width)}# 直接切换到 ${hostLabel(prefix)}`
+        )),
+        `${padComment('scoop mirror official', width)}# 恢复官方源`,
+    ];
+    return [
+        '一键同步切换 Scoop 仓库、GitHub bucket 远端及后续安装、更新使用的下载镜像（仓库侧见上方 `runtime/scoop/`）。',
+        '',
+        '运行时在 `$SCOOP/config/scoop-mirror/` 生成 `config.json`；菜单依赖同步到同目录 `lib/`。',
+        '',
+        codeBlock('sh', lines.join('\n')),
+    ].join('\n');
+}
 function readmeDocs(mirrors) {
     const useBase = 'https://raw.githubusercontent.com/wwlight/use/main';
     const viteBase = 'https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli';
@@ -205,6 +256,8 @@ const changed = [
     updateGeneratedFile('install.ps1', MARKERS.code, powershellConfig(mirrors)),
     updateGeneratedFile('configs/common/github-accel.zsh', MARKERS.code, zshConfig(mirrors)),
     updateGeneratedFile('README.md', MARKERS.docs, readmeDocs(mirrors)),
+    updateGeneratedFile('README.md', MARKERS.windowsPm, windowsPmDocs(mirrors)),
+    updateGeneratedFile('README.md', MARKERS.scoopMirror, scoopMirrorDocs(mirrors)),
 ];
 if (checkOnly && changed.some(Boolean)) {
     console.error('Generated GitHub acceleration content is stale; run: npm run generate:github-accel');

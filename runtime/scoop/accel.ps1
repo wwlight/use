@@ -106,8 +106,8 @@ function Get-ScoopMirrorFetchAttempts {
             $prefix = [string]$p
             if ([string]::IsNullOrWhiteSpace($prefix)) { continue }
             if (
-                $prefix -eq $PreferredPrefix
-                -or $prefix.TrimEnd('/') -eq $PreferredPrefix.TrimEnd('/')
+                $prefix -eq $PreferredPrefix -or
+                $prefix.TrimEnd('/') -eq $PreferredPrefix.TrimEnd('/')
             ) { continue }
             [void]$prefixOrder.Add($prefix)
         }

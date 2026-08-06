@@ -48,13 +48,12 @@ if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
         $ErrorActionPreference = 'Stop'
         # Use the mirror that actually installed Scoop (preferred → fallback → official).
         $activePrefix = Invoke-ScoopInstallScriptWithFallback -Accel $accel -PreferredPrefix $selectedPrefix
-        if (
-            [string]$activePrefix -ne [string]$selectedPrefix
-            -and -not (
-                [string]::IsNullOrWhiteSpace($activePrefix)
-                -and [string]::IsNullOrWhiteSpace($selectedPrefix)
-            )
-        ) {
+        # Keep binary operators at end of line — PowerShell does not continue across bare newlines.
+        $mirrorChanged = [string]$activePrefix -ne [string]$selectedPrefix -and -not (
+            [string]::IsNullOrWhiteSpace($activePrefix) -and
+            [string]::IsNullOrWhiteSpace($selectedPrefix)
+        )
+        if ($mirrorChanged) {
             Write-Warn (
                 "Selected mirror was $(Format-ScoopMirrorActiveLabel -ActivePrefix $selectedPrefix); " +
                 "active mirror is $(Format-ScoopMirrorActiveLabel -ActivePrefix $activePrefix) after install fallback"

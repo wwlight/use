@@ -343,12 +343,23 @@ assert.ok(!/scoop-mirror\/manage\.ps1/.test(mirrorSection[1]))
 for (const command of [
   'scoop mirror',
   'scoop mirror status',
-  'scoop mirror ghfast',
-  'scoop mirror ghproxy',
+  ...mirrorIds.map((id) => `scoop mirror ${id}`),
   'scoop mirror official',
 ]) {
   assert.ok(mirrorSection[1].includes(command))
 }
+assert.ok(mirrorSection[1].includes('BEGIN GENERATED GITHUB ACCEL SCOOP MIRROR'))
+const orderedMirrorCmds = [
+  common.githubAccel.default,
+  ...mirrorIds.filter((id) => id !== common.githubAccel.default),
+].map((id) => `scoop mirror ${id}`)
+let prevMirrorIdx = -1
+for (const command of orderedMirrorCmds) {
+  const idx = mirrorSection[1].indexOf(command)
+  assert.ok(idx > prevMirrorIdx, `expected ${command} after previous mirrors`)
+  prevMirrorIdx = idx
+}
+assert.ok(readme.includes('BEGIN GENERATED GITHUB ACCEL WINDOWS PM'))
 assert.ok(!mirrorSection[1].includes('scoop mirror list'))
 
 const servicesSection = readme.match(/### scoop services\n([\s\S]*?)\n### clink/)

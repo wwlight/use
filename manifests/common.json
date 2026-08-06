@@ -34,10 +34,10 @@
     { "name": "zsh-completions", "repo": "https://github.com/zsh-users/zsh-completions.git" }
   ],
   "githubAccel": {
-    "default": "ghfast",
+    "default": "ghproxy",
     "mirrors": [
-      { "id": "ghfast", "prefix": "https://ghfast.top/" },
-      { "id": "ghproxy", "prefix": "https://gh-proxy.com/" }
+      { "id": "ghproxy", "prefix": "https://gh-proxy.com/" },
+      { "id": "ghfast", "prefix": "https://ghfast.top/" }
     ]
   }
 }
