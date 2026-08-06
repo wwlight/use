@@ -56,7 +56,10 @@ if (isCli) {
     }
   }
   catch (err) {
-    if (err?.code === 'CANCELLED') process.exit(130)
+    if (err?.code === 'CANCELLED') {
+      console.error('Canceled')
+      process.exit(130)
+    }
     console.error(`\x1b[31m[ERROR] ${err?.message || 'Could not select sync direction'}\x1b[0m`)
     process.exit(1)
   }

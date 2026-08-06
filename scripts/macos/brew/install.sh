@@ -51,15 +51,19 @@ resolve_brew_mirror() {
     done < <(node "$MANIFEST_CONFIG" menu-mirrors)
 
     # Do not capture node stdout; keep the TTY so the ↑↓ menu is visible.
-    local out choice=""
+    local out choice="" ec=0
     out=$(mktemp) || error 'Could not create temp file for mirror selection'
-    if MENU_SELECT_OUT="$out" node "$SCRIPT_DIR/lib/menu-select.mjs" \
+    MENU_SELECT_OUT="$out" node "$SCRIPT_DIR/lib/menu-select.mjs" \
         "Choose a Homebrew mirror" \
-        "${menu_args[@]}"; then
+        "${menu_args[@]}" || ec=$?
+    if [[ "$ec" -eq 0 ]]; then
         choice=$(tr -d '\r\n' <"$out" 2>/dev/null || true)
     fi
     rm -f "$out"
 
+    if [[ "$ec" -eq 130 ]]; then
+        exit 130
+    fi
     if [[ -z "$choice" ]]; then
         usage >&2
         error "Pass an argument in non-interactive environments (example: vpr pm -- ustc)"
@@ -178,7 +182,7 @@ main() {
 
     check_target_os "macos"
     local mirror
-    mirror=$(resolve_brew_mirror "${1:-}")
+    mirror=$(resolve_brew_mirror "${1:-}") || exit $?
     install_homebrew "$mirror"
 }
 

@@ -166,7 +166,14 @@ function createMultiselect({ message, choices, input, output }) {
       }
       else if (key.ctrl && key.name === 'c') {
         close()
-        const err = new Error('File selection canceled')
+        const err = new Error('Canceled')
+        err.code = 'CANCELLED'
+        reject(err)
+        return
+      }
+      else if (key.name === 'escape') {
+        close()
+        const err = new Error('Canceled')
         err.code = 'CANCELLED'
         reject(err)
         return
@@ -248,7 +255,10 @@ if (isCli) {
     await runSyncSelectPrompt({ direction, rawLines, outPath })
   }
   catch (err) {
-    if (err.code === 'CANCELLED') process.exit(130)
+    if (err.code === 'CANCELLED') {
+      console.error('Canceled')
+      process.exit(130)
+    }
     console.error(err?.message || String(err))
     process.exit(1)
   }

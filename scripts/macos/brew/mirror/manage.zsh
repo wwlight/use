@@ -299,9 +299,7 @@ _brew_mirror_cli() {
     if [[ -z "$choice" ]]; then
         if ! choice=$(_brew_mirror_select_interactive); then
             local ec=$?
-            if (( ec == 130 )); then
-                printf 'Canceled\n'
-            fi
+            # menu.mjs already printed Canceled on 130
             return "$ec"
         fi
         local active

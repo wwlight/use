@@ -218,7 +218,10 @@ if (isCli) {
     }
   }
   catch (err) {
-    if (err.code === 'CANCELLED') process.exit(130)
+    if (err.code === 'CANCELLED') {
+      console.error('Canceled')
+      process.exit(130)
+    }
     console.error(err?.message || String(err))
     process.exit(1)
   }

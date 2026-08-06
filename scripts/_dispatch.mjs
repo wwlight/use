@@ -157,7 +157,10 @@ async function promptSyncDirection(args) {
     return { direction }
   }
   catch (err) {
-    if (err?.code === 'CANCELLED') process.exit(130)
+    if (err?.code === 'CANCELLED') {
+      console.error('Canceled')
+      process.exit(130)
+    }
     console.error(`\x1b[31m[ERROR] Pass a direction in non-interactive environments: ${SYNC_DIRECTION_HINT}\x1b[0m`)
     console.error(SYNC_DIRECTION_EXAMPLE)
     process.exit(1)
@@ -188,8 +191,11 @@ async function runSyncSelect(direction, lines) {
   }
   catch (err) {
     cleanupSyncTempFile(filteredFile)
-    if (err?.code === 'CANCELLED') process.exit(130)
-    console.error(`\x1b[31m[ERROR] ${err?.message || 'File selection canceled'}\x1b[0m`)
+    if (err?.code === 'CANCELLED') {
+      console.error('Canceled')
+      process.exit(130)
+    }
+    console.error(`\x1b[31m[ERROR] ${err?.message || 'File selection failed'}\x1b[0m`)
     process.exit(1)
   }
 }

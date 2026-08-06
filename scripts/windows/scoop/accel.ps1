@@ -137,6 +137,10 @@ function Invoke-NodeMenuSelect {
         $env:MENU_SELECT_OUT = $outFile
         $menuArgs = @($Title) + @($Items | Where-Object { $_ })
         & node $menuScript @menuArgs
+        if ($LASTEXITCODE -eq 130) {
+            # menu-select already printed Canceled
+            exit 130
+        }
         if ($LASTEXITCODE -ne 0) { return '' }
         $choice = (Get-Content -LiteralPath $outFile -Raw -Encoding UTF8 -ErrorAction SilentlyContinue)
         return "$choice".Trim()

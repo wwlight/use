@@ -51,6 +51,10 @@ function Resolve-ScoopInstallProfile {
         $env:MENU_SELECT_OUT = $outFile
         # Do not capture stdout; preserve the TTY so the menu is visible in Cursor.
         & node $menuScript @menuArgs
+        if ($LASTEXITCODE -eq 130) {
+            # menu-select already printed Canceled
+            exit 130
+        }
         if ($LASTEXITCODE -ne 0) {
             Write-ErrorAndExit 'Pass an argument in non-interactive environments (example: vpr init -- lite)'
         }

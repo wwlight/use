@@ -402,18 +402,22 @@ $example${NC}" >&2
     fi
 
     local choice=""
-    local out
+    local out ec=0
     # Do not capture node stdout; keep the TTY so the ↑↓ menu is visible.
     out=$(mktemp) || {
         safe_echo "${RED}[ERROR] Could not create temp file for sync direction
 $example${NC}" >&2
         return 1
     }
-    if MENU_SELECT_OUT="$out" node "${SCRIPT_DIR}/lib/sync-direction.mjs"; then
+    MENU_SELECT_OUT="$out" node "${SCRIPT_DIR}/lib/sync-direction.mjs" || ec=$?
+    if [ "$ec" -eq 0 ]; then
         choice=$(tr -d '\r\n' <"$out" 2>/dev/null || true)
     fi
     rm -f "$out"
 
+    if [ "$ec" -eq 130 ]; then
+        return 130
+    fi
     if [ "$choice" != "1" ] && [ "$choice" != "2" ]; then
         hint=$(node "${SCRIPT_DIR}/lib/sync-direction.mjs" --hint 2>/dev/null) || hint="1=back up config to repository, 2=restore config locally"
         safe_echo "${RED}[ERROR] Pass a direction in non-interactive environments: ${hint}
@@ -474,7 +478,8 @@ sync_select_run() {
     if [ "$rc" -ne 0 ]; then
         rm -f "$pairs_file" "$filtered_file"
         if [ "$rc" -eq 130 ]; then
-            error "File selection canceled"
+            # sync-select already printed Canceled
+            exit 130
         fi
         error "File selection failed; retry or run through vpr sync"
     fi
@@ -675,7 +680,7 @@ run_config_sync() {
         error "Sync direction missing: $example"
     fi
 
-    direction=$(prompt_sync_direction "$direction_input" "$example") || exit 1
+    direction=$(prompt_sync_direction "$direction_input" "$example") || exit $?
 
     sync_pairs=()
     while IFS= read -r line; do

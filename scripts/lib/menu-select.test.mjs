@@ -95,5 +95,9 @@ assert.match(syncSource, /allowWindowsConsole:\s*true/)
 
 const syncDirectionSource = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'sync-direction.mjs'), 'utf8')
 assert.match(syncDirectionSource, /MENU_SELECT_OUT/)
+assert.match(menuSource, /console\.error\('Canceled'\)/)
+assert.match(syncSource, /console\.error\('Canceled'\)/)
+assert.match(syncSource, /key\.name === 'escape'/)
+assert.match(syncDirectionSource, /console\.error\('Canceled'\)/)
 
 console.log('menu-select.test.mjs: ok')
