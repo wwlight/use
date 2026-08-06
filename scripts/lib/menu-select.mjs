@@ -7,20 +7,12 @@ import path from 'node:path'
 import fs from 'node:fs'
 import readline from 'node:readline'
 import { fileURLToPath } from 'node:url'
-import { alignGlyph } from './string-width.mjs'
+import { alignMenuCheck } from './string-width.mjs'
 import { frameLines, openTerminal } from './tty-term.mjs'
 
-const POINTER_ACTIVE = '✓'
-const POINTER_IDLE = ' '
-
-/** Active/idle pointers share one display width (CJK-aware). */
-export function formatChoiceLine(label, selected, widthOptions = {}) {
-  const pointer = alignGlyph(
-    selected ? POINTER_ACTIVE : POINTER_IDLE,
-    [POINTER_ACTIVE, POINTER_IDLE],
-    widthOptions,
-  )
-  return `${pointer} ${label}`
+/** Active/idle pointers share one fixed display column (✓ = 1 cell). */
+export function formatChoiceLine(label, selected) {
+  return `${alignMenuCheck(selected)} ${label}`
 }
 
 function createSelect({ message, choices, input, output, cursor: initialCursor = 0 }) {
@@ -148,6 +140,7 @@ export function parseChoice(raw) {
 
 /**
  * Build menu choices as "* name ---- detail" (active) or "  name ---- detail".
+ * Names are space-padded so mark / name / dashes / detail form fixed columns.
  * Cursor glyph is rendered separately via formatChoiceLine; * marks activeValue.
  * @param {{ value: string, name?: string, detail?: string }[]} items
  * @param {{ activeValue?: string, dashWidth?: number }} [options]
@@ -160,12 +153,13 @@ export function formatAlignedChoices(items, { activeValue = '', dashWidth = 10 }
   }))
   if (rows.length === 0) return []
   const nameWidth = Math.max(...rows.map((row) => row.name.length))
+  const dashes = '-'.repeat(dashWidth)
   return rows.map((row) => {
     const mark = row.value === String(activeValue) ? '*' : ' '
-    const dashes = '-'.repeat((nameWidth - row.name.length) + dashWidth)
+    const name = row.name.padEnd(nameWidth, ' ')
     return {
       value: row.value,
-      label: `${mark} ${row.name} ${dashes} ${row.detail}`,
+      label: `${mark} ${name} ${dashes} ${row.detail}`,
     }
   })
 }

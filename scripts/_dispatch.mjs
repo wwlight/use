@@ -50,14 +50,25 @@ function requireWindows(platform) {
   }
 }
 
-function runPlatformInit(platform) {
-  const initDir = path.join(__dirname, platform)
-  const scriptPath = resolveScript(initDir, 'init')
+function markCliInteractive() {
   if (process.stdin.isTTY || process.stdout.isTTY) {
     process.env.SYNC_INTERACTIVE = '1'
   }
+}
+
+function runPlatformInit(platform) {
+  const initDir = path.join(__dirname, platform)
+  const scriptPath = resolveScript(initDir, 'init')
+  markCliInteractive()
   const result = isPowerShell() ? runPwsh(scriptPath, scriptArgs) : runBash(scriptPath, scriptArgs)
   return exitStatus(result)
+}
+
+function runPlatformPm(platform) {
+  markCliInteractive()
+  return platform === 'macos'
+    ? exitStatus(runBash(path.join(__dirname, 'macos/brew/install.sh'), scriptArgs))
+    : runSubDispatch('windows/_dispatch.mjs', 'scoop', scriptArgs)
 }
 
 function readManifest(scope) {
@@ -230,9 +241,7 @@ async function runUnifiedSync(platform, args) {
 async function runCrossPlatformTask(platform) {
   switch (task) {
     case 'pm':
-      return platform === 'macos'
-        ? exitStatus(runBash(path.join(__dirname, 'macos/brew/install.sh'), scriptArgs))
-        : runSubDispatch('windows/_dispatch.mjs', 'scoop', scriptArgs)
+      return runPlatformPm(platform)
     case 'init':
       return runPlatformInit(platform)
     case 'backup':

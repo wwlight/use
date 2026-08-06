@@ -45,12 +45,15 @@ resolve_brew_profile() {
         menu_args+=("$line")
     done < <(node "$MANIFEST_CONFIG" menu-profiles)
 
-    local choice=""
-    choice=$(node "$SCRIPT_DIR/lib/menu-select.mjs" \
+    # Do not capture node stdout; keep the TTY so the ↑↓ menu is visible.
+    local out choice=""
+    out=$(mktemp) || error 'Could not create temp file for profile selection'
+    if MENU_SELECT_OUT="$out" node "$SCRIPT_DIR/lib/menu-select.mjs" \
         "Choose the Homebrew installation profile" \
-        "${menu_args[@]}") || choice=""
-    choice=${choice//$'\r'/}
-    choice=${choice//$'\n'/}
+        "${menu_args[@]}"; then
+        choice=$(tr -d '\r\n' <"$out" 2>/dev/null || true)
+    fi
+    rm -f "$out"
 
     if [[ -z "$choice" ]]; then
         error "Pass an argument in non-interactive environments (example: vpr init -- lite)"

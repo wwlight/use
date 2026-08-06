@@ -8,26 +8,12 @@ import path from 'node:path'
 import readline from 'node:readline'
 import { fileURLToPath } from 'node:url'
 import { formatLocalDisplay, formatRepoDisplay } from './sync-pairs.mjs'
-import { alignGlyph, truncateWidth } from './string-width.mjs'
+import { alignMenuCheck, truncateWidth } from './string-width.mjs'
 import { openTerminal, restoreFrame } from './tty-term.mjs'
 
-const POINTER_ACTIVE = '✓'
-const POINTER_IDLE = ' '
-const MARK_ON = '✓'
-const MARK_OFF = ' '
-
 export function formatSyncChoiceLine(label, { selected = false, active = false, labelMax = 30, widthOptions = {} } = {}) {
-  const pointer = alignGlyph(
-    active ? POINTER_ACTIVE : POINTER_IDLE,
-    [POINTER_ACTIVE, POINTER_IDLE],
-    widthOptions,
-  )
-  const mark = alignGlyph(
-    selected ? MARK_ON : MARK_OFF,
-    [MARK_ON, MARK_OFF],
-    widthOptions,
-  )
-  return `${pointer} [${mark}] ${truncateWidth(label, labelMax, widthOptions)}`
+  const mark = selected ? '✓' : ' '
+  return `${alignMenuCheck(active)} [${mark}] ${truncateWidth(label, labelMax, widthOptions)}`
 }
 
 function parseItems(rawLines) {
