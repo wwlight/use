@@ -6,8 +6,8 @@ SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_DIR="$(cd "$SCRIPT_PATH/../.." && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-HELPER_DEPLOYED="${XDG_CONFIG_HOME:-$HOME/.config}/homebrew/brew-mirror.zsh"
-HELPER_REPO="$PROJECT_ROOT/scripts/macos/brew/mirror/brew-mirror.zsh"
+HELPER_DEPLOYED="${XDG_CONFIG_HOME:-$HOME/.config}/homebrew/manage.zsh"
+HELPER_REPO="$PROJECT_ROOT/scripts/macos/brew/mirror/manage.zsh"
 
 if [[ -r "$HELPER_DEPLOYED" ]]; then
     # shellcheck disable=SC1090
@@ -16,7 +16,7 @@ elif [[ -r "$HELPER_REPO" ]]; then
     # shellcheck disable=SC1090
     . "$HELPER_REPO"
 else
-    echo "run-brew: brew-mirror helper not found" >&2
+    echo "run-brew: brew mirror helper not found" >&2
     exit 1
 fi
 

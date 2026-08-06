@@ -5,7 +5,7 @@ import os from 'node:os'
 import path from 'node:path'
 
 const root = path.resolve(import.meta.dirname, '../../../..')
-const helper = path.join(root, 'scripts/macos/brew/mirror/brew-mirror.zsh')
+const helper = path.join(root, 'scripts/macos/brew/mirror/manage.zsh')
 const catalog = path.join(root, 'configs/macos/brew/mirrors.tsv')
 const source = fs.readFileSync(helper, 'utf8')
 const installer = fs.readFileSync(path.join(root, 'scripts/macos/brew/install.sh'), 'utf8')
@@ -32,14 +32,18 @@ assert.match(source, /_brew_mirror_aligned_choices/)
 assert.match(source, /_brew_mirror_menu_script/)
 assert.match(source, /menu-select\.mjs/)
 assert.match(source, /MENU_SELECT_INITIAL/)
+assert.match(source, /manage\.zsh/)
+assert.match(source, /brew-mirror\.zsh/)
 assert.match(installer, /lib\/menu-select\.mjs/)
 assert.match(installer, /lib\/tty-term\.mjs/)
+assert.match(installer, /manage\.zsh/)
 assert.match(installer, /if _brew_mirror_find_brew/)
 assert.ok(!/if command -v brew/.test(installer))
 assert.match(initSh, /if ! _brew_mirror_find_brew/)
 assert.ok(!/if ! command -v brew/.test(initSh))
 const runBrew = fs.readFileSync(path.join(root, 'scripts/macos/brew/run-brew.sh'), 'utf8')
 assert.match(runBrew, /brew_bin=\$\(_brew_mirror_find_brew\)/)
+assert.match(runBrew, /manage\.zsh/)
 assert.ok(!/if ! command -v brew/.test(runBrew))
 assert.match(runBrew, /exec "\$brew_bin"/)
 assert.ok(!source.includes('mirrors.ustc.edu.cn'))
@@ -62,13 +66,13 @@ assert.ok(!/\. "\$\{HOME\}\/\.zprofile"/.test(installSh))
 assert.match(initSh, /_brew_mirror_apply_env/)
 assert.match(initSh, /_brew_mirror_remove_legacy/)
 assert.match(initSh, /brew\/run-brew\.sh/)
+assert.match(initSh, /manage\.zsh/)
 assert.match(dispatch, /writeBrewLiteBackup/)
 assert.match(dispatch, /brew\/run-brew\.sh/)
 assert.match(dispatch, /brew\/install\.sh/)
 assert.match(dispatch, /brew\/generated\.mjs/)
 assert.match(source, /_brew_mirror_persisted_id/)
 assert.match(source, /_brew_mirror_remove_legacy/)
-assert.match(source, /\.zsh\/functions\/brew-mirror\.zsh/)
 assert.match(source, /Canceled/)
 assert.match(source, /Same as active/)
 assert.match(source, /ec == 130/)
@@ -77,20 +81,22 @@ assert.match(source, /_brew_mirror_ensure_profile/)
 assert.ok(!/^brew-mirror\(\)/m.test(source))
 assert.match(readme, /brew mirror\s+# 交互/)
 assert.match(readme, /brew mirror status/)
+assert.match(readme, /manage\.zsh/)
 assert.ok(!readme.includes('brew-mirror status'))
+assert.ok(!readme.includes('brew-mirror.zsh'))
 const configSync = fs.readFileSync(path.join(root, 'scripts/macos/config-sync.sh'), 'utf8')
 assert.match(configSync, /_brew_mirror_remove_legacy/)
-assert.match(configSync, /brew-mirror\.zsh/)
+assert.match(configSync, /manage\.zsh/)
 
 const syncLocals = manifest.sync.toRepo.map((item) => item.local)
 const syncRepos = manifest.sync.toRepo.map((item) => item.repo)
-assert.ok(syncLocals.some((local) => String(local).includes('.config/homebrew/brew-mirror.zsh')))
+assert.ok(syncLocals.some((local) => String(local).includes('.config/homebrew/manage.zsh')))
 assert.ok(syncLocals.some((local) => String(local).includes('.config/homebrew/mirrors.tsv')))
 assert.ok(syncLocals.some((local) => String(local).includes('.config/homebrew/lib/menu-select.mjs')))
 assert.ok(syncLocals.some((local) => String(local).includes('.config/homebrew/lib/tty-term.mjs')))
-assert.ok(syncRepos.some((repo) => String(repo).includes('scripts/macos/brew/mirror/brew-mirror.zsh')))
+assert.ok(syncRepos.some((repo) => String(repo).includes('scripts/macos/brew/mirror/manage.zsh')))
 assert.ok(syncRepos.some((repo) => String(repo).includes('configs/macos/brew/mirrors.tsv')))
-assert.ok(!syncLocals.some((local) => String(local).includes('.zsh/functions/brew-mirror.zsh')))
+assert.ok(!syncLocals.some((local) => String(local).includes('brew-mirror.zsh')))
 
 assert.equal(manifest.brewfile, 'configs/macos/brew/Brewfile')
 assert.equal(manifest.brewfileLite, 'configs/macos/brew/Brewfile.lite')
@@ -102,7 +108,7 @@ const homebrewDir = path.join(temp, '.config/homebrew')
 fs.mkdirSync(bin)
 fs.mkdirSync(homebrewDir, { recursive: true })
 fs.copyFileSync(catalog, path.join(homebrewDir, 'mirrors.tsv'))
-fs.copyFileSync(helper, path.join(homebrewDir, 'brew-mirror.zsh'))
+fs.copyFileSync(helper, path.join(homebrewDir, 'manage.zsh'))
 const fakeBrew = path.join(bin, 'brew')
 fs.writeFileSync(fakeBrew, '#!/bin/sh\n[ "$1" = shellenv ] && printf "export PATH=/fake/homebrew/bin:$PATH\\n"\n')
 fs.chmodSync(fakeBrew, 0o755)
@@ -150,11 +156,13 @@ brew update >/dev/null 2>&1 || ec=$?
 test "$ec" -eq 127
 export PATH="$OLD_PATH"
 
-# Legacy override is removed when the helper is sourced / applied.
+# Legacy overrides are removed when the helper is sourced / applied.
 mkdir -p "$HOME/.zsh/functions"
 printf '# legacy\\n' > "$HOME/.zsh/functions/brew-mirror.zsh"
+printf '# legacy-home\\n' > "$XDG_CONFIG_HOME/homebrew/brew-mirror.zsh"
 source "$HELPER"
 test ! -e "$HOME/.zsh/functions/brew-mirror.zsh"
+test ! -e "$XDG_CONFIG_HOME/homebrew/brew-mirror.zsh"
 `
 const result = spawnSync('bash', ['-c', script], {
   encoding: 'utf8',
@@ -173,7 +181,8 @@ assert.match(profile, /export KEEP_THIS_SETTING=yes/)
 assert.equal((profile.match(/# >>> use-homebrew/g) || []).length, 1)
 assert.equal((profile.match(/# <<< use-homebrew/g) || []).length, 1)
 assert.match(profile, /mirror\.zsh/)
-assert.match(profile, /brew-mirror\.zsh/)
+assert.match(profile, /manage\.zsh/)
+assert.ok(!profile.includes('brew-mirror.zsh'))
 assert.match(profile, /shellenv/)
 // Profile must call the real brew binary, not the shell wrapper name alone.
 assert.match(profile, /eval "\$\([^)]+\/brew shellenv\)"/)

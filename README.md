@@ -204,7 +204,7 @@ scripts/macos/brew/
 ├── run-brew.sh                   # 应用当前镜像后执行 brew
 ├── generated.mjs                 # 生成 mirrors.tsv / Brewfile.lite
 └── mirror/
-    ├── brew-mirror.zsh           # → ~/.config/homebrew/brew-mirror.zsh
+    ├── manage.zsh                # → ~/.config/homebrew/manage.zsh（对照 scoop mirror/manage.ps1）
     └── test.mjs
 ```
 
@@ -214,7 +214,7 @@ scripts/macos/brew/
 ~/.config/homebrew/
 ├── mirrors.tsv                   # 本地镜像目录
 ├── mirror.zsh                    # 当前镜像环境变量
-├── brew-mirror.zsh               # brew mirror 子命令
+├── manage.zsh                    # brew mirror 子命令
 └── lib/                          # ↑↓ 菜单（menu-select / tty-term）
 ```
 

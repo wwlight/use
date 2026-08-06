@@ -1,4 +1,4 @@
-# Homebrew mirror switcher. Deployed to ~/.config/homebrew/brew-mirror.zsh.
+# Homebrew mirror switcher. Deployed to ~/.config/homebrew/manage.zsh.
 # Portable for bash (installer) and zsh (interactive shells).
 # User-facing command: brew mirror (shell-function wrap, scoop mirror style).
 
@@ -15,20 +15,20 @@ _brew_mirror_config_file() {
 }
 
 _brew_mirror_helper_file() {
-    printf '%s/brew-mirror.zsh\n' "$(_brew_mirror_root)"
+    printf '%s/manage.zsh\n' "$(_brew_mirror_root)"
 }
 
-_brew_mirror_legacy_helper_file() {
-    printf '%s\n' "${HOME}/.zsh/functions/brew-mirror.zsh"
-}
-
-# Older releases deployed brew-mirror into ~/.zsh/functions. That copy is sourced
-# after .zprofile by .zshrc_core and would override the catalog-based helper.
+# Older releases used ~/.zsh/functions/brew-mirror.zsh or ~/.config/homebrew/brew-mirror.zsh.
 _brew_mirror_remove_legacy() {
-    local legacy
-    legacy=$(_brew_mirror_legacy_helper_file) || return 0
-    [[ -e "$legacy" ]] || return 0
-    rm -f "$legacy" 2>/dev/null || return 1
+    local path
+    for path in \
+        "${HOME}/.zsh/functions/brew-mirror.zsh" \
+        "$(_brew_mirror_root)/brew-mirror.zsh"
+    do
+        [[ -e "$path" ]] || continue
+        rm -f "$path" 2>/dev/null || return 1
+    done
+    return 0
 }
 
 _brew_mirror_quote() {

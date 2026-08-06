@@ -4,7 +4,7 @@ SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
-source "$PROJECT_ROOT/scripts/macos/brew/mirror/brew-mirror.zsh"
+source "$PROJECT_ROOT/scripts/macos/brew/mirror/manage.zsh"
 
 init_manifest macos
 
@@ -82,7 +82,7 @@ install_or_restore_brew() {
     local BREWFILE="$PROJECT_ROOT/$brewfile"
 
     _brew_mirror_apply_env || error 'Failed to apply Homebrew mirror environment'
-    # Do not use `command -v brew`: brew-mirror.zsh defines brew() as a wrapper.
+    # Do not use `command -v brew`: manage.zsh defines brew() as a wrapper.
     if ! _brew_mirror_find_brew >/dev/null 2>&1; then
         error "Homebrew is not installed. Run: vpr pm"
     fi
