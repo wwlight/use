@@ -84,21 +84,62 @@ function Join-ScoopMirrorUrl {
     return ($Prefix + $bare)
 }
 
+function Get-ScoopMirrorFetchAttempts {
+    param(
+        [string]$Url,
+        $Prefixes,
+        [string]$PreferredPrefix = $null
+    )
+
+    $bare = Strip-ScoopMirrorPrefix -Url $Url -Prefixes $Prefixes
+    $attempts = New-Object System.Collections.Generic.List[object]
+    $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
+
+    $prefixOrder = New-Object System.Collections.Generic.List[string]
+    if ([string]::IsNullOrWhiteSpace($PreferredPrefix)) {
+        # official: do not probe mirrors first
+        [void]$prefixOrder.Add('')
+    }
+    else {
+        [void]$prefixOrder.Add($PreferredPrefix)
+        foreach ($p in @($Prefixes)) {
+            $prefix = [string]$p
+            if ([string]::IsNullOrWhiteSpace($prefix)) { continue }
+            if (
+                $prefix -eq $PreferredPrefix
+                -or $prefix.TrimEnd('/') -eq $PreferredPrefix.TrimEnd('/')
+            ) { continue }
+            [void]$prefixOrder.Add($prefix)
+        }
+        [void]$prefixOrder.Add('')
+    }
+
+    foreach ($prefix in $prefixOrder) {
+        $fetchUrl = if ([string]::IsNullOrWhiteSpace($prefix)) {
+            $bare
+        }
+        else {
+            Join-ScoopMirrorUrl -Url $bare -Prefix $prefix -AllPrefixes $Prefixes
+        }
+        if (-not $seen.Add($fetchUrl)) { continue }
+        [void]$attempts.Add([pscustomobject]@{
+                Prefix = if ([string]::IsNullOrWhiteSpace($prefix)) { '' } else { $prefix }
+                Url    = $fetchUrl
+            })
+    }
+    return $attempts
+}
+
 function Get-ScoopMirrorUrlCandidates {
     param(
         [string]$Url,
-        $Prefixes
+        $Prefixes,
+        [string]$PreferredPrefix = $null
     )
-    $bare = Strip-ScoopMirrorPrefix -Url $Url -Prefixes $Prefixes
-    $list = New-Object System.Collections.Generic.List[string]
-    foreach ($p in @($Prefixes)) {
-        $prefix = [string]$p
-        if ([string]::IsNullOrWhiteSpace($prefix)) { continue }
-        $candidate = $prefix + $bare
-        if (-not $list.Contains($candidate)) { [void]$list.Add($candidate) }
-    }
-    if (-not $list.Contains($bare)) { [void]$list.Add($bare) }
-    return $list
+    return @(
+        Get-ScoopMirrorFetchAttempts -Url $Url -Prefixes $Prefixes -PreferredPrefix $PreferredPrefix
+        | ForEach-Object { $_.Url }
+    )
 }
 
 function Test-ScoopUrlReachable {
@@ -125,7 +166,8 @@ function Test-ScoopUrlReachable {
 function Invoke-NodeMenuSelect {
     param(
         [string]$Title,
-        [string[]]$Items
+        [string[]]$Items,
+        [string]$InitialValue = ''
     )
 
     $menuScript = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..\..\lib\menu-select.mjs'))
@@ -135,6 +177,9 @@ function Invoke-NodeMenuSelect {
     $outFile = [System.IO.Path]::GetTempFileName()
     try {
         $env:MENU_SELECT_OUT = $outFile
+        if (-not [string]::IsNullOrWhiteSpace($InitialValue)) {
+            $env:MENU_SELECT_INITIAL = $InitialValue.Trim()
+        }
         $menuArgs = @($Title) + @($Items | Where-Object { $_ })
         & node $menuScript @menuArgs
         if ($LASTEXITCODE -eq 130) {
@@ -147,6 +192,7 @@ function Invoke-NodeMenuSelect {
     }
     finally {
         Remove-Item Env:MENU_SELECT_OUT -ErrorAction SilentlyContinue
+        Remove-Item Env:MENU_SELECT_INITIAL -ErrorAction SilentlyContinue
         Remove-Item -LiteralPath $outFile -Force -ErrorAction SilentlyContinue
     }
 }
@@ -158,9 +204,15 @@ function Resolve-ScoopMirrorSelection {
     if ($Choice -match '^--(.+)$') { $Choice = $Matches[1] }
     $Choice = "$Choice".Trim()
 
-    # One-click install can pass USE_ACCEL=<id> so Scoop uses the same mirror.
+    # USE_ACCEL is for one-click / non-interactive installers only.
+    # Interactive `vpr pm` must always show the menu — leftover USE_ACCEL from a
+    # mirrored one-liner ($env:USE_ACCEL='ghfast'; irm ... | iex) must not skip it.
+    $hintFromEnv = ''
     if ($Choice -eq '' -and -not [string]::IsNullOrWhiteSpace($env:USE_ACCEL)) {
-        $Choice = "$env:USE_ACCEL".Trim()
+        $hintFromEnv = "$env:USE_ACCEL".Trim()
+        if (-not (Test-InteractivePrompt)) {
+            $Choice = $hintFromEnv
+        }
     }
 
     if ($Choice -ne '') {
@@ -191,7 +243,8 @@ function Resolve-ScoopMirrorSelection {
         }
     }
 
-    $selected = Invoke-NodeMenuSelect -Title 'Choose a Scoop mirror' -Items @($menuItems)
+    $initial = if ($hintFromEnv -and $map.Contains($hintFromEnv)) { $hintFromEnv } else { '' }
+    $selected = Invoke-NodeMenuSelect -Title 'Choose a Scoop mirror' -Items @($menuItems) -InitialValue $initial
     if ([string]::IsNullOrWhiteSpace($selected) -or -not $map.Contains($selected)) {
         Show-ScoopMirrorUsage
         Write-ErrorAndExit 'Pass an argument in non-interactive environments (example: vpr pm -- official)'
@@ -218,35 +271,117 @@ function Get-ScoopMirrorLabelFromUrl {
     return 'Upstream'
 }
 
+function Get-ScoopInstallerBootstrapUrls {
+    # Official Scoop installer hardcodes these bootstrap URLs.
+    return @(
+        'https://github.com/ScoopInstaller/Scoop/archive/master.zip',
+        'https://github.com/ScoopInstaller/Main/archive/master.zip',
+        'https://github.com/ScoopInstaller/Scoop.git',
+        'https://github.com/ScoopInstaller/Main.git'
+    )
+}
+
+function Rewrite-ScoopInstallerGithubUrls {
+    param(
+        [string]$Script,
+        [string]$Prefix,
+        $AllPrefixes
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Script) -or [string]::IsNullOrWhiteSpace($Prefix)) {
+        return $Script
+    }
+
+    # Narrow rewrite: Scoop + Main bucket clone/zip only.
+    $targets = @(Get-ScoopInstallerBootstrapUrls) | Sort-Object { $_.Length } -Descending
+    $rewritten = 0
+    foreach ($bare in $targets) {
+        $mirrored = Join-ScoopMirrorUrl -Url $bare -Prefix $Prefix -AllPrefixes $AllPrefixes
+        if ($mirrored -eq $bare) { continue }
+        if ($Script.Contains($bare)) {
+            $Script = $Script.Replace($bare, $mirrored)
+            $rewritten++
+        }
+    }
+
+    if ($rewritten -eq 0) {
+        throw 'Scoop installer bootstrap URLs were not rewritten; refusing to run against upstream GitHub'
+    }
+
+    # Ensure at least one mirrored Scoop/Main URL is present after rewrite.
+    $mirroredHit = $false
+    foreach ($bare in $targets) {
+        $mirrored = Join-ScoopMirrorUrl -Url $bare -Prefix $Prefix -AllPrefixes $AllPrefixes
+        if ($mirrored -ne $bare -and $Script.Contains($mirrored)) {
+            $mirroredHit = $true
+            break
+        }
+    }
+    if (-not $mirroredHit) {
+        throw 'Scoop installer rewrite produced no mirrored Scoop/Main URLs'
+    }
+
+    return $Script
+}
+
 function Invoke-ScoopInstallScriptWithFallback {
     param(
         $Accel,
         [string]$PreferredPrefix = $null
     )
 
-    # Run the bootstrap installer only from upstream to avoid piping a modified mirror response to iex.
-    # PreferredPrefix accelerates downloads and repositories after installation, not remote script execution.
-    $null = $PreferredPrefix
     $url = [string]$Accel.installScript
     if ([string]::IsNullOrWhiteSpace($url)) {
         Write-ErrorAndExit 'scoopAccel.installScript is empty'
     }
 
-    Write-Info "Trying installer (upstream): $url"
-    Write-Info 'Mirror acceleration starts after Scoop installs'
-    try {
-        if (Test-Administrator) {
-            iex "& {$(irm $url)} -RunAsAdmin"
-        }
-        else {
-            Invoke-RestMethod -Uri $url | Invoke-Expression
-        }
-        Write-Info 'Installer succeeded (upstream)'
-        return
+    $prefixes = @(Get-ScoopMirrorPrefixes)
+    $attempts = @(Get-ScoopMirrorFetchAttempts -Url $url -Prefixes $prefixes -PreferredPrefix $PreferredPrefix)
+    if ($attempts.Count -eq 0) {
+        Write-ErrorAndExit 'No Scoop installer URL candidates'
     }
-    catch {
-        Write-ErrorAndExit "Scoop installation failed (upstream installer): $($_.Exception.Message)"
+
+    $errors = New-Object System.Collections.Generic.List[string]
+    foreach ($attempt in $attempts) {
+        $label = Format-ScoopMirrorActiveLabel -ActivePrefix $attempt.Prefix
+        Write-Info "Trying installer ($label): $($attempt.Url)"
+        try {
+            $script = [string](Invoke-RestMethod -Uri $attempt.Url)
+            if ([string]::IsNullOrWhiteSpace($script)) {
+                throw 'Empty installer response'
+            }
+            if ($script -notmatch 'function\s+Install-Scoop' -and $script -notmatch 'SCOOP_PACKAGE_GIT_REPO') {
+                throw 'Response does not look like the Scoop installer'
+            }
+
+            # Mirror fetch alone is not enough: rewrite Scoop/Main clone+zip URLs too.
+            if (-not [string]::IsNullOrWhiteSpace($attempt.Prefix)) {
+                $script = Rewrite-ScoopInstallerGithubUrls -Script $script -Prefix $attempt.Prefix -AllPrefixes $prefixes
+            }
+
+            # Concatenate (do not interpolate) so installer $-variables stay intact.
+            if (Test-Administrator) {
+                Invoke-Expression ('& { ' + $script + ' } -RunAsAdmin')
+            }
+            else {
+                Invoke-Expression $script
+            }
+
+            # Persist the source that actually installed Scoop (may differ from selection after fallback).
+            $successPrefix = [string]$attempt.Prefix
+            $successLabel = Format-ScoopMirrorActiveLabel -ActivePrefix $successPrefix
+            Write-Info "Installer succeeded ($successLabel); active mirror set to $successLabel"
+            return $successPrefix
+        }
+        catch {
+            $msg = $_.Exception.Message
+            Write-Warn "Installer failed ($label): $msg"
+            [void]$errors.Add("${label}: $msg")
+        }
     }
+
+    $detail = ($errors -join '; ')
+    Write-ErrorAndExit "Scoop installation failed after trying all sources: $detail"
 }
 
 function Get-ScoopLibDownloadPath {
