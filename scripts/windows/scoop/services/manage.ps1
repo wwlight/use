@@ -18,7 +18,7 @@ function Stop-ScoopServicesCli {
     param([int]$Code = 0)
     $global:LASTEXITCODE = $Code
     if ($env:SCOOP_SHELL_INPROCESS -eq '1') {
-        throw "___SCOOP_SERVICES_EXIT_$Code___"
+        throw "___SCOOP_SERVICES_EXIT_${Code}___"
     }
     exit $Code
 }
