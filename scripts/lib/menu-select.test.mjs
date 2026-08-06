@@ -36,12 +36,10 @@ assert.equal(aligned[2].label[0], ' ')
 assert.equal(aligned[0].label.indexOf('npm'), 2)
 assert.equal(aligned[1].label.indexOf('jd'), 2)
 assert.equal(aligned[2].label.indexOf('official'), 2)
-// Dashes absorb name-length differences so URLs align
 assert.ok(aligned[1].label.match(/-+/)[0].length > aligned[2].label.match(/-+/)[0].length)
 assert.equal(aligned[0].label.indexOf('http'), aligned[1].label.indexOf('http'))
 assert.equal(aligned[1].label.indexOf('http'), aligned[2].label.indexOf('http'))
 
-// Cursor pad: ✓ is typically 2 terminal columns in CJK locales; empty pointer is 2 spaces.
 const menuSource = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'menu-select.mjs'), 'utf8')
 assert.match(menuSource, /function cursorPointer/)
 assert.match(menuSource, /active \? '✓' : ' {2}'/)

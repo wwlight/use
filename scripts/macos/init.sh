@@ -4,12 +4,12 @@ SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
-source "$PROJECT_ROOT/configs/macos/brew-mirror.zsh"
+source "$PROJECT_ROOT/scripts/macos/brew/mirror/manage.zsh"
 
 init_manifest macos
 
 MANIFEST_CONFIG="$SCRIPT_DIR/lib/manifest-config.mjs"
-RUN_BREW="$SCRIPT_PATH/run-brew.sh"
+RUN_BREW="$SCRIPT_PATH/brew/run.sh"
 
 usage() {
     node "$MANIFEST_CONFIG" usage-init
@@ -82,7 +82,7 @@ install_or_restore_brew() {
     local BREWFILE="$PROJECT_ROOT/$brewfile"
 
     _brew_mirror_apply_env || error 'Failed to apply Homebrew mirror environment'
-    # Do not use `command -v brew`: brew-mirror.zsh defines brew() as a wrapper.
+    # Do not use `command -v brew`: manage.zsh defines brew() as a wrapper.
     if ! _brew_mirror_find_brew >/dev/null 2>&1; then
         error "Homebrew is not installed. Run: vpr pm"
     fi
@@ -115,8 +115,6 @@ sync_configurations() {
         error "Configuration sync script not found: $CONFIG_SCRIPT"
     fi
 
-    # Defense in depth: config-sync also removes this; keep init resilient if an
-    # older sync script is still on disk.
     _brew_mirror_remove_legacy || true
 
     if [ -f "$BASE_SCRIPT" ]; then

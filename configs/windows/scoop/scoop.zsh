@@ -1,5 +1,4 @@
-# Scoop shell wrappers (mirror + services). Logic lives under $SCOOP/config/.
-# Prefer pwsh over Windows PowerShell 5 to cut helper cold-start cost.
+# Scoop shell wrappers (`scoop mirror` / `scoop services` / winsw).
 
 _scoop_ps() {
   local file="$1"
@@ -15,7 +14,6 @@ _scoop_ps() {
   powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$file" "$@"
 }
 
-# Interactive winsw hot path (kept in-shell; services/manage.ps1 has the manager copy).
 winsw() {
   if (( $# >= 2 )); then
     [[ -n "$SCOOP" ]] || { echo "winsw: \$SCOOP is not set" >&2; return 1 }
@@ -36,44 +34,47 @@ winsw() {
   winsw.exe "$@"
 }
 
-_scoop_ensure_mirror_accel() {
-  local p="${SCOOP}/config/scoop-mirror/hook.ps1"
-  local cli="${SCOOP}/config/scoop-mirror/cli.mjs"
-  [[ -f "$p" ]] || return 0
-  # Node repair owns fast-path + rewrite; PS -RepairHook is no-Node fallback only.
-  if [[ -f "$cli" ]] && command -v node >/dev/null 2>&1; then
-    node "$cli" repair >/dev/null
-    return $?
+_scoop_mirror_cli() {
+  print -r -- "${SCOOP}/config/scoop-mirror/cli.mjs"
+}
+
+_scoop_require_node() {
+  command -v node >/dev/null 2>&1 && return 0
+  echo "scoop: Node.js is required for scoop mirror" >&2
+  return 1
+}
+
+# Presence: required = fail if cli missing (preflight); optional = skip if undeployed (post-update).
+_scoop_run_mirror_repair() {
+  local presence="${1:-required}"
+  local cli
+  cli="$(_scoop_mirror_cli)"
+  if [[ ! -f "$cli" ]]; then
+    [[ "$presence" == required ]] || return 0
+    echo "scoop: mirror helper not found at $cli" >&2
+    return 1
   fi
-  _scoop_ps "$p" -RepairHook
+  _scoop_require_node || return 1
+  node "$cli" repair
+}
+
+_scoop_ensure_mirror_accel() {
+  _scoop_run_mirror_repair optional
 }
 
 _scoop_prepare_package_operation() {
-  local p="${SCOOP}/config/scoop-mirror/hook.ps1"
-  local cli="${SCOOP}/config/scoop-mirror/cli.mjs"
-  [[ -f "$p" ]] || {
-    echo "scoop: mirror preflight helper not found at $p" >&2
-    return 1
-  }
-  if [[ -f "$cli" ]] && command -v node >/dev/null 2>&1; then
-    node "$cli" repair
-    return $?
-  fi
-  _scoop_ps "$p" -PrepareCommand
+  _scoop_run_mirror_repair required
 }
 
 _scoop_manage_mirror() {
-  local cli="${SCOOP}/config/scoop-mirror/cli.mjs"
-  if [[ -f "$cli" ]] && command -v node >/dev/null 2>&1; then
-    node "$cli" switch "${1:-}"
-    return $?
-  fi
-  local p="${SCOOP}/config/scoop-mirror/manage.ps1"
-  [[ -f "$p" ]] || {
-    echo "scoop: mirror helper not found at $p" >&2
+  local cli
+  cli="$(_scoop_mirror_cli)"
+  [[ -f "$cli" ]] || {
+    echo "scoop: mirror helper not found at $cli" >&2
     return 1
   }
-  _scoop_ps "$p" -MirrorChoice "${1:-}"
+  _scoop_require_node || return 1
+  node "$cli" switch "${1:-}"
 }
 
 _scoop_services_helper() {

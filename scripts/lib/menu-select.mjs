@@ -9,7 +9,7 @@ import readline from 'node:readline'
 import { fileURLToPath } from 'node:url'
 import { frameLines, openTerminal } from './tty-term.mjs'
 
-/** ✓ is typically 2 terminal columns in CJK locales; pad the empty pointer to match. */
+/** Active/idle pointers share the same display width. */
 function cursorPointer(active) {
   return active ? '✓' : '  '
 }
@@ -133,17 +133,15 @@ export function parseChoice(raw) {
     throw new Error(`Expected option format "value) description"; received: ${raw}`)
   }
   const value = raw.slice(0, idx).trim()
-  // Drop the single separator space after ")": keep any mark-column spaces
-  // so inactive "  name" stays aligned with active "* name".
+  // Keep mark-column spacing after ")": only strip the separator space.
   const rest = raw.slice(idx + 1)
   const label = (rest.startsWith(' ') ? rest.slice(1) : rest.trimStart()) || raw
   return { value, label }
 }
 
 /**
- * nrm-style labels: "* name ---- detail" / "  name ---- detail" (URLs column-aligned).
- * Use with runMenuSelect; ✓ marks the cursor, * marks activeValue.
- * * stays in a fixed column; dashes grow for shorter names so URLs align.
+ * Build menu choices as "* name ---- detail" (active) or "  name ---- detail".
+ * ✓ marks the cursor; * marks activeValue.
  * @param {{ value: string, name?: string, detail?: string }[]} items
  * @param {{ activeValue?: string, dashWidth?: number }} [options]
  */
@@ -157,7 +155,6 @@ export function formatAlignedChoices(items, { activeValue = '', dashWidth = 10 }
   const nameWidth = Math.max(...rows.map((row) => row.name.length))
   return rows.map((row) => {
     const mark = row.value === String(activeValue) ? '*' : ' '
-    // Shorter names get more dashes so the URL column stays aligned.
     const dashes = '-'.repeat((nameWidth - row.name.length) + dashWidth)
     return {
       value: row.value,

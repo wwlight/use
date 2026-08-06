@@ -1,5 +1,4 @@
-# Shared Scoop mirror helpers (config + download URL selection).
-# Deployed to $env:SCOOP\config\scoop-mirror\shared.ps1
+# Shared Scoop mirror helpers for the download hook (config + URL selection).
 
 function Get-ScoopMirrorAccelConfig {
     if ($script:ScoopMirrorAccelConfig) { return $script:ScoopMirrorAccelConfig }
@@ -90,83 +89,6 @@ function Test-ScoopMirrorAccelHost {
     return ($Hosts -contains $uri.Host)
 }
 
-function Get-ScoopMirrorAccelId {
-    param(
-        [string]$Prefix,
-        $Config
-    )
-    if ([string]::IsNullOrWhiteSpace($Prefix)) { return 'official' }
-    if (-not $Config) { $Config = Get-ScoopMirrorAccelConfig }
-    foreach ($mirror in @($Config.Mirrors)) {
-        if ($mirror.Prefix.TrimEnd('/') -eq $Prefix.TrimEnd('/')) { return $mirror.Id }
-    }
-    return $Prefix
-}
-
-function Resolve-ScoopMirrorAccelChoice {
-    param(
-        [string]$Choice,
-        $Config
-    )
-    $Choice = "$Choice".Trim()
-    if ($Choice -eq 'official') { return '' }
-    foreach ($mirror in @($Config.Mirrors)) {
-        if ($mirror.Id -eq $Choice -or
-            $mirror.Prefix -eq $Choice -or
-            $mirror.Prefix.TrimEnd('/') -eq $Choice.TrimEnd('/')) {
-            return $mirror.Prefix
-        }
-    }
-    throw "Unknown Scoop mirror '$Choice'. Run 'scoop mirror' to see available mirrors."
-}
-
-function Get-ScoopMirrorUpstreamRepo {
-    param($Config)
-    if (-not [string]::IsNullOrWhiteSpace($Config.ScoopRepo)) { return $Config.ScoopRepo }
-
-    $repo = "$(& scoop config scoop_repo 2>$null)".Trim()
-    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($repo)) {
-        return 'https://github.com/ScoopInstaller/Scoop'
-    }
-    return (Strip-ScoopMirrorAccelPrefix -Url $repo -Prefixes $Config.Prefixes)
-}
-
-function Set-ScoopMirrorBucketRemotes {
-    param(
-        [string]$ActivePrefix,
-        $Config
-    )
-    $bucketsRoot = Join-Path $env:SCOOP 'buckets'
-    if (-not (Test-Path -LiteralPath $bucketsRoot)) { return }
-
-    Get-ChildItem -LiteralPath $bucketsRoot -Directory -ErrorAction SilentlyContinue | ForEach-Object {
-        if (-not (Test-Path -LiteralPath (Join-Path $_.FullName '.git'))) { return }
-        $origin = "$(& git.exe -C $_.FullName remote get-url origin 2>$null)".Trim()
-        if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($origin)) { return }
-
-        $bare = Strip-ScoopMirrorAccelPrefix -Url $origin -Prefixes $Config.Prefixes
-        if (-not (Test-ScoopMirrorAccelHost -Url $bare -Hosts $Config.GithubHosts)) { return }
-        $target = if ([string]::IsNullOrWhiteSpace($ActivePrefix)) { $bare } else { $ActivePrefix + $bare }
-        if ($target -eq $origin) { return }
-
-        & git.exe -C $_.FullName remote set-url origin $target
-        if ($LASTEXITCODE -ne 0) { throw "Could not switch bucket '$($_.Name)' to $target" }
-    }
-}
-
-function Write-ScoopMirrorStatus {
-    param($Config)
-    $activeId = Get-ScoopMirrorAccelId -Prefix $Config.ActivePrefix -Config $Config
-    $activeLabel = if ($activeId -eq 'official') { 'official' } else { "$activeId ($($Config.ActivePrefix))" }
-    Write-Host "Active mirror: $activeLabel" -ForegroundColor Cyan
-
-    $repo = "$(& scoop config scoop_repo 2>$null)".Trim()
-    if ($LASTEXITCODE -eq 0 -and -not [string]::IsNullOrWhiteSpace($repo)) {
-        Write-Host "Scoop repo:    $repo"
-    }
-    Write-Host 'Download rule: selected mirror -> other mirrors -> official; non-GitHub URLs use direct'
-}
-
 function Get-ScoopMirrorAccelCandidates {
     param([string]$Url)
 
@@ -187,7 +109,6 @@ function Get-ScoopMirrorAccelCandidates {
     $list = New-Object System.Collections.Generic.List[string]
     $active = [string]$cfg.ActivePrefix
 
-    # Prefer the active prefix, then other mirrors, then upstream.
     if (-not [string]::IsNullOrWhiteSpace($active)) {
         $first = $active + $bare
         if (-not $list.Contains($first)) { [void]$list.Add($first) }
@@ -254,7 +175,6 @@ function Write-ScoopMirrorAccelDirectNotice {
     Write-Host "Scoop source: direct ($($Hosts -join ', '); GitHub mirror unavailable for this host)" -ForegroundColor Yellow
 }
 
-# aria2 / single-shot: pick a candidate by attempt index (0 = active first).
 function ConvertTo-ScoopMirrorUrl {
     param([string]$Url)
 

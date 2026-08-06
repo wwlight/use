@@ -122,6 +122,29 @@ function readmeDocs(mirrors) {
   const useBase = 'https://raw.githubusercontent.com/wwlight/use/main'
   const viteBase = 'https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli'
   const sections = [
+    '使用需要 Node.js 环境。',
+    '',
+    '## 安装 [vite.plus](https://viteplus.dev/)',
+    '',
+    '仓库：https://github.com/voidzero-dev/vite-plus',
+    '',
+    '### macos',
+    '',
+    codeBlock('sh', 'curl -fsSL https://vite.plus | bash'),
+    '',
+    mirrors
+      .map(({ prefix }) => codeBlock('sh', `curl -fsSL ${prefix}${viteBase}/install.sh | bash`))
+      .join('\n\n'),
+    '',
+    '### windows',
+    '',
+    codeBlock('powershell', 'irm https://vite.plus/ps1 | iex'),
+    '',
+    mirrors
+      .map(({ prefix }) => codeBlock('powershell', `irm ${prefix}${viteBase}/install.ps1 | iex`))
+      .join('\n\n'),
+    '',
+    '',
     '## 一键安装',
     '',
     '### macos · 交互选择',
@@ -169,27 +192,6 @@ function readmeDocs(mirrors) {
       language: 'powershell',
       command: (url, accel) => psInstallCommand(url, accel, 'full'),
     }),
-    '',
-    '',
-    '## 安装 [vite.plus](https://viteplus.dev/)',
-    '',
-    '仓库：https://github.com/voidzero-dev/vite-plus',
-    '',
-    '### macos',
-    '',
-    codeBlock('sh', 'curl -fsSL https://vite.plus | bash'),
-    '',
-    mirrors
-      .map(({ prefix }) => codeBlock('sh', `curl -fsSL ${prefix}${viteBase}/install.sh | bash`))
-      .join('\n\n'),
-    '',
-    '### windows',
-    '',
-    codeBlock('powershell', 'irm https://vite.plus/ps1 | iex'),
-    '',
-    mirrors
-      .map(({ prefix }) => codeBlock('powershell', `irm ${prefix}${viteBase}/install.ps1 | iex`))
-      .join('\n\n'),
   ]
   return sections.join('\n')
 }

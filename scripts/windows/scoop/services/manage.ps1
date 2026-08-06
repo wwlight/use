@@ -1,4 +1,4 @@
-# Scoop services (WinSW). Deployed to $env:SCOOP\config\scoop-services\manage.ps1.
+# Scoop services manager (WinSW).
 param(
     [switch]$PrepareUninstall,
     [switch]$PrepareUpdate,
@@ -291,7 +291,7 @@ function Invoke-ScoopServicesPrepareUninstall {
     }
 }
 
-# Snapshot registered services before scoop update (brew restart_service: :changed).
+# Snapshot registered services before scoop update.
 function Invoke-ScoopServicesPrepareUpdate {
     param([string[]]$Apps)
 

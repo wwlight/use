@@ -1,5 +1,4 @@
-# Deploy scoop-mirror / scoop-services helpers into $SCOOP/config.
-# Dot-sourced from accel.ps1 (requires utils.ps1 + Get-ScoopMirrorPrefixes / Get-GithubAccelMirrors).
+# Write scoop-mirror / scoop-services files under $SCOOP/config.
 
 function Write-Utf8NoBomFile {
     param(
@@ -56,12 +55,16 @@ function Install-ScoopMirrorAccelFiles {
     }
     Copy-FileDataOnly -SourceFile $hookSrc -DestinationFile (Join-Path $mirrorDir 'hook.ps1') -Encoding 'utf8Bom'
 
-    foreach ($name in @('shared.ps1', 'manage.ps1')) {
-        $src = Join-Path $mirrorSrc $name
-        if (-not (Test-Path -LiteralPath $src)) {
-            Write-ErrorAndExit "scoop/mirror/$name not found: $src"
-        }
-        Copy-FileDataOnly -SourceFile $src -DestinationFile (Join-Path $mirrorDir $name) -Encoding 'utf8Bom'
+    $sharedSrc = Join-Path $mirrorSrc 'shared.ps1'
+    if (-not (Test-Path -LiteralPath $sharedSrc)) {
+        Write-ErrorAndExit "scoop/mirror/shared.ps1 not found: $sharedSrc"
+    }
+    Copy-FileDataOnly -SourceFile $sharedSrc -DestinationFile (Join-Path $mirrorDir 'shared.ps1') -Encoding 'utf8Bom'
+
+    # Drop retired PS mirror CLI (shell uses cli.mjs directly).
+    $obsoleteManage = Join-Path $mirrorDir 'manage.ps1'
+    if (Test-Path -LiteralPath $obsoleteManage) {
+        Remove-Item -LiteralPath $obsoleteManage -Force -ErrorAction SilentlyContinue
     }
 
     $cliSrc = Join-Path $mirrorSrc 'cli.mjs'

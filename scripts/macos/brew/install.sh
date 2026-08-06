@@ -1,10 +1,10 @@
 #!/bin/bash
 
 SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
+SCRIPT_DIR="$(cd "$SCRIPT_PATH/../.." && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
-source "$PROJECT_ROOT/configs/macos/brew-mirror.zsh"
+source "$PROJECT_ROOT/scripts/macos/brew/mirror/manage.zsh"
 
 init_manifest macos
 
@@ -25,8 +25,7 @@ resolve_brew_mirror() {
         *) mirror="$arg" ;;
     esac
 
-    # Install-time override only (like Windows USE_ACCEL). Do not read
-    # USE_HOMEBREW_MIRROR — that is the runtime active-mirror marker from mirror.zsh.
+    # USE_BREW_MIRROR is install-time only; USE_HOMEBREW_MIRROR is the runtime marker.
     if [[ -z "$mirror" && -n "${USE_BREW_MIRROR:-}" ]]; then
         mirror="${USE_BREW_MIRROR}"
     fi
@@ -70,21 +69,24 @@ resolve_brew_mirror() {
 }
 
 deploy_homebrew_runtime() {
-    local target_dir catalog_repo helper_repo menu_src tty_src
+    local target_dir catalog_repo helper_repo menu_cli_src menu_src tty_src
     target_dir="${XDG_CONFIG_HOME:-$HOME/.config}/homebrew"
     catalog_repo="$PROJECT_ROOT/$(manifest_get brewMirrorCatalog)"
-    helper_repo="$PROJECT_ROOT/configs/macos/brew-mirror.zsh"
+    helper_repo="$PROJECT_ROOT/scripts/macos/brew/mirror/manage.zsh"
+    menu_cli_src="$PROJECT_ROOT/scripts/macos/brew/mirror/menu.mjs"
     menu_src="$PROJECT_ROOT/scripts/lib/menu-select.mjs"
     tty_src="$PROJECT_ROOT/scripts/lib/tty-term.mjs"
 
     [[ -f "$catalog_repo" ]] || error "Homebrew mirror catalog not found: $catalog_repo"
     [[ -f "$helper_repo" ]] || error "Homebrew mirror helper not found: $helper_repo"
+    [[ -f "$menu_cli_src" ]] || error "brew mirror menu.mjs not found: $menu_cli_src"
     [[ -f "$menu_src" ]] || error "menu-select.mjs not found: $menu_src"
     [[ -f "$tty_src" ]] || error "tty-term.mjs not found: $tty_src"
 
     mkdir -p "$target_dir/lib" || error "Failed to create $target_dir/lib"
     cp "$catalog_repo" "$target_dir/mirrors.tsv" || error 'Failed to deploy Homebrew mirror catalog'
-    cp "$helper_repo" "$target_dir/brew-mirror.zsh" || error 'Failed to deploy brew-mirror'
+    cp "$helper_repo" "$target_dir/manage.zsh" || error 'Failed to deploy brew mirror manage.zsh'
+    cp "$menu_cli_src" "$target_dir/lib/menu.mjs" || error 'Failed to deploy brew mirror menu.mjs'
     cp "$menu_src" "$target_dir/lib/menu-select.mjs" || error 'Failed to deploy menu-select.mjs'
     cp "$tty_src" "$target_dir/lib/tty-term.mjs" || error 'Failed to deploy tty-term.mjs'
     _brew_mirror_remove_legacy || warn "Could not remove legacy brew-mirror helper"
@@ -135,7 +137,7 @@ install_homebrew() {
 
     deploy_homebrew_runtime
 
-    # Do not use `command -v brew`: brew-mirror.zsh defines brew(), which would
+    # Do not use `command -v brew`: manage.zsh defines brew(), which would
     # always look installed even when the Homebrew binary is missing.
     if _brew_mirror_find_brew >/dev/null 2>&1; then
         apply_selected_mirror "$mirror"

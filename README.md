@@ -1,6 +1,41 @@
 # 个人配置
 
 <!-- BEGIN GENERATED GITHUB ACCEL DOCS -->
+使用需要 Node.js 环境。
+
+## 安装 [vite.plus](https://viteplus.dev/)
+
+仓库：https://github.com/voidzero-dev/vite-plus
+
+### macos
+
+```sh
+curl -fsSL https://vite.plus | bash
+```
+
+```sh
+curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.sh | bash
+```
+
+```sh
+curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.sh | bash
+```
+
+### windows
+
+```powershell
+irm https://vite.plus/ps1 | iex
+```
+
+```powershell
+irm https://ghfast.top/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.ps1 | iex
+```
+
+```powershell
+irm https://gh-proxy.com/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.ps1 | iex
+```
+
+
 ## 一键安装
 
 ### macos · 交互选择
@@ -92,39 +127,6 @@ $env:USE_PROFILE='full'; $env:USE_ACCEL='ghfast'; irm https://ghfast.top/https:/
 ```powershell
 $env:USE_PROFILE='full'; $env:USE_ACCEL='ghproxy'; irm https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
 ```
-
-
-## 安装 [vite.plus](https://viteplus.dev/)
-
-仓库：https://github.com/voidzero-dev/vite-plus
-
-### macos
-
-```sh
-curl -fsSL https://vite.plus | bash
-```
-
-```sh
-curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.sh | bash
-```
-
-```sh
-curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.sh | bash
-```
-
-### windows
-
-```powershell
-irm https://vite.plus/ps1 | iex
-```
-
-```powershell
-irm https://ghfast.top/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.ps1 | iex
-```
-
-```powershell
-irm https://gh-proxy.com/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.ps1 | iex
-```
 <!-- END GENERATED GITHUB ACCEL DOCS -->
 
 ## 通用命令
@@ -190,12 +192,23 @@ brew mirror official              # 恢复官方源
 configs/macos/
 ├── .bashrc                       # bash 配置
 ├── .zshrc                        # zsh 平台配置
-├── Brewfile                      # Homebrew 应用备份
-├── Brewfile.lite                 # 尝鲜版（由 Brewfile + brewLiteItems 生成）
-├── brew-mirror.zsh               # Homebrew 镜像切换逻辑
-├── brew-mirrors.tsv              # 镜像目录（由 _manifest.json 生成）
+├── brew/
+│   ├── Brewfile                  # Homebrew 应用备份
+│   ├── Brewfile.lite             # 尝鲜版（由 Brewfile + brewLiteItems 生成）
+│   └── mirrors.tsv               # 镜像目录（由 _manifest.json 生成）
 ├── ghostty_config                # Ghostty 终端配置
 └── utils.zsh                     # zsh 自定义函数
+```
+
+```text
+scripts/macos/brew/
+├── install.sh                    # vpr pm 入口
+├── run.sh                        # 应用当前镜像后执行 brew
+├── generated.mjs                 # 生成 mirrors.tsv / Brewfile.lite
+└── mirror/
+    ├── manage.zsh                # → ~/.config/homebrew/manage.zsh
+    ├── menu.mjs                  # → ~/.config/homebrew/lib/menu.mjs
+    └── test.mjs
 ```
 
 运行时文件：
@@ -204,8 +217,8 @@ configs/macos/
 ~/.config/homebrew/
 ├── mirrors.tsv                   # 本地镜像目录
 ├── mirror.zsh                    # 当前镜像环境变量
-├── brew-mirror.zsh               # brew mirror 子命令
-└── lib/                          # ↑↓ 菜单（menu-select / tty-term）
+├── manage.zsh                    # brew mirror 子命令
+└── lib/                          # menu.mjs + ↑↓ 菜单（menu-select / tty-term）
 ```
 
 
@@ -263,10 +276,9 @@ scripts/windows/scoop/
 ├── deploy.ps1                    # 部署 scoop-mirror / scoop-services 到 $SCOOP/config
 ├── lite-backup.mjs               # 生成 backup.lite.json
 ├── mirror/
-│   ├── hook.ps1                  # → $SCOOP/config/scoop-mirror/hook.ps1
+│   ├── hook.ps1                  # → $SCOOP/config/scoop-mirror/hook.ps1（下载改写）
 │   ├── shared.ps1                # → $SCOOP/config/scoop-mirror/shared.ps1
-│   ├── manage.ps1                # → $SCOOP/config/scoop-mirror/manage.ps1
-│   ├── cli.mjs                   # → $SCOOP/config/scoop-mirror/cli.mjs
+│   ├── cli.mjs                   # → $SCOOP/config/scoop-mirror/cli.mjs（switch / repair / filter）
 │   └── test.mjs
 ├── services/
 │   └── manage.ps1                # → $SCOOP/config/scoop-services/manage.ps1

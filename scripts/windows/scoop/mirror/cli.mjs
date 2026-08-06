@@ -514,7 +514,7 @@ async function runSwitchCli(choiceArg) {
       }
       throw err
     }
-    // Same as active: exit quietly (like Esc, but without "Canceled").
+    // Already active: exit without switching.
     if (choice === mirrorId(config.activePrefix, config)) return
   }
 

@@ -6,7 +6,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { cleanupSyncTempFile, readSyncPairLines } from './lib/sync-pairs.mjs'
 import { writeScoopLiteBackup } from './windows/scoop/lite-backup.mjs'
-import { writeBrewLiteBackup } from './macos/homebrew-generated.mjs'
+import { writeBrewLiteBackup } from './macos/brew/generated.mjs'
 import {
   SYNC_DIRECTION_EXAMPLE,
   SYNC_DIRECTION_HINT,
@@ -65,7 +65,7 @@ function readManifest(scope) {
 }
 
 function runMacBrew(args) {
-  return exitStatus(runBash(path.join(__dirname, 'macos/run-brew.sh'), args))
+  return exitStatus(runBash(path.join(__dirname, 'macos/brew/run.sh'), args))
 }
 
 function runMacBackup() {
@@ -231,7 +231,7 @@ async function runCrossPlatformTask(platform) {
   switch (task) {
     case 'pm':
       return platform === 'macos'
-        ? exitStatus(runBash(path.join(__dirname, 'macos/brew-install.sh'), scriptArgs))
+        ? exitStatus(runBash(path.join(__dirname, 'macos/brew/install.sh'), scriptArgs))
         : runSubDispatch('windows/_dispatch.mjs', 'scoop', scriptArgs)
     case 'init':
       return runPlatformInit(platform)

@@ -59,7 +59,6 @@
       { "local": "D:/SoftwareApps/Scoop/config/scoop-services/manage.ps1", "repo": "scripts/windows/scoop/services/manage.ps1", "restoreOnly": true, "encoding": "utf8Bom" },
       { "local": "D:/SoftwareApps/Scoop/config/scoop-mirror/hook.ps1", "repo": "scripts/windows/scoop/mirror/hook.ps1", "restoreOnly": true, "encoding": "utf8Bom" },
       { "local": "D:/SoftwareApps/Scoop/config/scoop-mirror/shared.ps1", "repo": "scripts/windows/scoop/mirror/shared.ps1", "restoreOnly": true, "encoding": "utf8Bom" },
-      { "local": "D:/SoftwareApps/Scoop/config/scoop-mirror/manage.ps1", "repo": "scripts/windows/scoop/mirror/manage.ps1", "restoreOnly": true, "encoding": "utf8Bom" },
       { "local": "D:/SoftwareApps/Scoop/config/scoop-mirror/cli.mjs", "repo": "scripts/windows/scoop/mirror/cli.mjs", "restoreOnly": true },
       { "local": "D:/SoftwareApps/Scoop/config/scoop-mirror/lib/menu-select.mjs", "repo": "scripts/lib/menu-select.mjs", "restoreOnly": true },
       { "local": "D:/SoftwareApps/Scoop/config/scoop-mirror/lib/tty-term.mjs", "repo": "scripts/lib/tty-term.mjs", "restoreOnly": true },

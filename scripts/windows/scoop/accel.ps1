@@ -287,36 +287,22 @@ function Invoke-ScoopMirrorAccelFilterInit {
         [string]$FailureMessage
     )
 
-    $helper = Join-Path $env:SCOOP 'config\scoop-mirror\hook.ps1'
     $cliJs = Join-Path $env:SCOOP 'config\scoop-mirror\cli.mjs'
-    if (-not (Test-Path -LiteralPath $helper)) {
-        Write-ErrorAndExit "scoop-mirror/hook.ps1 not found: $helper"
+    if (-not (Test-Path -LiteralPath $cliJs)) {
+        Write-ErrorAndExit "scoop-mirror/cli.mjs not found: $cliJs"
     }
 
     $node = Get-Command node.exe -ErrorAction SilentlyContinue
-    if ($node -and (Test-Path -LiteralPath $cliJs)) {
-        $output = & $node.Source $cliJs repair 2>&1
-        if ($LASTEXITCODE -ne 0) {
-            $detail = ($output | Out-String).Trim()
-            if ([string]::IsNullOrWhiteSpace($detail)) { $detail = $FailureMessage }
-            else { $detail = "${FailureMessage}: $detail" }
-            Write-ErrorAndExit $detail
-        }
-        return
+    if (-not $node) {
+        Write-ErrorAndExit 'Node.js is required for scoop mirror repair'
     }
 
-    # Fallback without Node: run the PowerShell implementation in-process
-    # (avoid powershell.exe -File cold start).
-    . $helper
-    try {
-        Initialize-ScoopMirrorAccelFilter
-    }
-    catch {
-        $detail = $_.Exception.Message
-        if ([string]::IsNullOrWhiteSpace($detail)) {
-            Write-ErrorAndExit $FailureMessage
-        }
-        Write-ErrorAndExit "${FailureMessage}: $detail"
+    $output = & $node.Source $cliJs repair 2>&1
+    if ($LASTEXITCODE -ne 0) {
+        $detail = ($output | Out-String).Trim()
+        if ([string]::IsNullOrWhiteSpace($detail)) { $detail = $FailureMessage }
+        else { $detail = "${FailureMessage}: $detail" }
+        Write-ErrorAndExit $detail
     }
 }
 
