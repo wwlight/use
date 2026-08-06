@@ -215,6 +215,9 @@ assert.ok(!/raw\.githubusercontent\.com/.test(installer.match(/function ConvertT
 
 const rootDispatch = read('scripts/_dispatch.mjs')
 assert.match(rootDispatch, /scoop-import/)
+assert.match(rootDispatch, /function markCliInteractive/)
+assert.match(rootDispatch, /function runPlatformPm/)
+assert.match(rootDispatch, /runPlatformPm\(platform\)/)
 assert.ok(!/spawnSync\('scoop',\s*\[\s*'import'/.test(rootDispatch))
 
 const menuSelect = read('scripts/lib/menu-select.mjs')
