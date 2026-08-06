@@ -15,17 +15,20 @@ const POINTER_ACTIVE = '✓'
 const POINTER_IDLE = ' '
 const MARK_ON = '✓'
 const MARK_OFF = ' '
+/** Same as menu-select: force ✓ to 1 column; do not follow locale Ambiguous=Wide. */
+const MENU_GLYPH_WIDTH = { ambiguousWide: false }
 
 export function formatSyncChoiceLine(label, { selected = false, active = false, labelMax = 30, widthOptions = {} } = {}) {
+  const glyphOpts = { ...MENU_GLYPH_WIDTH, ...widthOptions, ambiguousWide: false }
   const pointer = alignGlyph(
     active ? POINTER_ACTIVE : POINTER_IDLE,
     [POINTER_ACTIVE, POINTER_IDLE],
-    widthOptions,
+    glyphOpts,
   )
   const mark = alignGlyph(
     selected ? MARK_ON : MARK_OFF,
     [MARK_ON, MARK_OFF],
-    widthOptions,
+    glyphOpts,
   )
   return `${pointer} [${mark}] ${truncateWidth(label, labelMax, widthOptions)}`
 }

@@ -12,13 +12,16 @@ import { frameLines, openTerminal } from './tty-term.mjs'
 
 const POINTER_ACTIVE = '✓'
 const POINTER_IDLE = ' '
+/** ✓ is UAX#11 Ambiguous; many terminals (incl. CJK) still draw it as 1 column. */
+const POINTER_WIDTH = { ambiguousWide: false }
 
-/** Active/idle pointers share one display width (CJK-aware). */
+/** Active/idle pointers share one fixed display column. */
 export function formatChoiceLine(label, selected, widthOptions = {}) {
+  const opts = { ...POINTER_WIDTH, ...widthOptions, ambiguousWide: false }
   const pointer = alignGlyph(
     selected ? POINTER_ACTIVE : POINTER_IDLE,
     [POINTER_ACTIVE, POINTER_IDLE],
-    widthOptions,
+    opts,
   )
   return `${pointer} ${label}`
 }

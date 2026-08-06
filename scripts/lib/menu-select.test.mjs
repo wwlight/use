@@ -62,14 +62,18 @@ assert.match(menuSource, /\\x1B\[J/)
 assert.match(menuSource, /One write/)
 assert.ok(!menuSource.includes('clearPreviousFrame'))
 
-const wide = { ambiguousWide: true }
-const narrow = { ambiguousWide: false }
-for (const opts of [wide, narrow]) {
+// Pointer column is fixed at 1 cell (ambiguousWide forced off), even if caller
+// asks for CJK-wide measurement elsewhere.
+for (const opts of [{ ambiguousWide: true }, { ambiguousWide: false }, {}]) {
   const active = formatChoiceLine('label', true, opts)
   const idle = formatChoiceLine('label', false, opts)
-  const activePrefix = active.slice(0, active.indexOf('label'))
-  const idlePrefix = idle.slice(0, idle.indexOf('label'))
-  assert.equal(stringWidth(activePrefix, opts), stringWidth(idlePrefix, opts))
+  assert.equal(active, '✓ label')
+  assert.equal(idle, '  label')
+  const narrow = { ambiguousWide: false }
+  assert.equal(
+    stringWidth(active.slice(0, active.indexOf('label')), narrow),
+    stringWidth(idle.slice(0, idle.indexOf('label')), narrow),
+  )
 }
 
 console.log('menu-select.test.mjs: ok')
