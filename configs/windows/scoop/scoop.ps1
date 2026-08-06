@@ -45,52 +45,55 @@ function _scoop_invoke_helper {
   }
 }
 
-function _scoop_ensure_mirror_accel {
-  $p = "$env:SCOOP\config\scoop-mirror\hook.ps1"
-  $cli = "$env:SCOOP\config\scoop-mirror\cli.mjs"
-  if (-not (Test-Path $p)) { return }
-  # Node repair owns fast-path + rewrite; PS -RepairHook is no-Node fallback only.
-  if ((Test-Path $cli) -and (Get-Command node.exe -ErrorAction SilentlyContinue)) {
-    & node.exe $cli repair | Out-Null
-    return
-  }
-  _scoop_invoke_helper -Path $p -ArgumentList @('-RepairHook')
+function _scoop_mirror_cli {
+  return "$env:SCOOP\config\scoop-mirror\cli.mjs"
 }
 
-function _scoop_prepare_package_operation {
-  $p = "$env:SCOOP\config\scoop-mirror\hook.ps1"
-  $cli = "$env:SCOOP\config\scoop-mirror\cli.mjs"
-  if (-not (Test-Path $p)) {
-    $host.ui.WriteErrorLine("scoop: mirror preflight helper not found at $p")
-    $global:LASTEXITCODE = 1
-    return
-  }
-  if ((Test-Path $cli) -and (Get-Command node.exe -ErrorAction SilentlyContinue)) {
-    $output = & node.exe $cli repair 2>&1
-    if ($LASTEXITCODE -ne 0) {
-      $detail = ($output | Out-String).Trim()
-      if (-not [string]::IsNullOrWhiteSpace($detail)) { $host.ui.WriteErrorLine($detail) }
+function _scoop_require_node {
+  if (Get-Command node.exe -ErrorAction SilentlyContinue) { return $true }
+  $host.ui.WriteErrorLine('scoop: Node.js is required for scoop mirror')
+  $global:LASTEXITCODE = 1
+  return $false
+}
+
+# Presence: required = fail if cli missing (preflight); optional = skip if undeployed (post-update).
+function _scoop_run_mirror_repair {
+  param([ValidateSet('required', 'optional')][string]$Presence = 'required')
+  $cli = _scoop_mirror_cli
+  if (-not (Test-Path $cli)) {
+    if ($Presence -eq 'required') {
+      $host.ui.WriteErrorLine("scoop: mirror helper not found at $cli")
       $global:LASTEXITCODE = 1
     }
     return
   }
-  _scoop_invoke_helper -Path $p -ArgumentList @('-PrepareCommand')
+  if (-not (_scoop_require_node)) { return }
+  $output = & node.exe $cli repair 2>&1
+  if ($LASTEXITCODE -ne 0) {
+    $detail = ($output | Out-String).Trim()
+    if (-not [string]::IsNullOrWhiteSpace($detail)) { $host.ui.WriteErrorLine($detail) }
+    $global:LASTEXITCODE = 1
+  }
+}
+
+function _scoop_ensure_mirror_accel {
+  _scoop_run_mirror_repair -Presence optional
+}
+
+function _scoop_prepare_package_operation {
+  _scoop_run_mirror_repair -Presence required
 }
 
 function _scoop_manage_mirror {
   param([string]$Choice = '')
-  $cli = "$env:SCOOP\config\scoop-mirror\cli.mjs"
-  if ((Test-Path $cli) -and (Get-Command node.exe -ErrorAction SilentlyContinue)) {
-    & node.exe $cli switch $Choice
-    return
-  }
-  $p = "$env:SCOOP\config\scoop-mirror\manage.ps1"
-  if (-not (Test-Path $p)) {
-    $host.ui.WriteErrorLine("scoop: mirror helper not found at $p")
+  $cli = _scoop_mirror_cli
+  if (-not (Test-Path $cli)) {
+    $host.ui.WriteErrorLine("scoop: mirror helper not found at $cli")
     $global:LASTEXITCODE = 1
     return
   }
-  _scoop_invoke_helper -Path $p -ArgumentList @('-MirrorChoice', $Choice)
+  if (-not (_scoop_require_node)) { return }
+  & node.exe $cli switch $Choice
 }
 
 function _scoop_services_helper {

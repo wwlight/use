@@ -41,6 +41,7 @@
       { "local": "~/.bashrc", "repo": "configs/macos/.bashrc" },
       { "local": "~/.config/homebrew/manage.zsh", "repo": "scripts/macos/brew/mirror/manage.zsh", "restoreOnly": true },
       { "local": "~/.config/homebrew/mirrors.tsv", "repo": "configs/macos/brew/mirrors.tsv", "restoreOnly": true },
+      { "local": "~/.config/homebrew/lib/menu.mjs", "repo": "scripts/macos/brew/mirror/menu.mjs", "restoreOnly": true },
       { "local": "~/.config/homebrew/lib/menu-select.mjs", "repo": "scripts/lib/menu-select.mjs", "restoreOnly": true },
       { "local": "~/.config/homebrew/lib/tty-term.mjs", "repo": "scripts/lib/tty-term.mjs", "restoreOnly": true },
       { "local": "~/.zsh/functions/utils.zsh", "repo": "configs/macos/utils.zsh" },

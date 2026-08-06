@@ -213,140 +213,57 @@ _brew_mirror_can_prompt() {
     { true </dev/tty; } 2>/dev/null
 }
 
-_brew_mirror_menu_script() {
-    local candidate
-    for candidate in \
-        "$(_brew_mirror_root)/lib/menu-select.mjs" \
-        "${USE_HOMEBREW_MENU_SELECT:-}"; do
-        [[ -n "$candidate" && -f "$candidate" ]] || continue
+_brew_mirror_menu_cli() {
+    local candidate dir=""
+    local -a candidates=()
+    candidates+=("$(_brew_mirror_root)/lib/menu.mjs")
+    # Sibling of this sourced file (repo checkout / sync target).
+    if [[ -n "${BASH_SOURCE[0]:-}" ]]; then
+        dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+    elif [[ -n "${ZSH_VERSION:-}" ]]; then
+        # shellcheck disable=SC2296
+        dir="$(cd "$(dirname "${(%):-%x}")" && pwd)"
+    fi
+    [[ -n "$dir" ]] && candidates+=("$dir/menu.mjs")
+    [[ -n "${USE_HOMEBREW_MIRROR_MENU:-}" ]] && candidates+=("$USE_HOMEBREW_MIRROR_MENU")
+    for candidate in "${candidates[@]}"; do
+        [[ -f "$candidate" ]] || continue
         printf '%s\n' "$candidate"
         return 0
     done
     return 1
 }
 
-# Build menu lines: id) * name ---- detail
-_brew_mirror_aligned_choices() {
-    local active="${1:-}"
-    local id label api bottle git detail mark dashes
-    local -a ids=()
-    local max=0 pad dash_base=10
-
-    while IFS=$'\t' read -r id label api bottle git || [[ -n "${id:-}" ]]; do
-        [[ -z "${id:-}" || "$id" == \#* ]] && continue
-        ids+=("$id")
-        (( ${#id} > max )) && max=${#id}
-    done < <(_brew_mirror_rows)
-
-    (( ${#ids[@]} > 0 )) || return 1
-
-    for id in "${ids[@]}"; do
-        IFS=$'\t' read -r _ label api bottle git < <(_brew_mirror_lookup "$id") || continue
-        if [[ "$api" != "-" && -n "$api" ]]; then
-            detail="$api"
-        elif [[ "$git" != "-" && -n "$git" ]]; then
-            detail="$git"
-        else
-            detail="$label"
-        fi
-        mark=' '
-        [[ "$id" == "$active" ]] && mark='*'
-        pad=$((max - ${#id}))
-        (( pad < 0 )) && pad=0
-        dashes=$(printf '%*s' $((pad + dash_base)) '' | tr ' ' '-')
-        printf '%s) %s %s %s %s\n' "$id" "$mark" "$id" "$dashes" "$detail"
-    done
-}
-
+# Interactive ↑↓ select via mirror/menu.mjs → menu-select.
 _brew_mirror_select_interactive() {
-    local selected choice n=0 line menu_js
-    local active="${USE_HOMEBREW_MIRROR:-}"
+    local menu_js active choice ec
+    active="${USE_HOMEBREW_MIRROR:-}"
     [[ -n "$active" ]] || active=$(_brew_mirror_persisted_id)
 
     _brew_mirror_ensure_catalog || return 1
-
-    local -a choices=()
-    while IFS= read -r line || [[ -n "${line:-}" ]]; do
-        [[ -z "$line" ]] && continue
-        choices+=("$line")
-        n=$((n + 1))
-    done < <(_brew_mirror_aligned_choices "$active")
-
-    if (( n == 0 )); then
-        printf 'brew mirror: catalog is empty\n' >&2
-        return 1
-    fi
 
     if ! _brew_mirror_can_prompt; then
         printf 'brew mirror: interactive selection requires a terminal\n' >&2
         return 1
     fi
 
-    if command -v node >/dev/null 2>&1 && menu_js=$(_brew_mirror_menu_script); then
-        local out
-        out=$(mktemp "${TMPDIR:-/tmp}/brew-mirror-menu.XXXXXX") || return 1
-        MENU_SELECT_OUT="$out" MENU_SELECT_INITIAL="$active" \
-            node "$menu_js" 'Choose a Homebrew mirror' "${choices[@]}" || {
-                local ec=$?
-                rm -f "$out"
-                return "$ec"
-            }
-        choice=$(tr -d '\r\n' < "$out")
-        rm -f "$out"
-        [[ -n "$choice" ]] || return 130
-        printf '%s\n' "$choice"
-        return 0
-    fi
-
-    if command -v fzf >/dev/null 2>&1; then
-        local items="" id rest
-        for line in "${choices[@]}"; do
-            id="${line%%)*}"
-            rest="${line#*) }"
-            items+="${id}"$'\t'"${rest}"$'\n'
-        done
-        if [[ -t 0 ]]; then
-            selected=$(printf '%s' "$items" |
-                fzf --height=40% --reverse --border --prompt='Homebrew mirror > ') || return 130
-        else
-            selected=$(printf '%s' "$items" |
-                fzf --height=40% --reverse --border --prompt='Homebrew mirror > ' </dev/tty) || return 130
-        fi
-        choice="${selected%%$'\t'*}"
-        printf '%s\n' "$choice"
-        return 0
-    fi
-
-    {
-        printf 'Choose a Homebrew mirror:\n'
-        local i=0
-        for line in "${choices[@]}"; do
-            i=$((i + 1))
-            printf '  %d) %s\n' "$i" "${line#*) }"
-        done
-        printf 'Selection [1-%d]: ' "$n"
-    } >/dev/tty
-
-    if [[ -t 0 ]]; then
-        IFS= read -r line || return 130
-    else
-        IFS= read -r line </dev/tty || return 130
-    fi
-    [[ "$line" =~ ^[0-9]+$ ]] || {
-        printf 'brew mirror: invalid selection\n' >&2
+    command -v node >/dev/null 2>&1 || {
+        printf 'brew mirror: Node.js is required\n' >&2
         return 1
     }
-    if (( line < 1 || line > n )); then
-        printf 'brew mirror: invalid selection\n' >&2
+    menu_js=$(_brew_mirror_menu_cli) || {
+        printf 'brew mirror: menu.mjs not found\n' >&2
         return 1
+    }
+
+    choice=$(node "$menu_js" "$(_brew_mirror_catalog_file)" "$active")
+    ec=$?
+    if (( ec != 0 )); then
+        return "$ec"
     fi
-    # bash 0-based; zsh 1-based arrays
-    if [[ -n "${ZSH_VERSION:-}" ]]; then
-        choice="${choices[$line]}"
-    else
-        choice="${choices[$((line - 1))]}"
-    fi
-    printf '%s\n' "${choice%%)*}"
+    choice=$(printf '%s' "$choice" | tr -d '\r\n')
+    [[ -n "$choice" ]] || return 130
+    printf '%s\n' "$choice"
     return 0
 }
 

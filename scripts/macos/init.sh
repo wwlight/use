@@ -9,7 +9,7 @@ source "$PROJECT_ROOT/scripts/macos/brew/mirror/manage.zsh"
 init_manifest macos
 
 MANIFEST_CONFIG="$SCRIPT_DIR/lib/manifest-config.mjs"
-RUN_BREW="$SCRIPT_PATH/brew/run-brew.sh"
+RUN_BREW="$SCRIPT_PATH/brew/run.sh"
 
 usage() {
     node "$MANIFEST_CONFIG" usage-init

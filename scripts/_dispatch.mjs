@@ -65,7 +65,7 @@ function readManifest(scope) {
 }
 
 function runMacBrew(args) {
-  return exitStatus(runBash(path.join(__dirname, 'macos/brew/run-brew.sh'), args))
+  return exitStatus(runBash(path.join(__dirname, 'macos/brew/run.sh'), args))
 }
 
 function runMacBackup() {

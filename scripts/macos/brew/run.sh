@@ -16,18 +16,18 @@ elif [[ -r "$HELPER_REPO" ]]; then
     # shellcheck disable=SC1090
     . "$HELPER_REPO"
 else
-    echo "run-brew: brew mirror helper not found" >&2
+    echo "run: brew mirror helper not found" >&2
     exit 1
 fi
 
 _brew_mirror_apply_env || {
-    echo "run-brew: failed to apply Homebrew mirror environment" >&2
+    echo "run: failed to apply Homebrew mirror environment" >&2
     exit 1
 }
 
 # Resolve the real binary; `command -v brew` is poisoned by the brew() wrapper.
 brew_bin=$(_brew_mirror_find_brew) || {
-    echo "run-brew: brew not found; run vpr pm first" >&2
+    echo "run: brew not found; run vpr pm first" >&2
     exit 1
 }
 
