@@ -4,6 +4,7 @@ SCRIPT_PATH="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SCRIPT_DIR="$(cd "$SCRIPT_PATH/.." && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib/utils.sh"
+source "$PROJECT_ROOT/configs/macos/brew-mirror.zsh"
 
 init_manifest macos
 
@@ -81,21 +82,24 @@ load_mirror_env() {
     eval "$(mirror_exports "$1" | grep '^export HOMEBREW_' || true)"
 }
 
+deploy_brew_mirror() {
+    local target_dir="$HOME/.zsh/functions"
+    mkdir -p "$target_dir" || error "Failed to create $target_dir"
+    cp "$PROJECT_ROOT/configs/macos/brew-mirror.zsh" "$target_dir/brew-mirror.zsh" ||
+        error 'Failed to deploy brew-mirror'
+}
+
 persist_zprofile() {
     local mirror="$1"
-    local file_display file
+    local file_display
     file_display=$(manifest_get "zprofile")
-    file=$(expand_path "$file_display")
-    local brew_path
+    command -v brew >/dev/null || error "brew not found; cannot write $file_display"
 
-    brew_path=$(command -v brew) || error "brew not found; cannot write $file_display"
-
-    {
-        echo "eval \"\$($brew_path shellenv)\""
-        echo
-        mirror_exports "$mirror"
-    } > "$file"
-
+    _brew_mirror_write_config "$mirror" || error 'Failed to write Homebrew mirror configuration'
+    _brew_mirror_ensure_profile || error "Failed to update $file_display"
+    # Apply the selected mirror to this installer process immediately.
+    . "$(_brew_mirror_config_file)"
+    deploy_brew_mirror
     info "Configured Homebrew mirror ($mirror) in $file_display"
 }
 

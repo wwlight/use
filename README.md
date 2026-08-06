@@ -172,12 +172,23 @@ vpr init -- lite                  # 尝鲜版
 vpr init -- full                  # 完整版
 ```
 
+初始化后可用独立命令切换镜像，不会拦截 `brew`：
+
+```sh
+brew-mirror                       # 交互选择镜像
+brew-mirror status                # 显示当前镜像
+brew-mirror ustc                  # 直接切换（适合脚本）
+brew-mirror tuna
+brew-mirror official              # 恢复官方源
+```
+
 ```text
 configs/macos/
 ├── .bashrc                       # bash 配置
 ├── .zshrc                        # zsh 平台配置
 ├── Brewfile                      # Homebrew 应用备份
 ├── Brewfile.lite                 # 尝鲜版最小依赖
+├── brew-mirror.zsh               # Homebrew 镜像交互切换
 ├── ghostty_config                # Ghostty 终端配置
 └── utils.zsh                     # zsh 自定义函数
 ```
