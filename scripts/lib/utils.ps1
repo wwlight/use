@@ -461,7 +461,8 @@ function Get-SyncScopes {
 
 function Write-SyncSelectError {
     if ($LASTEXITCODE -eq 130) {
-        Write-ErrorAndExit 'File selection canceled'
+        # sync-select already printed Canceled
+        exit 130
     }
     if ($LASTEXITCODE -ne 0) {
         Write-ErrorAndExit 'File selection failed; retry or run through vpr sync'
@@ -655,6 +656,10 @@ function Resolve-SyncDirection {
         $env:MENU_SELECT_OUT = $outFile
         # Do not capture stdout; preserve the TTY so the menu is visible in Cursor.
         & node $dirScript
+        if ($LASTEXITCODE -eq 130) {
+            # sync-direction already printed Canceled
+            exit 130
+        }
         if ($LASTEXITCODE -ne 0) {
             Write-ErrorAndExit "Pass a direction in non-interactive environments: $hint`n$Example"
         }
