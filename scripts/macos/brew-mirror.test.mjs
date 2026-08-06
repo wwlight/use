@@ -13,6 +13,7 @@ const installSh = fs.readFileSync(path.join(root, 'install.sh'), 'utf8')
 const initSh = fs.readFileSync(path.join(root, 'scripts/macos/init.sh'), 'utf8')
 const dispatch = fs.readFileSync(path.join(root, 'scripts/_dispatch.mjs'), 'utf8')
 const manifest = JSON.parse(fs.readFileSync(path.join(root, 'scripts/macos/_manifest.json'), 'utf8'))
+const readme = fs.readFileSync(path.join(root, 'README.md'), 'utf8')
 
 assert.match(source, /mirrors\.tsv/)
 assert.match(source, /use-homebrew-mirrors-v1/)
@@ -20,6 +21,27 @@ assert.match(source, /_brew_mirror_lookup/)
 assert.match(source, /_brew_mirror_can_prompt/)
 assert.match(source, /\/dev\/tty/)
 assert.match(source, /fzf/)
+assert.match(source, /^brew\(\) \{/m)
+assert.match(source, /_brew_mirror_cli/)
+assert.match(source, /Usage: brew mirror/)
+assert.match(source, /type -P brew|whence -p brew/)
+assert.match(source, /_brew_mirror_find_brew/)
+assert.match(source, /Homebrew not found/)
+assert.ok(!/command brew "\$@"/.test(source))
+assert.match(source, /_brew_mirror_aligned_choices/)
+assert.match(source, /_brew_mirror_menu_script/)
+assert.match(source, /menu-select\.mjs/)
+assert.match(source, /MENU_SELECT_INITIAL/)
+assert.match(installer, /lib\/menu-select\.mjs/)
+assert.match(installer, /lib\/tty-term\.mjs/)
+assert.match(installer, /if _brew_mirror_find_brew/)
+assert.ok(!/if command -v brew/.test(installer))
+assert.match(initSh, /if ! _brew_mirror_find_brew/)
+assert.ok(!/if ! command -v brew/.test(initSh))
+const runBrew = fs.readFileSync(path.join(root, 'scripts/macos/run-brew.sh'), 'utf8')
+assert.match(runBrew, /brew_bin=\$\(_brew_mirror_find_brew\)/)
+assert.ok(!/if ! command -v brew/.test(runBrew))
+assert.match(runBrew, /exec "\$brew_bin"/)
 assert.ok(!source.includes('mirrors.ustc.edu.cn'))
 assert.ok(!source.includes('mirrors.tuna.tsinghua.edu.cn'))
 
@@ -45,7 +67,15 @@ assert.match(dispatch, /run-brew\.sh/)
 assert.match(source, /_brew_mirror_persisted_id/)
 assert.match(source, /_brew_mirror_remove_legacy/)
 assert.match(source, /\.zsh\/functions\/brew-mirror\.zsh/)
-assert.match(source, /still migrate profile/)
+assert.match(source, /Canceled/)
+assert.match(source, /Same as active/)
+assert.match(source, /ec == 130/)
+assert.match(source, /no mirror rewrite/)
+assert.match(source, /_brew_mirror_ensure_profile/)
+assert.ok(!/^brew-mirror\(\)/m.test(source))
+assert.match(readme, /brew mirror\s+# 交互/)
+assert.match(readme, /brew mirror status/)
+assert.ok(!readme.includes('brew-mirror status'))
 const configSync = fs.readFileSync(path.join(root, 'scripts/macos/config-sync.sh'), 'utf8')
 assert.match(configSync, /_brew_mirror_remove_legacy/)
 assert.match(configSync, /brew-mirror\.zsh/)
@@ -53,6 +83,8 @@ assert.match(configSync, /brew-mirror\.zsh/)
 const syncLocals = manifest.sync.toRepo.map((item) => item.local)
 assert.ok(syncLocals.some((local) => String(local).includes('.config/homebrew/brew-mirror.zsh')))
 assert.ok(syncLocals.some((local) => String(local).includes('.config/homebrew/mirrors.tsv')))
+assert.ok(syncLocals.some((local) => String(local).includes('.config/homebrew/lib/menu-select.mjs')))
+assert.ok(syncLocals.some((local) => String(local).includes('.config/homebrew/lib/tty-term.mjs')))
 assert.ok(!syncLocals.some((local) => String(local).includes('.zsh/functions/brew-mirror.zsh')))
 
 const temp = fs.mkdtempSync(path.join(os.tmpdir(), 'use-brew-mirror-'))
@@ -74,23 +106,40 @@ export HOMEBREW_API_DOMAIN=old-api
 export HOMEBREW_BOTTLE_DOMAIN=old-bottle
 export HOMEBREW_BREW_GIT_REMOTE=old-git
 
-brew-mirror ustc >/dev/null
+# Primary UX: brew mirror (scoop-style subcommand)
+brew mirror ustc >/dev/null
 test "$USE_HOMEBREW_MIRROR" = ustc
 test "$HOMEBREW_API_DOMAIN" = "https://mirrors.ustc.edu.cn/homebrew-bottles/api"
 
-brew-mirror tuna >/dev/null
+brew mirror tuna >/dev/null
 test "$USE_HOMEBREW_MIRROR" = tuna
 test "$HOMEBREW_BREW_GIT_REMOTE" = "https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git"
 
 # Selecting official with no active env must still persist (not treat as no-op).
 unset USE_HOMEBREW_MIRROR
 rm -f "$XDG_CONFIG_HOME/homebrew/mirror.zsh"
-brew-mirror official >/dev/null
+brew mirror official >/dev/null
 test "$USE_HOMEBREW_MIRROR" = official
 test -z "\${HOMEBREW_API_DOMAIN+x}"
 test -z "\${HOMEBREW_BOTTLE_DOMAIN+x}"
 test -z "\${HOMEBREW_BREW_GIT_REMOTE+x}"
-brew-mirror status | grep -q "Active Homebrew mirror: official"
+brew mirror status | grep -q "Active Homebrew mirror: official"
+
+# Non-mirror brew calls still reach the real binary via _brew_mirror_find_brew.
+brew shellenv | grep -q '/fake/homebrew/bin'
+
+# Wrapper must not make a missing binary look installed.
+OLD_PATH="$PATH"
+export PATH=/usr/bin:/bin
+unset -f brew 2>/dev/null || true
+# Re-source so brew() exists but type -P brew / standard prefixes miss.
+source "$HELPER"
+command -v brew >/dev/null  # function is visible
+! _brew_mirror_find_brew >/dev/null 2>&1
+ec=0
+brew update >/dev/null 2>&1 || ec=$?
+test "$ec" -eq 127
+export PATH="$OLD_PATH"
 
 # Legacy override is removed when the helper is sourced / applied.
 mkdir -p "$HOME/.zsh/functions"
@@ -116,15 +165,18 @@ assert.equal((profile.match(/# >>> use-homebrew/g) || []).length, 1)
 assert.equal((profile.match(/# <<< use-homebrew/g) || []).length, 1)
 assert.match(profile, /mirror\.zsh/)
 assert.match(profile, /brew-mirror\.zsh/)
-assert.match(profile, /brew shellenv/)
+assert.match(profile, /shellenv/)
+// Profile must call the real brew binary, not the shell wrapper name alone.
+assert.match(profile, /eval "\$\([^)]+\/brew shellenv\)"/)
 
 const persisted = fs.readFileSync(path.join(temp, '.config/homebrew/mirror.zsh'), 'utf8')
 assert.match(persisted, /export USE_HOMEBREW_MIRROR=official/)
 assert.match(persisted, /unset HOMEBREW_API_DOMAIN/)
+assert.match(persisted, /Managed by brew mirror/)
 
 // Incomplete markers must refuse to modify the profile.
 fs.writeFileSync(path.join(temp, '.zprofile'), '# >>> use-homebrew\nexport KEEP_THIS_SETTING=yes\n')
-const refuse = spawnSync('bash', ['-c', 'source "$HELPER"; brew-mirror tuna'], {
+const refuse = spawnSync('bash', ['-c', 'source "$HELPER"; brew mirror tuna'], {
   encoding: 'utf8',
   env: {
     ...process.env,

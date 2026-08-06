@@ -2,6 +2,7 @@ import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { pathToFileURL } from 'node:url'
 
 const root = resolve(import.meta.dirname, '../../../..')
 const read = (path) => readFileSync(resolve(root, path), 'utf8')
@@ -92,12 +93,38 @@ assert.match(cliSource, /Same as active/)
 assert.match(cliSource, /Enter on \*/)
 assert.match(cliSource, /scoop_repo/)
 assert.match(cliSource, /activePrefix/)
-assert.match(cliSource, /padEnd\(pad\)/)
+assert.match(cliSource, /formatAlignedChoices/)
+assert.match(manage, /nrm-style/)
+assert.match(cliSource, /function isRepairHealthy/)
+assert.match(cliSource, /if \(isRepairHealthy\(/)
+assert.match(cliSource, /hasCurrentHookMarkers/)
+assert.match(cliSource, /Reject legacy/)
+assert.match(hook, /function Test-ScoopMirrorRepairHealthy/)
+assert.match(hook, /function Test-ScoopMirrorCurrentHookMarkers/)
+assert.match(hook, /Reject legacy/)
+assert.match(hook, /scoop-mirror\[\/\\\\\]hook\\.ps1/)
+assert.match(hook, /Node repair owns the fast-path/)
+
+const { hasCurrentHookMarkers } = await import(pathToFileURL(filter).href)
+const currentHook = Buffer.from(
+  '\n# >>> scoop-mirror\n. "$env:SCOOP\\config\\scoop-mirror\\hook.ps1"\n# <<< scoop-mirror\n',
+  'utf8',
+)
+const legacyHook = Buffer.from(
+  '\n# >>> scoop-mirror-accel\n. "$env:SCOOP\\config\\mirror-accel.ps1"\n# <<< scoop-mirror-accel\n',
+  'utf8',
+)
+const mixedLegacyThenCurrent = Buffer.concat([legacyHook, currentHook])
+assert.equal(hasCurrentHookMarkers(currentHook), true)
+assert.equal(hasCurrentHookMarkers(legacyHook), false)
+assert.equal(hasCurrentHookMarkers(mixedLegacyThenCurrent), true)
+assert.equal(hasCurrentHookMarkers(Buffer.from('no markers', 'utf8')), false)
 
 const manageSource = read('scripts/windows/scoop/mirror/manage.ps1')
 assert.match(manageSource, /Same as active/)
 assert.match(manageSource, /Enter on \*/)
-assert.match(manageSource, /PadRight\(\$idWidth\)/)
+assert.match(manageSource, /dashBase/)
+assert.match(manageSource, /nrm-style/)
 
 const unknownSwitch = spawnSync(process.execPath, [filter, 'switch', 'not-a-real-mirror'], {
   env: { ...process.env, SCOOP: resolve(root, 'tmp-missing-scoop') },
@@ -127,6 +154,15 @@ assert.match(scoopPs, /['"]services['"]/)
 assert.match(scoopPs, /refusing uninstall without service cleanup/)
 assert.match(scoopPs, /SCOOP_SHELL_INPROCESS/)
 assert.match(scoopPs, /_scoop_invoke_helper/)
+assert.match(scoopPs, /_scoop_prepare_update_services/)
+assert.match(scoopPs, /_scoop_restart_changed_services/)
+assert.match(scoopPs, /Test-ScoopHasManagedServices/)
+assert.match(scoopPs, /\*\\\*-winsw-service\.xml/)
+assert.ok(!scoopPs.includes("-Filter '*-winsw-service.xml' -Recurse"))
+assert.match(scoopPs, /\.update-snapshot\.json/)
+assert.match(scoopPs, /-PrepareUpdate/)
+assert.match(scoopPs, /-RestartChanged/)
+assert.match(scoopPs, /Node repair owns fast-path/)
 assert.ok(!/powershell\.exe/.test(scoopPs))
 
 const scoopZsh = read('configs/windows/scoop/scoop.zsh')
@@ -140,12 +176,30 @@ assert.match(scoopZsh, /scoop-services\/manage\.ps1/)
 assert.match(scoopZsh, /['"]services['"]/)
 assert.match(scoopZsh, /refusing uninstall without service cleanup/)
 assert.match(scoopZsh, /PrepareUninstall/)
+assert.match(scoopZsh, /PrepareUpdate/)
+assert.match(scoopZsh, /RestartChanged/)
+assert.match(scoopZsh, /_scoop_prepare_update_services/)
+assert.match(scoopZsh, /_scoop_restart_changed_services/)
+assert.match(scoopZsh, /_scoop_has_managed_services/)
+assert.match(scoopZsh, /\.update-snapshot\.json/)
+assert.match(scoopZsh, /_scoop_ps\(\)/)
+assert.match(scoopZsh, /pwsh\.exe/)
+assert.match(scoopZsh, /Node repair owns fast-path/)
 
 const servicesHelper = read('scripts/windows/scoop/services/manage.ps1')
 assert.match(servicesHelper, /\[switch\]\$PrepareUninstall/)
+assert.match(servicesHelper, /\[switch\]\$PrepareUpdate/)
+assert.match(servicesHelper, /\[switch\]\$RestartChanged/)
 assert.match(servicesHelper, /Invoke-ScoopServicesManager/)
 assert.match(servicesHelper, /Invoke-ScoopServicesPrepareUninstall/)
+assert.match(servicesHelper, /Invoke-ScoopServicesPrepareUpdate/)
+assert.match(servicesHelper, /Invoke-ScoopServicesRestartChanged/)
 assert.match(servicesHelper, /scoop-services\\manifest\.json/)
+assert.match(servicesHelper, /\.update-snapshot\.json/)
+assert.match(servicesHelper, /restartOnUpdate/)
+assert.match(servicesHelper, /Restarting service/)
+assert.match(servicesHelper, /WarnIfMissing/)
+assert.match(servicesHelper, /Get-ScoopServicesManifest -WarnIfMissing/)
 
 const importBackup = read('scripts/windows/scoop/import-backup.ps1')
 assert.match(importBackup, /New-ScoopMirroredImportFile/)
@@ -189,6 +243,7 @@ const mirrorSection = readme.match(/### scoop mirror\n([\s\S]*?)\n### scoop serv
 assert.ok(mirrorSection)
 for (const command of [
   'scoop mirror',
+  'scoop mirror status',
   'scoop mirror ghfast',
   'scoop mirror ghproxy',
   'scoop mirror official',
@@ -196,7 +251,19 @@ for (const command of [
   assert.ok(mirrorSection[1].includes(command))
 }
 assert.ok(!mirrorSection[1].includes('scoop mirror list'))
-assert.ok(!mirrorSection[1].includes('scoop mirror status'))
 
+assert.match(cliSource, /choice === 'status'/)
+assert.match(cliSource, /printMirrorStatus\(config\)/)
+assert.match(cliSource, /status\s+show active mirror/)
+assert.match(manageSource, /\$Choice -eq 'status'/)
+assert.match(manageSource, /Write-ScoopMirrorStatus/)
+assert.match(scoopPs, /official\|status/)
+assert.match(scoopZsh, /official\|status/)
+
+const servicesSection = readme.match(/### scoop services\n([\s\S]*?)\n### clink/)
+assert.ok(servicesSection)
+assert.ok(servicesSection[1].includes('scoop update nginx'))
+assert.ok(servicesSection[1].includes('restartOnUpdate'))
+assert.ok(servicesSection[1].includes(':changed'))
 
 console.log('scoop/mirror/test.mjs: ok')

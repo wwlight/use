@@ -25,9 +25,10 @@ _brew_mirror_apply_env || {
     exit 1
 }
 
-if ! command -v brew >/dev/null 2>&1; then
+# Resolve the real binary; `command -v brew` is poisoned by the brew() wrapper.
+brew_bin=$(_brew_mirror_find_brew) || {
     echo "run-brew: brew not found; run vpr pm first" >&2
     exit 1
-fi
+}
 
-exec brew "$@"
+exec "$brew_bin" "$@"

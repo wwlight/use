@@ -21,7 +21,7 @@ assert.equal(hasProfile('lite', common), true)
 assert.equal(hasProfile('full', common), true)
 assert.equal(hasProfile('nope', common), false)
 assert.equal(profileLabel('lite', common), 'Lite')
-assert.deepEqual(profileMenuItems(common), ['lite) Lite', 'full) Full'])
+assert.deepEqual(profileMenuItems(common), ['lite) lite  Lite', 'full) full  Full'])
 
 const initUsage = formatInitUsage(common)
 assert.match(initUsage, /vpr init \[lite\|full\]/)
@@ -39,9 +39,9 @@ assert.equal(hasMirror('ustc', macos), true)
 assert.equal(hasMirror('tuna', macos), true)
 assert.equal(hasMirror('nope', macos), false)
 assert.deepEqual(mirrorMenuItems(macos), [
-  'ustc) 中科大镜像',
-  'tuna) 清华镜像',
-  'official) 官方源',
+  'ustc) ustc      中科大镜像',
+  'tuna) tuna      清华镜像',
+  'official) official  官方源',
 ])
 
 const pmUsage = formatPmUsage(macos)

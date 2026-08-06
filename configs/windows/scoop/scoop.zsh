@@ -1,4 +1,21 @@
 # Scoop shell wrappers (mirror + services). Logic lives under $SCOOP/config/.
+# Prefer pwsh over Windows PowerShell 5 to cut helper cold-start cost.
+
+_scoop_ps() {
+  local file="$1"
+  shift
+  if command -v pwsh.exe >/dev/null 2>&1; then
+    pwsh.exe -NoProfile -ExecutionPolicy Bypass -File "$file" "$@"
+    return $?
+  fi
+  if command -v pwsh >/dev/null 2>&1; then
+    pwsh -NoProfile -ExecutionPolicy Bypass -File "$file" "$@"
+    return $?
+  fi
+  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$file" "$@"
+}
+
+# Interactive winsw hot path (kept in-shell; services/manage.ps1 has the manager copy).
 winsw() {
   if (( $# >= 2 )); then
     [[ -n "$SCOOP" ]] || { echo "winsw: \$SCOOP is not set" >&2; return 1 }
@@ -23,11 +40,12 @@ _scoop_ensure_mirror_accel() {
   local p="${SCOOP}/config/scoop-mirror/hook.ps1"
   local cli="${SCOOP}/config/scoop-mirror/cli.mjs"
   [[ -f "$p" ]] || return 0
+  # Node repair owns fast-path + rewrite; PS -RepairHook is no-Node fallback only.
   if [[ -f "$cli" ]] && command -v node >/dev/null 2>&1; then
     node "$cli" repair >/dev/null
     return $?
   fi
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$p" -RepairHook
+  _scoop_ps "$p" -RepairHook
 }
 
 _scoop_prepare_package_operation() {
@@ -41,7 +59,7 @@ _scoop_prepare_package_operation() {
     node "$cli" repair
     return $?
   fi
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$p" -PrepareCommand
+  _scoop_ps "$p" -PrepareCommand
 }
 
 _scoop_manage_mirror() {
@@ -55,26 +73,62 @@ _scoop_manage_mirror() {
     echo "scoop: mirror helper not found at $p" >&2
     return 1
   }
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$p" -MirrorChoice "${1:-}"
+  _scoop_ps "$p" -MirrorChoice "${1:-}"
+}
+
+_scoop_services_helper() {
+  print -r -- "${SCOOP}/config/scoop-services/manage.ps1"
+}
+
+# Cheap gate before spawning pwsh for update-time service hooks.
+_scoop_has_managed_services() {
+  local d="${SCOOP}/persist" f
+  [[ -d "$d" ]] || return 1
+  for f in "$d"/*/*-winsw-service.xml(N); do
+    [[ -f "$f" ]] && return 0
+  done
+  return 1
 }
 
 _scoop_manage_services() {
-  local p="${SCOOP}/config/scoop-services/manage.ps1"
+  local p
+  p="$(_scoop_services_helper)"
   [[ -f "$p" ]] || {
     echo "scoop: services helper not found at $p (re-run vpr pm / sync)" >&2
     return 1
   }
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$p" "$@"
+  _scoop_ps "$p" "$@"
 }
 
 _scoop_prepare_uninstall() {
-  local p="${SCOOP}/config/scoop-services/manage.ps1"
+  local p
+  p="$(_scoop_services_helper)"
   (( $# )) || return 0
   if [[ ! -f "$p" ]]; then
     echo "scoop: services helper not found at $p (re-run vpr pm / sync); refusing uninstall without service cleanup" >&2
     return 1
   fi
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$p" -PrepareUninstall "$@"
+  _scoop_ps "$p" -PrepareUninstall "$@"
+}
+
+_scoop_prepare_update_services() {
+  _scoop_has_managed_services || return 0
+  local p
+  p="$(_scoop_services_helper)"
+  [[ -f "$p" ]] || return 0
+  _scoop_ps "$p" -PrepareUpdate "$@" >/dev/null 2>&1 || true
+}
+
+_scoop_restart_changed_services() {
+  local snapshot="${SCOOP}/config/scoop-services/.update-snapshot.json"
+  [[ -f "$snapshot" ]] || return 0
+  local p
+  p="$(_scoop_services_helper)"
+  [[ -f "$p" ]] || return 0
+  _scoop_ps "$p" -RestartChanged || {
+    echo "scoop: service restart after update failed" >&2
+    return 0
+  }
 }
 
 _scoop_apps_from() {
@@ -87,7 +141,7 @@ scoop() {
   [[ -n "$SCOOP" ]] || { echo "scoop: \$SCOOP is not set" >&2; return 1 }
   if [[ "$1" == "mirror" ]]; then
     if (( $# > 2 )); then
-      echo "Usage: scoop mirror [<name>|official]" >&2
+      echo "Usage: scoop mirror [<name>|official|status]" >&2
       return 1
     fi
     _scoop_manage_mirror "${2:-}"
@@ -111,8 +165,14 @@ scoop() {
     _scoop_prepare_uninstall "${apps[@]}" || return $?
     command scoop "$@"
   elif [[ "$1" == "update" ]]; then
+    local apps ec
+    apps=($(_scoop_apps_from "${@:2}"))
+    _scoop_prepare_update_services "${apps[@]}"
     command scoop "$@"
-    local ec=$?
+    ec=$?
+    if (( ec == 0 )); then
+      _scoop_restart_changed_services
+    fi
     _scoop_ensure_mirror_accel
     return $ec
   else

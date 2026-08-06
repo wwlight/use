@@ -179,11 +179,11 @@ vpr setup                         # 从 Brewfile 恢复完整软件清单
 初始化后可用独立命令切换镜像（读取本地 `~/.config/homebrew/mirrors.tsv`）：
 
 ```sh
-brew-mirror                       # 交互选择镜像
-brew-mirror status                # 显示当前镜像
-brew-mirror ustc                  # 中科大镜像
-brew-mirror tuna                  # 清华镜像
-brew-mirror official              # 恢复官方源
+brew mirror                       # 交互 ↑↓ 选择（Esc/Ctrl+C 取消；回车选中当前 * 则直接退出）
+brew mirror status                # 显示当前镜像
+brew mirror ustc                  # 中科大镜像
+brew mirror tuna                  # 清华镜像
+brew mirror official              # 恢复官方源
 ```
 
 ```text
@@ -204,7 +204,8 @@ configs/macos/
 ~/.config/homebrew/
 ├── mirrors.tsv                   # 本地镜像目录
 ├── mirror.zsh                    # 当前镜像环境变量
-└── brew-mirror.zsh               # brew-mirror 命令
+├── brew-mirror.zsh               # brew mirror 子命令
+└── lib/                          # ↑↓ 菜单（menu-select / tty-term）
 ```
 
 
@@ -276,6 +277,7 @@ scripts/windows/scoop/
 
 ```sh
 scoop mirror                      # 交互选择（↑↓ / Enter；Esc/Ctrl+C 取消；回车选中当前 * 则直接退出）
+scoop mirror status               # 显示当前镜像
 scoop mirror ghfast               # 直接切换到 ghfast.top
 scoop mirror ghproxy              # 直接切换到 gh-proxy.com
 scoop mirror official             # 恢复官方源
@@ -294,7 +296,12 @@ scoop services start nginx        # 启动
 scoop services stop nginx         # 停止
 scoop services restart nginx      # 重启
 scoop uninstall nginx             # 自动注销服务后卸载
+scoop update nginx                # 版本变更且服务原在运行 → 自动 restart（类 brew :changed）
 ```
+
+> [!NOTE]
+> `scoop update` / `scoop update *` 会对 manifest 中已注册且更新前在运行的服务，在版本号变化后自动重启。  
+> 清单项可设 `"restartOnUpdate": false` 退出该行为；缺省为启用。
 
 ### clink
 

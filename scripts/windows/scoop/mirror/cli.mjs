@@ -5,8 +5,8 @@
  * Usage:
  *   node cli.mjs <clean|smudge>              # git filter (stdin/stdout)
  *   node cli.mjs repair                      # install/refresh download.ps1 hook
- *   node cli.mjs switch [<name>|official]    # switch mirror (interactive if omitted)
- *   node cli.mjs menu <title> <choice>...    # interactive ↑↓ select
+ *   node cli.mjs switch [<name>|official|status]  # switch / status (interactive if omitted)
+ *   node cli.mjs menu <title> <choice>...         # interactive ↑↓ select
  */
 import { Buffer } from 'node:buffer'
 import { spawnSync } from 'node:child_process'
@@ -120,6 +120,59 @@ function quoteForGitFilter(filePath) {
   return `"${filePath.replace(/\\/g, '/')}"`
 }
 
+function gitConfigValue(repo, key) {
+  const result = runGit(repo, ['config', '--local', '--get', key])
+  if (result.status !== 0) return ''
+  return String(result.stdout || '').trim()
+}
+
+export function hasCurrentHookMarkers(bytes) {
+  const begin = Buffer.from('# >>> scoop-mirror')
+  const end = Buffer.from('# <<< scoop-mirror')
+  let searchFrom = 0
+  while (true) {
+    const beginAt = findByteSequence(bytes, begin, searchFrom)
+    if (beginAt < 0) return false
+    const afterBegin = beginAt + begin.length
+    // Reject legacy `# >>> scoop-mirror-accel` (current begin is a prefix).
+    if (afterBegin < bytes.length && bytes[afterBegin] !== 10 && bytes[afterBegin] !== 13) {
+      searchFrom = afterBegin
+      continue
+    }
+
+    const endAt = findByteSequence(bytes, end, afterBegin)
+    if (endAt < 0) return false
+    const afterEnd = endAt + end.length
+    if (afterEnd < bytes.length && bytes[afterEnd] !== 10 && bytes[afterEnd] !== 13) {
+      searchFrom = afterBegin
+      continue
+    }
+
+    const slice = bytes.subarray(beginAt, endAt + end.length).toString('utf8')
+    return slice.includes('scoop-mirror\\hook.ps1') || slice.includes('scoop-mirror/hook.ps1')
+  }
+}
+
+function attributesReady(attributesPath) {
+  if (!fs.existsSync(attributesPath)) return false
+  const lines = fs.readFileSync(attributesPath, 'utf8').split(/\r?\n/)
+  return lines.some((line) => /^\s*lib\/download\.ps1\s+filter=scoop-mirror\b/.test(line)
+    && !/filter=scoop-mirror-accel\b/.test(line))
+}
+
+/** Cheap preflight: skip full rewrite when hook, filter, attributes, and worktree are already healthy. */
+function isRepairHealthy({ scoopRepo, download, clean, smudge }) {
+  if (!hasCurrentHookMarkers(fs.readFileSync(download))) return false
+  if (gitConfigValue(scoopRepo, 'filter.scoop-mirror.clean') !== clean) return false
+  if (gitConfigValue(scoopRepo, 'filter.scoop-mirror.smudge') !== smudge) return false
+  if (gitConfigValue(scoopRepo, 'filter.scoop-mirror.required') !== 'true') return false
+  if (!attributesReady(path.join(scoopRepo, '.git', 'info', 'attributes'))) return false
+
+  const status = runGit(scoopRepo, ['status', '--porcelain', '--untracked-files=no'])
+  if (status.status !== 0) return false
+  return !String(status.stdout || '').trim()
+}
+
 function repairHook() {
   const scoop = process.env.SCOOP
   if (!scoop || !scoop.trim()) throw new Error('SCOOP environment variable is not set')
@@ -136,6 +189,8 @@ function repairHook() {
   const nodePath = process.execPath
   const clean = `${quoteForGitFilter(nodePath)} ${quoteForGitFilter(selfPath)} clean`
   const smudge = `${quoteForGitFilter(nodePath)} ${quoteForGitFilter(selfPath)} smudge`
+
+  if (isRepairHealthy({ scoopRepo, download, clean, smudge })) return
 
   for (const [key, value] of [
     ['filter.scoop-mirror.clean', clean],
@@ -400,21 +455,25 @@ function switchMirror(choice, config) {
 }
 
 async function selectMirrorInteractively(config) {
-  const { parseChoice, runMenuSelect } = await loadMenuModule()
-  const ids = [...config.mirrors.map((m) => m.id), 'official']
-  const pad = Math.max(...ids.map((id) => id.length))
-  const items = []
-  for (const mirror of config.mirrors) {
-    const mark = mirror.prefix === config.activePrefix ? '* ' : '  '
-    items.push(`${mirror.id.padEnd(pad)}) ${mark}${mirror.prefix}`)
-  }
-  const officialMark = config.activePrefix ? '  ' : '* '
-  items.push(`${'official'.padEnd(pad)}) ${officialMark}https://github.com/ScoopInstaller/Scoop`)
+  const { formatAlignedChoices, runMenuSelect } = await loadMenuModule()
+  const activeId = mirrorId(config.activePrefix, config)
+  const items = [
+    ...config.mirrors.map((mirror) => ({
+      value: mirror.id,
+      name: mirror.id,
+      detail: mirror.prefix,
+    })),
+    {
+      value: 'official',
+      name: 'official',
+      detail: 'https://github.com/ScoopInstaller/Scoop',
+    },
+  ]
 
   return runMenuSelect({
     message: 'Choose a Scoop mirror',
-    choices: items.map(parseChoice),
-    initialValue: mirrorId(config.activePrefix, config),
+    choices: formatAlignedChoices(items, { activeValue: activeId }),
+    initialValue: activeId,
   })
 }
 
@@ -431,10 +490,16 @@ async function runSwitchCli(choiceArg) {
   let choice = String(choiceArg || '').trim()
 
   if (['-h', '--help', 'help'].includes(choice)) {
-    console.log('Usage: scoop mirror [<name>|official]')
+    console.log('Usage: scoop mirror [<name>|official|status]')
     console.log('')
     console.log('  (no args)        interactive select (↑↓ / Enter; Esc or Ctrl+C cancel; Enter on * exits; * = active)')
     console.log('  <name>|official  switch directly')
+    console.log('  status           show active mirror')
+    return
+  }
+
+  if (choice === 'status') {
+    printMirrorStatus(config)
     return
   }
 
@@ -462,33 +527,38 @@ async function readStdin() {
   return Buffer.concat(chunks)
 }
 
-const mode = process.argv[2]
-try {
-  if (mode === 'repair') {
-    repairHook()
-    process.exit(0)
-  }
-  if (mode === 'switch') {
-    await runSwitchCli(process.argv[3] || '')
-    process.exit(0)
-  }
-  if (mode === 'menu') {
-    await runMenuCli(process.argv.slice(3))
-    process.exit(0)
-  }
+const isMain = process.argv[1]
+  && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)
 
-  const input = await readStdin()
-  let output
-  if (mode === 'clean') output = removeHook(input)
-  else if (mode === 'smudge') output = addHook(input)
-  else {
-    console.error('Usage: node cli.mjs <clean|smudge|repair|switch|menu>')
-    process.exit(2)
+if (isMain) {
+  const mode = process.argv[2]
+  try {
+    if (mode === 'repair') {
+      repairHook()
+      process.exit(0)
+    }
+    if (mode === 'switch') {
+      await runSwitchCli(process.argv[3] || '')
+      process.exit(0)
+    }
+    if (mode === 'menu') {
+      await runMenuCli(process.argv.slice(3))
+      process.exit(0)
+    }
+
+    const input = await readStdin()
+    let output
+    if (mode === 'clean') output = removeHook(input)
+    else if (mode === 'smudge') output = addHook(input)
+    else {
+      console.error('Usage: node cli.mjs <clean|smudge|repair|switch|menu>')
+      process.exit(2)
+    }
+    process.stdout.write(output)
   }
-  process.stdout.write(output)
-}
-catch (err) {
-  if (err?.code === 'CANCELLED') process.exit(130)
-  console.error(err?.message || err)
-  process.exit(1)
+  catch (err) {
+    if (err?.code === 'CANCELLED') process.exit(130)
+    console.error(err?.message || err)
+    process.exit(1)
+  }
 }

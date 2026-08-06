@@ -82,7 +82,8 @@ install_or_restore_brew() {
     local BREWFILE="$PROJECT_ROOT/$brewfile"
 
     _brew_mirror_apply_env || error 'Failed to apply Homebrew mirror environment'
-    if ! command -v brew &> /dev/null; then
+    # Do not use `command -v brew`: brew-mirror.zsh defines brew() as a wrapper.
+    if ! _brew_mirror_find_brew >/dev/null 2>&1; then
         error "Homebrew is not installed. Run: vpr pm"
     fi
 

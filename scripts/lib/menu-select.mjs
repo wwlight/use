@@ -7,18 +7,11 @@ import path from 'node:path'
 import fs from 'node:fs'
 import readline from 'node:readline'
 import { fileURLToPath } from 'node:url'
-import { frameLines, openTerminal, restoreFrame } from './tty-term.mjs'
+import { frameLines, openTerminal } from './tty-term.mjs'
 
-function clearPreviousFrame(output, frame) {
-  const lines = frameLines(frame)
-  if (lines <= 0) return
-  restoreFrame(output, frame)
-  for (let i = 0; i < lines; i++) {
-    output.write('\x1B[2K')
-    if (i < lines - 1) output.write('\n')
-  }
-  if (lines > 1) output.write(`\x1B[${lines - 1}A\r`)
-  else output.write('\r')
+/** ✓ is typically 2 terminal columns in CJK locales; pad the empty pointer to match. */
+function cursorPointer(active) {
+  return active ? '✓' : '  '
 }
 
 function createSelect({ message, choices, input, output, cursor: initialCursor = 0 }) {
@@ -33,8 +26,7 @@ function createSelect({ message, choices, input, output, cursor: initialCursor =
       message,
       '',
       ...choices.map((item, i) => {
-        const pointer = i === cursor ? '❯' : ' '
-        return `${pointer} ${item.label}`
+        return `${cursorPointer(i === cursor)} ${item.label}`
       }),
       '',
       '↑↓ Select  Enter Confirm',
@@ -43,22 +35,26 @@ function createSelect({ message, choices, input, output, cursor: initialCursor =
   }
 
   function renderSubmitFrame() {
-    return `${message}\n❯ ${choices[cursor].label}\n`
+    return `${message}\n${cursorPointer(true)} ${choices[cursor].label}\n`
   }
 
   function render() {
     const frame = state === 'submit' ? renderSubmitFrame() : renderActiveFrame()
     if (frame === prevFrame) return
 
+    // One write: move to menu top + erase down + paint.
+    // Avoid per-line erase/redraw; that flickers on Windows ConPTY / CONOUT$.
+    let payload = ''
     if (prevFrame) {
-      // Clear only the menu region; \x1B[J would clear the entire screen.
-      clearPreviousFrame(output, prevFrame)
+      const up = frameLines(prevFrame)
+      if (up > 0) payload += `\x1B[${up}A\r`
+      payload += '\x1B[J'
     }
     else {
-      output.write('\x1B[?25l')
+      payload += '\x1B[?25l'
     }
-
-    output.write(frame)
+    payload += frame
+    output.write(payload)
     prevFrame = frame
   }
 
@@ -136,10 +132,38 @@ export function parseChoice(raw) {
   if (idx <= 0) {
     throw new Error(`Expected option format "value) description"; received: ${raw}`)
   }
-  return {
-    value: raw.slice(0, idx).trim(),
-    label: raw,
-  }
+  const value = raw.slice(0, idx).trim()
+  // Drop the single separator space after ")": keep any mark-column spaces
+  // so inactive "  name" stays aligned with active "* name".
+  const rest = raw.slice(idx + 1)
+  const label = (rest.startsWith(' ') ? rest.slice(1) : rest.trimStart()) || raw
+  return { value, label }
+}
+
+/**
+ * nrm-style labels: "* name ---- detail" / "  name ---- detail" (URLs column-aligned).
+ * Use with runMenuSelect; ✓ marks the cursor, * marks activeValue.
+ * * stays in a fixed column; dashes grow for shorter names so URLs align.
+ * @param {{ value: string, name?: string, detail?: string }[]} items
+ * @param {{ activeValue?: string, dashWidth?: number }} [options]
+ */
+export function formatAlignedChoices(items, { activeValue = '', dashWidth = 10 } = {}) {
+  const rows = (items || []).map((item) => ({
+    value: String(item.value),
+    name: String(item.name ?? item.value),
+    detail: String(item.detail ?? ''),
+  }))
+  if (rows.length === 0) return []
+  const nameWidth = Math.max(...rows.map((row) => row.name.length))
+  return rows.map((row) => {
+    const mark = row.value === String(activeValue) ? '*' : ' '
+    // Shorter names get more dashes so the URL column stays aligned.
+    const dashes = '-'.repeat((nameWidth - row.name.length) + dashWidth)
+    return {
+      value: row.value,
+      label: `${mark} ${row.name} ${dashes} ${row.detail}`,
+    }
+  })
 }
 
 export async function runMenuSelect({ message, choices, initialValue }) {

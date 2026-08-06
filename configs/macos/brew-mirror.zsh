@@ -1,5 +1,6 @@
 # Homebrew mirror switcher. Deployed to ~/.config/homebrew/brew-mirror.zsh.
 # Portable for bash (installer) and zsh (interactive shells).
+# User-facing command: brew mirror (shell-function wrap, scoop mirror style).
 
 _brew_mirror_root() {
     printf '%s\n' "${XDG_CONFIG_HOME:-$HOME/.config}/homebrew"
@@ -35,11 +36,19 @@ _brew_mirror_quote() {
 }
 
 _brew_mirror_find_brew() {
-    if command -v brew >/dev/null 2>&1; then
-        command -v brew
+    # Resolve the real Homebrew binary; ignore the brew() mirror wrapper.
+    local candidate=""
+    if [[ -n "${ZSH_VERSION:-}" ]]; then
+        candidate=$(whence -p brew 2>/dev/null || true)
+    elif [[ -n "${BASH_VERSION:-}" ]]; then
+        candidate=$(type -P brew 2>/dev/null || true)
+    else
+        candidate=$(command -v brew 2>/dev/null || true)
+    fi
+    if [[ -n "$candidate" && "$candidate" != "brew" && -x "$candidate" ]]; then
+        printf '%s\n' "$candidate"
         return 0
     fi
-    local candidate
     for candidate in /opt/homebrew/bin/brew /usr/local/bin/brew; do
         if [[ -x "$candidate" ]]; then
             printf '%s\n' "$candidate"
@@ -69,12 +78,12 @@ _brew_mirror_ensure_catalog() {
     local catalog header
     catalog=$(_brew_mirror_catalog_file) || return 1
     if [[ ! -r "$catalog" ]]; then
-        printf 'brew-mirror: catalog not found at %s\n' "$catalog" >&2
+        printf 'brew mirror: catalog not found at %s\n' "$catalog" >&2
         return 1
     fi
     IFS= read -r header < "$catalog" || true
     if [[ "$header" != '# use-homebrew-mirrors-v1' ]]; then
-        printf 'brew-mirror: unsupported catalog header in %s\n' "$catalog" >&2
+        printf 'brew mirror: unsupported catalog header in %s\n' "$catalog" >&2
         return 1
     fi
 }
@@ -92,7 +101,7 @@ _brew_mirror_lookup() {
         [[ -z "${id:-}" || "$id" == \#* ]] && continue
         if [[ "$id" == "$target" ]]; then
             if [[ -z "$label" || -z "$api" || -z "$bottle" || -z "$git" ]]; then
-                printf 'brew-mirror: invalid catalog row for %s\n' "$id" >&2
+                printf 'brew mirror: invalid catalog row for %s\n' "$id" >&2
                 return 1
             fi
             printf '%s\t%s\t%s\t%s\t%s\n' "$id" "$label" "$api" "$bottle" "$git"
@@ -122,12 +131,12 @@ _brew_mirror_ensure_profile() {
         end_count=$(grep -cF "$end" "$profile" || true)
         if [[ "$begin_count" -ne "$end_count" ]]; then
             rm -f "$tmp"
-            printf 'brew-mirror: incomplete %s markers in %s; refusing to modify\n' "$begin" "$profile" >&2
+            printf 'brew mirror: incomplete %s markers in %s; refusing to modify\n' "$begin" "$profile" >&2
             return 1
         fi
         if [[ "$begin_count" -gt 1 ]]; then
             rm -f "$tmp"
-            printf 'brew-mirror: duplicate %s markers in %s; refusing to modify\n' "$begin" "$profile" >&2
+            printf 'brew mirror: duplicate %s markers in %s; refusing to modify\n' "$begin" "$profile" >&2
             return 1
         fi
 
@@ -166,7 +175,7 @@ _brew_mirror_write_config() {
 
     tmp=$(mktemp "${config}.XXXXXX") || return 1
     {
-        printf '# Managed by brew-mirror. Do not edit.\n'
+        printf '# Managed by brew mirror. Do not edit.\n'
         printf 'export USE_HOMEBREW_MIRROR=%q\n' "$id"
         if [[ "$id" == "official" || "$api" == "-" ]]; then
             printf '%s\n' \
@@ -206,31 +215,101 @@ _brew_mirror_can_prompt() {
     { true </dev/tty; } 2>/dev/null
 }
 
-_brew_mirror_select_interactive() {
-    local id label api bottle git mark selected choice n=0
-    local items=""
-    _brew_mirror_ensure_catalog || return 1
+_brew_mirror_menu_script() {
+    local candidate
+    for candidate in \
+        "$(_brew_mirror_root)/lib/menu-select.mjs" \
+        "${USE_HOMEBREW_MENU_SELECT:-}"; do
+        [[ -n "$candidate" && -f "$candidate" ]] || continue
+        printf '%s\n' "$candidate"
+        return 0
+    done
+    return 1
+}
+
+# nrm-style " * name ---- detail" lines for ↑↓ menu / numbered fallback.
+_brew_mirror_aligned_choices() {
+    local active="${1:-}"
+    local id label api bottle git detail mark dashes
+    local -a ids=()
+    local max=0 pad dash_base=10
 
     while IFS=$'\t' read -r id label api bottle git || [[ -n "${id:-}" ]]; do
         [[ -z "${id:-}" || "$id" == \#* ]] && continue
-        n=$((n + 1))
-        mark='  '
-        [[ "$id" == "${USE_HOMEBREW_MIRROR:-}" ]] && mark='* '
-        items+="${id}"$'\t'"${mark}${label}"$'\n'
+        ids+=("$id")
+        (( ${#id} > max )) && max=${#id}
     done < <(_brew_mirror_rows)
 
+    (( ${#ids[@]} > 0 )) || return 1
+
+    for id in "${ids[@]}"; do
+        IFS=$'\t' read -r _ label api bottle git < <(_brew_mirror_lookup "$id") || continue
+        if [[ "$api" != "-" && -n "$api" ]]; then
+            detail="$api"
+        elif [[ "$git" != "-" && -n "$git" ]]; then
+            detail="$git"
+        else
+            detail="$label"
+        fi
+        mark=' '
+        [[ "$id" == "$active" ]] && mark='*'
+        # Shorter names get more dashes so the URL column stays aligned.
+        pad=$((max - ${#id}))
+        (( pad < 0 )) && pad=0
+        dashes=$(printf '%*s' $((pad + dash_base)) '' | tr ' ' '-')
+        # value) description — menu-select shows description only (after ")")
+        printf '%s) %s %s %s %s\n' "$id" "$mark" "$id" "$dashes" "$detail"
+    done
+}
+
+_brew_mirror_select_interactive() {
+    local selected choice n=0 line menu_js
+    local active="${USE_HOMEBREW_MIRROR:-}"
+    [[ -n "$active" ]] || active=$(_brew_mirror_persisted_id)
+
+    _brew_mirror_ensure_catalog || return 1
+
+    local -a choices=()
+    while IFS= read -r line || [[ -n "${line:-}" ]]; do
+        [[ -z "$line" ]] && continue
+        choices+=("$line")
+        n=$((n + 1))
+    done < <(_brew_mirror_aligned_choices "$active")
+
     if (( n == 0 )); then
-        printf 'brew-mirror: catalog is empty\n' >&2
+        printf 'brew mirror: catalog is empty\n' >&2
         return 1
     fi
 
     if ! _brew_mirror_can_prompt; then
-        printf 'brew-mirror: interactive selection requires a terminal\n' >&2
+        printf 'brew mirror: interactive selection requires a terminal\n' >&2
         return 1
     fi
 
+    # Prefer shared Node ↑↓ menu (same as scoop mirror).
+    if command -v node >/dev/null 2>&1 && menu_js=$(_brew_mirror_menu_script); then
+        local out
+        out=$(mktemp "${TMPDIR:-/tmp}/brew-mirror-menu.XXXXXX") || return 1
+        MENU_SELECT_OUT="$out" MENU_SELECT_INITIAL="$active" \
+            node "$menu_js" 'Choose a Homebrew mirror' "${choices[@]}" || {
+                local ec=$?
+                rm -f "$out"
+                return "$ec"
+            }
+        choice=$(tr -d '\r\n' < "$out")
+        rm -f "$out"
+        [[ -n "$choice" ]] || return 130
+        printf '%s\n' "$choice"
+        return 0
+    fi
+
     if command -v fzf >/dev/null 2>&1; then
-        # Keep fzf selection on stdout for command substitution; only UI input uses /dev/tty when needed.
+        local items="" id rest
+        for line in "${choices[@]}"; do
+            id="${line%%)*}"
+            rest="${line#*) }"
+            items+="${id}"$'\t'"${rest}"$'\n'
+        done
         if [[ -t 0 ]]; then
             selected=$(printf '%s' "$items" |
                 fzf --height=40% --reverse --border --prompt='Homebrew mirror > ') || return 130
@@ -245,41 +324,35 @@ _brew_mirror_select_interactive() {
 
     {
         printf 'Choose a Homebrew mirror:\n'
-        n=0
-        while IFS=$'\t' read -r id label api bottle git || [[ -n "${id:-}" ]]; do
-            [[ -z "${id:-}" || "$id" == \#* ]] && continue
-            n=$((n + 1))
-            mark='  '
-            [[ "$id" == "${USE_HOMEBREW_MIRROR:-}" ]] && mark='* '
-            printf '  %d) %s%s\n' "$n" "$mark" "$label"
-        done < <(_brew_mirror_rows)
+        local i=0
+        for line in "${choices[@]}"; do
+            i=$((i + 1))
+            printf '  %d) %s\n' "$i" "${line#*) }"
+        done
         printf 'Selection [1-%d]: ' "$n"
     } >/dev/tty
 
-    local line
     if [[ -t 0 ]]; then
         IFS= read -r line || return 130
     else
         IFS= read -r line </dev/tty || return 130
     fi
     [[ "$line" =~ ^[0-9]+$ ]] || {
-        printf 'brew-mirror: invalid selection\n' >&2
+        printf 'brew mirror: invalid selection\n' >&2
         return 1
     }
     if (( line < 1 || line > n )); then
-        printf 'brew-mirror: invalid selection\n' >&2
+        printf 'brew mirror: invalid selection\n' >&2
         return 1
     fi
-    n=0
-    while IFS=$'\t' read -r id label api bottle git || [[ -n "${id:-}" ]]; do
-        [[ -z "${id:-}" || "$id" == \#* ]] && continue
-        n=$((n + 1))
-        if (( n == line )); then
-            printf '%s\n' "$id"
-            return 0
-        fi
-    done < <(_brew_mirror_rows)
-    return 1
+    # bash 0-based; zsh 1-based arrays
+    if [[ -n "${ZSH_VERSION:-}" ]]; then
+        choice="${choices[$line]}"
+    else
+        choice="${choices[$((line - 1))]}"
+    fi
+    printf '%s\n' "${choice%%)*}"
+    return 0
 }
 
 _brew_mirror_apply() {
@@ -290,7 +363,7 @@ _brew_mirror_apply() {
     _brew_mirror_apply_env || return 1
 }
 
-brew-mirror() {
+_brew_mirror_cli() {
     local choice="${1:-}"
     if [[ "$choice" == "status" ]]; then
         _brew_mirror_status
@@ -298,21 +371,28 @@ brew-mirror() {
     fi
     if [[ "$choice" == "-h" || "$choice" == "--help" || "$choice" == "help" ]]; then
         printf '%s\n' \
-            'Usage: brew-mirror [ustc|tuna|official|status]' \
-            '       brew-mirror          # interactive selection'
+            'Usage: brew mirror [<name>|official|status]' \
+            '       brew mirror          # interactive ↑↓ select (Esc/Ctrl+C cancel; Enter on * exits; * = active)'
         return
     fi
     if (( $# > 1 )); then
-        printf 'Usage: brew-mirror [ustc|tuna|official|status]\n' >&2
+        printf 'Usage: brew mirror [<name>|official|status]\n' >&2
         return 1
     fi
 
     if [[ -z "$choice" ]]; then
-        choice=$(_brew_mirror_select_interactive) || return $?
+        # Align with scoop mirror: cancel → "Canceled"/130; select active * → quiet exit.
+        if ! choice=$(_brew_mirror_select_interactive); then
+            local ec=$?
+            if (( ec == 130 )); then
+                printf 'Canceled\n'
+            fi
+            return "$ec"
+        fi
         local active
         active="${USE_HOMEBREW_MIRROR:-}"
         [[ -n "$active" ]] || active=$(_brew_mirror_persisted_id)
-        # Same as active: still migrate profile / remove legacy, but skip rewriting.
+        # Same as active: no mirror rewrite (like scoop), but still repair profile/legacy.
         if [[ -n "$active" && "$choice" == "$active" ]]; then
             _brew_mirror_remove_legacy || true
             _brew_mirror_ensure_profile || return 1
@@ -329,6 +409,26 @@ brew-mirror() {
     _brew_mirror_apply "$choice" || return 1
     printf 'Homebrew mirror switched to %s\n' "$choice"
     _brew_mirror_status
+}
+
+# scoop-style: brew mirror … (intercept brew; other subcommands pass through).
+# Always resolve the real binary via _brew_mirror_find_brew — never `command brew`,
+# so PATH-less installs (/opt/homebrew) still work and we never recurse into brew().
+brew() {
+    if [[ "${1:-}" == "mirror" ]]; then
+        if (( $# > 2 )); then
+            printf 'Usage: brew mirror [<name>|official|status]\n' >&2
+            return 1
+        fi
+        _brew_mirror_cli "${2:-}"
+        return $?
+    fi
+    local brew_bin
+    brew_bin=$(_brew_mirror_find_brew) || {
+        printf 'brew: Homebrew not found\n' >&2
+        return 127
+    }
+    "$brew_bin" "$@"
 }
 
 # When this helper is sourced from .zprofile before .zshrc_core, drop the legacy
