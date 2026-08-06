@@ -3,7 +3,8 @@ import { readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { formatAlignedChoices, formatChoiceLine, parseChoice } from './menu-select.mjs'
-import { stringWidth } from './string-width.mjs'
+import { formatSyncChoiceLine } from './sync-select.mjs'
+import { alignMenuCheck, MENU_CHECK, stringWidth } from './string-width.mjs'
 import { isSyncDirection, SYNC_DIRECTION_CHOICES, SYNC_DIRECTION_HINT } from './sync-direction.mjs'
 
 assert.deepEqual(parseChoice('lite) 尝鲜版'), { value: 'lite', label: '尝鲜版' })
@@ -26,9 +27,9 @@ const aligned = formatAlignedChoices([
 ], { activeValue: 'jd' })
 assert.equal(aligned[0].value, 'npm')
 assert.equal(aligned[1].value, 'jd')
-assert.match(aligned[0].label, /^  npm -+ https:\/\/registry\.npmjs\.org\/$/)
-assert.match(aligned[1].label, /^\* jd -+ http:\/\/registry\.m\.jd\.com\/$/)
-assert.match(aligned[2].label, /^  official -+ https:\/\/github\.com\/$/)
+assert.match(aligned[0].label, /^  npm\s+-{10} https:\/\/registry\.npmjs\.org\/$/)
+assert.match(aligned[1].label, /^\* jd\s+-{10} http:\/\/registry\.m\.jd\.com\/$/)
+assert.match(aligned[2].label, /^  official -{10} https:\/\/github\.com\/$/)
 // Mark column: * or space always at index 0
 assert.equal(aligned[0].label[0], ' ')
 assert.equal(aligned[1].label[0], '*')
@@ -37,17 +38,24 @@ assert.equal(aligned[2].label[0], ' ')
 assert.equal(aligned[0].label.indexOf('npm'), 2)
 assert.equal(aligned[1].label.indexOf('jd'), 2)
 assert.equal(aligned[2].label.indexOf('official'), 2)
-assert.ok(aligned[1].label.match(/-+/)[0].length > aligned[2].label.match(/-+/)[0].length)
+// Fixed dash column + space-padded names → dashes and URLs share columns
+assert.equal(aligned[0].label.match(/-+/)[0].length, aligned[2].label.match(/-+/)[0].length)
+assert.equal(aligned[0].label.indexOf('-'), aligned[1].label.indexOf('-'))
+assert.equal(aligned[1].label.indexOf('-'), aligned[2].label.indexOf('-'))
 assert.equal(aligned[0].label.indexOf('http'), aligned[1].label.indexOf('http'))
 assert.equal(aligned[1].label.indexOf('http'), aligned[2].label.indexOf('http'))
 
 const menuSource = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'menu-select.mjs'), 'utf8')
+const syncSource = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'sync-select.mjs'), 'utf8')
+const widthSource = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'string-width.mjs'), 'utf8')
 assert.match(menuSource, /formatChoiceLine/)
-assert.match(menuSource, /alignGlyph/)
-assert.match(menuSource, /string-width\.mjs/)
-assert.match(menuSource, /POINTER_ACTIVE = '✓'/)
+assert.match(menuSource, /alignMenuCheck/)
+assert.match(syncSource, /alignMenuCheck/)
+assert.match(widthSource, /export function alignMenuCheck/)
+assert.equal(MENU_CHECK, '✓')
 assert.ok(!menuSource.includes("POINTER_ACTIVE = '❯'"))
 assert.ok(!menuSource.includes('function cursorPointer'))
+assert.ok(!syncSource.includes("POINTER_ACTIVE = '>'"))
 
 assert.equal(isSyncDirection('1'), true)
 assert.equal(isSyncDirection('2'), true)
@@ -62,18 +70,24 @@ assert.match(menuSource, /\\x1B\[J/)
 assert.match(menuSource, /One write/)
 assert.ok(!menuSource.includes('clearPreviousFrame'))
 
-// Pointer column is fixed at 1 cell (ambiguousWide forced off), even if caller
-// asks for CJK-wide measurement elsewhere.
-for (const opts of [{ ambiguousWide: true }, { ambiguousWide: false }, {}]) {
-  const active = formatChoiceLine('label', true, opts)
-  const idle = formatChoiceLine('label', false, opts)
-  assert.equal(active, '✓ label')
-  assert.equal(idle, '  label')
-  const narrow = { ambiguousWide: false }
-  assert.equal(
-    stringWidth(active.slice(0, active.indexOf('label')), narrow),
-    stringWidth(idle.slice(0, idle.indexOf('label')), narrow),
-  )
-}
+assert.equal(alignMenuCheck(true), '✓')
+assert.equal(alignMenuCheck(false), ' ')
+
+// Single-select (scoop/brew mirror, sync direction, init menus)
+assert.equal(formatChoiceLine('label', true), '✓ label')
+assert.equal(formatChoiceLine('label', false), '  label')
+const narrow = { ambiguousWide: false }
+assert.equal(
+  stringWidth(formatChoiceLine('label', true).slice(0, 2), narrow),
+  stringWidth(formatChoiceLine('label', false).slice(0, 2), narrow),
+)
+
+// Multi-select (vpr sync file picker): leading ✓ and [✓] share the same chrome
+assert.equal(formatSyncChoiceLine('a.txt', { selected: true, active: false }), '  [✓] a.txt')
+assert.equal(formatSyncChoiceLine('b.txt', { selected: false, active: true }), '✓ [ ] b.txt')
+assert.equal(formatSyncChoiceLine('c.txt', { selected: true, active: true }), '✓ [✓] c.txt')
+const syncActive = formatSyncChoiceLine('x', { active: true })
+const syncIdle = formatSyncChoiceLine('x', { active: false })
+assert.equal(syncActive.indexOf('['), syncIdle.indexOf('['))
 
 console.log('menu-select.test.mjs: ok')

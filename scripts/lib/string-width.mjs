@@ -164,3 +164,21 @@ export function alignGlyph(glyph, variants, options = {}) {
   const width = Math.max(0, ...variants.map((item) => stringWidth(item, options)))
   return padEndWidth(glyph, width, options)
 }
+
+/** Cursor / toggle check used by ↑↓ menus. */
+export const MENU_CHECK = '✓'
+export const MENU_CHECK_IDLE = ' '
+
+/**
+ * Align menu ✓ chrome to one terminal column.
+ * ✓ is UAX#11 Ambiguous; many terminals (incl. CJK) still draw it as 1 cell, so
+ * locale Ambiguous=Wide padding shifts idle rows. Always force narrow here.
+ * @param {boolean} active
+ */
+export function alignMenuCheck(active) {
+  return alignGlyph(
+    active ? MENU_CHECK : MENU_CHECK_IDLE,
+    [MENU_CHECK, MENU_CHECK_IDLE],
+    { ambiguousWide: false },
+  )
+}
