@@ -299,7 +299,7 @@ brew-mirror() {
     if [[ "$choice" == "-h" || "$choice" == "--help" || "$choice" == "help" ]]; then
         printf '%s\n' \
             'Usage: brew-mirror [ustc|tuna|official|status]' \
-            '       brew-mirror          # interactive selection'
+            '       brew-mirror          # interactive select (fzf or numbered; Esc/Ctrl+C cancel; Enter on * exits; * = active)'
         return
     fi
     if (( $# > 1 )); then
@@ -308,15 +308,19 @@ brew-mirror() {
     fi
 
     if [[ -z "$choice" ]]; then
-        choice=$(_brew_mirror_select_interactive) || return $?
+        # Align with scoop mirror: cancel → "Canceled"/130; select active * → quiet exit.
+        if ! choice=$(_brew_mirror_select_interactive); then
+            local ec=$?
+            if (( ec == 130 )); then
+                printf 'Canceled\n'
+            fi
+            return "$ec"
+        fi
         local active
         active="${USE_HOMEBREW_MIRROR:-}"
         [[ -n "$active" ]] || active=$(_brew_mirror_persisted_id)
-        # Same as active: still migrate profile / remove legacy, but skip rewriting.
+        # Same as active: exit quietly (like Esc, but without "Canceled").
         if [[ -n "$active" && "$choice" == "$active" ]]; then
-            _brew_mirror_remove_legacy || true
-            _brew_mirror_ensure_profile || return 1
-            _brew_mirror_apply_env || return 1
             return 0
         fi
     fi
