@@ -11,9 +11,10 @@ import { formatLocalDisplay, formatRepoDisplay } from './sync-pairs.mjs'
 import { alignGlyph, truncateWidth } from './string-width.mjs'
 import { openTerminal, restoreFrame } from './tty-term.mjs'
 
-const POINTER_ACTIVE = '✓'
+// ASCII only: ✓ width differs by terminal font vs locale (see menu-select).
+const POINTER_ACTIVE = '>'
 const POINTER_IDLE = ' '
-const MARK_ON = '✓'
+const MARK_ON = 'x'
 const MARK_OFF = ' '
 
 export function formatSyncChoiceLine(label, { selected = false, active = false, labelMax = 30, widthOptions = {} } = {}) {

@@ -10,10 +10,12 @@ import { fileURLToPath } from 'node:url'
 import { alignGlyph } from './string-width.mjs'
 import { frameLines, openTerminal } from './tty-term.mjs'
 
-const POINTER_ACTIVE = '✓'
+// ASCII only: ambiguous glyphs like ✓ are 1 column in many terminals even when
+// locale says CJK, so East Asian Width padding still leaves labels jagged.
+const POINTER_ACTIVE = '>'
 const POINTER_IDLE = ' '
 
-/** Active/idle pointers share one display width (CJK-aware). */
+/** Active/idle pointers share one display width. */
 export function formatChoiceLine(label, selected, widthOptions = {}) {
   const pointer = alignGlyph(
     selected ? POINTER_ACTIVE : POINTER_IDLE,
@@ -148,6 +150,7 @@ export function parseChoice(raw) {
 
 /**
  * Build menu choices as "* name ---- detail" (active) or "  name ---- detail".
+ * Names are space-padded so mark / name / dashes / detail form fixed columns.
  * Cursor glyph is rendered separately via formatChoiceLine; * marks activeValue.
  * @param {{ value: string, name?: string, detail?: string }[]} items
  * @param {{ activeValue?: string, dashWidth?: number }} [options]
@@ -160,12 +163,13 @@ export function formatAlignedChoices(items, { activeValue = '', dashWidth = 10 }
   }))
   if (rows.length === 0) return []
   const nameWidth = Math.max(...rows.map((row) => row.name.length))
+  const dashes = '-'.repeat(dashWidth)
   return rows.map((row) => {
     const mark = row.value === String(activeValue) ? '*' : ' '
-    const dashes = '-'.repeat((nameWidth - row.name.length) + dashWidth)
+    const name = row.name.padEnd(nameWidth, ' ')
     return {
       value: row.value,
-      label: `${mark} ${row.name} ${dashes} ${row.detail}`,
+      label: `${mark} ${name} ${dashes} ${row.detail}`,
     }
   })
 }

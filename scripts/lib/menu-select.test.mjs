@@ -26,9 +26,9 @@ const aligned = formatAlignedChoices([
 ], { activeValue: 'jd' })
 assert.equal(aligned[0].value, 'npm')
 assert.equal(aligned[1].value, 'jd')
-assert.match(aligned[0].label, /^  npm -+ https:\/\/registry\.npmjs\.org\/$/)
-assert.match(aligned[1].label, /^\* jd -+ http:\/\/registry\.m\.jd\.com\/$/)
-assert.match(aligned[2].label, /^  official -+ https:\/\/github\.com\/$/)
+assert.match(aligned[0].label, /^  npm\s+-{10} https:\/\/registry\.npmjs\.org\/$/)
+assert.match(aligned[1].label, /^\* jd\s+-{10} http:\/\/registry\.m\.jd\.com\/$/)
+assert.match(aligned[2].label, /^  official -{10} https:\/\/github\.com\/$/)
 // Mark column: * or space always at index 0
 assert.equal(aligned[0].label[0], ' ')
 assert.equal(aligned[1].label[0], '*')
@@ -37,7 +37,10 @@ assert.equal(aligned[2].label[0], ' ')
 assert.equal(aligned[0].label.indexOf('npm'), 2)
 assert.equal(aligned[1].label.indexOf('jd'), 2)
 assert.equal(aligned[2].label.indexOf('official'), 2)
-assert.ok(aligned[1].label.match(/-+/)[0].length > aligned[2].label.match(/-+/)[0].length)
+// Fixed dash column + space-padded names → dashes and URLs share columns
+assert.equal(aligned[0].label.match(/-+/)[0].length, aligned[2].label.match(/-+/)[0].length)
+assert.equal(aligned[0].label.indexOf('-'), aligned[1].label.indexOf('-'))
+assert.equal(aligned[1].label.indexOf('-'), aligned[2].label.indexOf('-'))
 assert.equal(aligned[0].label.indexOf('http'), aligned[1].label.indexOf('http'))
 assert.equal(aligned[1].label.indexOf('http'), aligned[2].label.indexOf('http'))
 
@@ -45,7 +48,8 @@ const menuSource = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)),
 assert.match(menuSource, /formatChoiceLine/)
 assert.match(menuSource, /alignGlyph/)
 assert.match(menuSource, /string-width\.mjs/)
-assert.match(menuSource, /POINTER_ACTIVE = '✓'/)
+assert.match(menuSource, /POINTER_ACTIVE = '>'/)
+assert.ok(!menuSource.includes("POINTER_ACTIVE = '✓'"))
 assert.ok(!menuSource.includes("POINTER_ACTIVE = '❯'"))
 assert.ok(!menuSource.includes('function cursorPointer'))
 
@@ -70,6 +74,10 @@ for (const opts of [wide, narrow]) {
   const activePrefix = active.slice(0, active.indexOf('label'))
   const idlePrefix = idle.slice(0, idle.indexOf('label'))
   assert.equal(stringWidth(activePrefix, opts), stringWidth(idlePrefix, opts))
+  // ASCII pointer: code-unit length matches display width in every terminal
+  assert.equal(activePrefix.length, idlePrefix.length)
+  assert.equal(active.startsWith('> '), true)
+  assert.equal(idle.startsWith('  '), true)
 }
 
 console.log('menu-select.test.mjs: ok')
