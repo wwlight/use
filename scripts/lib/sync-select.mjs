@@ -8,12 +8,14 @@ import path from 'node:path'
 import readline from 'node:readline'
 import { fileURLToPath } from 'node:url'
 import { formatLocalDisplay, formatRepoDisplay } from './sync-pairs.mjs'
-import { alignMenuCheck, truncateWidth } from './string-width.mjs'
-import { openTerminal, restoreFrame } from './tty-term.mjs'
+import { truncateWidth } from './string-width.mjs'
+import { frameLines, openTerminal } from './tty-term.mjs'
 
 export function formatSyncChoiceLine(label, { selected = false, active = false, labelMax = 30, widthOptions = {} } = {}) {
+  // Active row only: ◆ checked / ◇ unchecked; idle blank. Selection mark stays in [ ].
+  const pointer = active ? (selected ? '◆' : '◇') : ' '
   const mark = selected ? '✓' : ' '
-  return `${alignMenuCheck(active)} [${mark}] ${truncateWidth(label, labelMax, widthOptions)}`
+  return `${pointer} [${mark}] ${truncateWidth(label, labelMax, widthOptions)}`
 }
 
 function parseItems(rawLines) {
@@ -87,15 +89,19 @@ function createMultiselect({ message, choices, input, output }) {
     const frame = state === 'submit' ? renderSubmitFrame() : renderActiveFrame()
     if (frame === prevFrame) return
 
+    // One write: move to menu top + erase down + paint.
+    // Avoid per-write erase/redraw; that flickers on Windows ConPTY / CONOUT$.
+    let payload = ''
     if (prevFrame) {
-      restoreFrame(output, prevFrame)
-      output.write('\x1B[J')
+      const up = frameLines(prevFrame)
+      if (up > 0) payload += `\x1B[${up}A\r`
+      payload += '\x1B[J'
     }
     else {
-      output.write('\x1B[?25l')
+      payload += '\x1B[?25l'
     }
-
-    output.write(frame)
+    payload += frame
+    output.write(payload)
     prevFrame = frame
   }
 

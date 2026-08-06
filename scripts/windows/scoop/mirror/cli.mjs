@@ -448,10 +448,7 @@ function switchMirror(choice, config) {
   setBucketRemotes(activePrefix, config)
   writeActivePrefix(config, activePrefix)
 
-  const next = { ...config, activePrefix }
-  const id = mirrorId(activePrefix, next)
-  console.log(`Scoop mirror switched to ${id}`)
-  printMirrorStatus(next)
+  printMirrorStatus({ ...config, activePrefix })
 }
 
 async function selectMirrorInteractively(config) {

@@ -50,11 +50,12 @@ const syncSource = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)),
 const widthSource = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'string-width.mjs'), 'utf8')
 assert.match(menuSource, /formatChoiceLine/)
 assert.match(menuSource, /alignMenuCheck/)
-assert.match(syncSource, /alignMenuCheck/)
 assert.match(widthSource, /export function alignMenuCheck/)
 assert.equal(MENU_CHECK, '✓')
 assert.ok(!menuSource.includes("POINTER_ACTIVE = '❯'"))
 assert.ok(!menuSource.includes('function cursorPointer'))
+assert.ok(!syncSource.includes('alignMenuCheck'))
+assert.ok(!syncSource.includes("POINTER_ACTIVE = '❯'"))
 assert.ok(!syncSource.includes("POINTER_ACTIVE = '>'"))
 
 assert.equal(isSyncDirection('1'), true)
@@ -82,15 +83,14 @@ assert.equal(
   stringWidth(formatChoiceLine('label', false).slice(0, 2), narrow),
 )
 
-// Multi-select (vpr sync file picker): only the leading ✓ cursor is width-fixed
+// Multi-select: active ◆/◇ by checked state; ✓ only inside [ ]
 assert.equal(formatSyncChoiceLine('a.txt', { selected: true, active: false }), '  [✓] a.txt')
-assert.equal(formatSyncChoiceLine('b.txt', { selected: false, active: true }), '✓ [ ] b.txt')
-assert.equal(formatSyncChoiceLine('c.txt', { selected: true, active: true }), '✓ [✓] c.txt')
-const syncActive = formatSyncChoiceLine('x', { active: true })
-const syncIdle = formatSyncChoiceLine('x', { active: false })
-assert.equal(syncActive.indexOf('['), syncIdle.indexOf('['))
-assert.match(syncSource, /alignMenuCheck\(active\)/)
-assert.ok(!syncSource.includes('alignMenuCheck(selected)'))
+assert.equal(formatSyncChoiceLine('b.txt', { selected: false, active: true }), '◇ [ ] b.txt')
+assert.equal(formatSyncChoiceLine('c.txt', { selected: true, active: true }), '◆ [✓] c.txt')
+assert.equal(
+  formatSyncChoiceLine('x', { active: true, selected: true }).indexOf('['),
+  formatSyncChoiceLine('x', { active: false }).indexOf('['),
+)
 assert.match(syncSource, /allowWindowsConsole:\s*true/)
 
 const syncDirectionSource = readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), 'sync-direction.mjs'), 'utf8')
