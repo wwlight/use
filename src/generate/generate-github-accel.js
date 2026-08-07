@@ -169,9 +169,7 @@ function readmeDocs(mirrors) {
     const sections = [
         '使用需要 Node.js 环境。',
         '',
-        '## 安装 [vite.plus](https://viteplus.dev/)',
-        '',
-        '仓库：https://github.com/voidzero-dev/vite-plus',
+        '## 前置：安装 [vite.plus](https://viteplus.dev/)',
         '',
         '### macos',
         '',

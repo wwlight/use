@@ -4,7 +4,7 @@
   "description": "A tool for managing my development environment",
   "type": "module",
   "engines": {
-    "node": ">=22"
+    "node": ">=18"
   },
   "scripts": {
     "pm": "node ./src/cli.js pm",
