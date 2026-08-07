@@ -19,6 +19,32 @@ const installer = read('runtime/scoop/accel.ps1')
 assert.match(installer, /Join-Path \$PSScriptRoot 'deploy\.ps1'/)
 assert.match(installer, /Join-Path \$Script:ProjectRoot 'src\\lib\\menu-select\.js'/)
 assert.ok(!/PSScriptRoot '..\\..\\src\\lib\\menu-select/.test(installer))
+
+// Windows PowerShell 5.1 footguns (one-click / scoop scripts run under 5.1, not only pwsh 7).
+const ps51Sources = [
+  'install.ps1',
+  'runtime/scoop/accel.ps1',
+  'runtime/scoop/install.ps1',
+  'runtime/scoop/utils.ps1',
+  'runtime/scoop/deploy.ps1',
+  'runtime/scoop/import-backup.ps1',
+  'runtime/scoop/mirror/hook.ps1',
+  'runtime/scoop/mirror/shared.ps1',
+  'runtime/scoop/services/manage.ps1',
+  'configs/windows/scoop/scoop.ps1',
+]
+for (const rel of ps51Sources) {
+  const src = read(rel)
+  assert.ok(!/^[ \t]*\|/m.test(src), `${rel}: leading '|' breaks PS 5.1 (EmptyPipeElement)`)
+  assert.ok(!/^[ \t]*(-and|-or)\b/m.test(src), `${rel}: leading -and/-or breaks PS 5.1 line continuation`)
+  assert.ok(!/\?\?/.test(src), `${rel}: ?? is PowerShell 7+`)
+  assert.ok(!/\?\.\w/.test(src), `${rel}: ?. is PowerShell 7+`)
+  assert.ok(!/(?<!\|)&\&(?!&)/.test(src), `${rel}: && statement separator is PowerShell 7+`)
+  assert.ok(!/(?<!\|)\|\|(?!\|)/.test(src), `${rel}: || statement separator is PowerShell 7+`)
+  assert.ok(!/-AsHashtable\b/.test(src), `${rel}: ConvertFrom-Json -AsHashtable is PowerShell 6+`)
+  assert.ok(!/-Parallel\b/.test(src), `${rel}: ForEach -Parallel is PowerShell 7+`)
+}
+
 assert.match(installer, /Invoke-ScoopMirrorAccelFilterInit/)
 assert.match(installer, /Install-ScoopMirrorAccelFiles/)
 assert.match(installer, /Install-ScoopServicesFiles/)
