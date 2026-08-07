@@ -201,7 +201,6 @@ function Expand-UseZipRepository {
   $tmp = Join-Path $parent ("use-zip-" + [guid]::NewGuid().ToString('N'))
   New-Item -ItemType Directory -Path $tmp -Force | Out-Null
   $zipFile = Join-Path $tmp 'use-main.zip'
-  $staging = $null
 
   try {
     foreach ($url in (Get-GithubZipCandidates)) {
@@ -218,40 +217,24 @@ function Expand-UseZipRepository {
         if (-not (Test-Path -LiteralPath $extracted)) {
           throw "Expected folder missing: $ZipExtractName"
         }
-
-        # Stage under a unique name first. Move-Item into an existing $Target directory
-        # nests as $Target\use-main (and fails if that leftover already exists).
-        $staging = Join-Path $parent ("use-new-" + [guid]::NewGuid().ToString('N'))
-        if (Test-Path -LiteralPath $staging) {
-          Remove-Item -LiteralPath $staging -Recurse -Force
-        }
-        Move-Item -LiteralPath $extracted -Destination $staging
-
+        # Caller must not pass a cwd/locked Target; refresh without Git uses a new directory.
         if (Test-Path -LiteralPath $Target) {
           Remove-Item -LiteralPath $Target -Recurse -Force
         }
         if (Test-Path -LiteralPath $Target) {
           throw "Could not replace existing directory: $Target"
         }
-        Move-Item -LiteralPath $staging -Destination $Target
-        $staging = $null
+        Move-Item -LiteralPath $extracted -Destination $Target
         Write-Info "Extracted repository to $Target"
         return $true
       }
       catch {
         Write-Warn "Zip fetch failed ($url): $($_.Exception.Message)"
-        if ($staging -and (Test-Path -LiteralPath $staging)) {
-          Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue
-          $staging = $null
-        }
       }
     }
     return $false
   }
   finally {
-    if ($staging -and (Test-Path -LiteralPath $staging)) {
-      Remove-Item -LiteralPath $staging -Recurse -Force -ErrorAction SilentlyContinue
-    }
     Remove-Item -LiteralPath $tmp -Recurse -Force -ErrorAction SilentlyContinue
   }
 }
@@ -433,17 +416,10 @@ elseif (Test-SameRemoteRepo $InstallDir) {
   Write-Info "Existing repository found at $InstallDir; syncing with origin/main ..."
   Update-UseRepository $InstallDir
 }
-elseif (
-  -not (Test-GitAvailable) -and
-  -not (Test-Path -LiteralPath (Join-Path $InstallDir '.git')) -and
-  (Test-Path -LiteralPath (Join-Path $InstallDir 'src\cli.js'))
-) {
-  Write-Info "Refreshing repository at $InstallDir (Git not available yet)..."
-  Fetch-UseRepository $InstallDir
-}
 else {
+  # Zip checkout may be the shell cwd (cannot delete). No Git → always fetch a fresh sibling dir.
   $InstallDir = Get-NextTimestampedDir $InstallDir
-  Write-Info "Directory is in use; fetching to $InstallDir ..."
+  Write-Info "Fetching repository to $InstallDir ..."
   Fetch-UseRepository $InstallDir
 }
 
