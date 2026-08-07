@@ -30,12 +30,14 @@ assert.match(installer, /Install-ScoopBootstrapApps/)
 assert.match(installer, /Ensure-ScoopGitRepositories/)
 assert.match(installer, /Ensure-ScoopMainBucketGit/)
 assert.match(installer, /Get-ScoopKnownMainBucketUrl/)
+assert.match(installer, /Complete-ScoopCoreGitConversion/)
 assert.match(installer, /--no-update-scoop/)
 assert.match(installer, /function Ensure-ScoopGitRepositories/)
 assert.match(installer, /scoop update/)
 assert.ok(!/main bucket is still missing \.git; bucket mirror updates may be incomplete/.test(installer),
   'main bucket failure must hard-fail before aria2, not soft-warn')
 assert.match(installer, /main bucket is still missing \.git after mirrored add/)
+assert.match(installer, /adopting git metadata into current install/)
 assert.ok(!/scoop update failed; cannot prepare Scoop git repositories/.test(installer),
   'do not hard-fail scoop update when core .git may already exist')
 assert.match(installer, /scoop-mirror\\cli\.js/)
@@ -316,10 +318,14 @@ const ensureGit = installer.match(/function Ensure-ScoopGitRepositories[\s\S]*?\
 assert.match(ensureGit, /Repair-ScoopRepoConfig/)
 assert.match(ensureGit, /Get-ScoopRepoTargetUrl/)
 assert.match(ensureGit, /Ensure-ScoopMainBucketGit/)
+assert.match(ensureGit, /Complete-ScoopCoreGitConversion/)
 const ensureMainCallAt = ensureGit.indexOf('Ensure-ScoopMainBucketGit -ActivePrefix')
 const scoopUpdateCmdAt = ensureGit.search(/^\s*scoop update\s*$/m)
+const completeCoreAt = ensureGit.indexOf('Complete-ScoopCoreGitConversion')
 assert.ok(ensureMainCallAt > 0 && scoopUpdateCmdAt > ensureMainCallAt,
   'main bucket must be mirrored-git before scoop update')
+assert.ok(completeCoreAt > scoopUpdateCmdAt,
+  'core git swap/adopt must run after scoop update when .git is still missing')
 
 const ensureMain = installer.match(/function Ensure-ScoopMainBucketGit[\s\S]*?\nfunction /)?.[0] || ''
 assert.match(ensureMain, /Get-ScoopKnownMainBucketUrl/)
@@ -331,6 +337,12 @@ assert.ok(!/ghfast\.top/.test(ensureMain), 'do not hardcode a mirror host in mai
 const knownMain = installer.match(/function Get-ScoopKnownMainBucketUrl[\s\S]*?\nfunction /)?.[0] || ''
 assert.match(knownMain, /buckets\.json/)
 assert.match(knownMain, /ScoopInstaller\/Main/)
+
+const completeCore = installer.match(/function Complete-ScoopCoreGitConversion[\s\S]*?\nfunction /)?.[0] || ''
+assert.match(completeCore, /Rename-Item/)
+assert.match(completeCore, /Copy-Item -LiteralPath \$newGit/)
+assert.match(completeCore, /git clone/)
+assert.match(completeCore, /Folder in use|adopting git metadata/)
 
 const rewrite = installer.match(/function Rewrite-ScoopInstallerGithubUrls[\s\S]*?\nfunction /)?.[0] || ''
 assert.match(rewrite, /Get-ScoopInstallerBootstrapUrls|ScoopInstaller\/Scoop\/archive\/master\.zip/)
