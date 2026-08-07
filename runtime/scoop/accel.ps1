@@ -649,6 +649,59 @@ function Install-ScoopBootstrapApps {
     }
 }
 
+function Get-ScoopKnownMainBucketUrl {
+    $bucketsJson = Join-Path $env:SCOOP 'apps\scoop\current\buckets.json'
+    if (Test-Path -LiteralPath $bucketsJson) {
+        try {
+            $data = Get-Content -LiteralPath $bucketsJson -Raw -Encoding UTF8 | ConvertFrom-Json
+            $url = [string]$data.main
+            if (-not [string]::IsNullOrWhiteSpace($url)) { return $url.Trim() }
+        }
+        catch { }
+    }
+    return 'https://github.com/ScoopInstaller/Main'
+}
+
+# Convert zip main → git via mirrored URL BEFORE scoop update.
+# scoop update otherwise rm's main and re-adds from official GitHub (no scoop_repo).
+function Ensure-ScoopMainBucketGit {
+    param(
+        [string]$ActivePrefix = '',
+        $Prefixes
+    )
+
+    $mainRoot = Join-Path $env:SCOOP 'buckets\main'
+    $mainGit = Join-Path $mainRoot '.git'
+    if (Test-Path -LiteralPath $mainGit) {
+        return
+    }
+
+    if ($null -eq $Prefixes) { $Prefixes = Get-ScoopMirrorPrefixes }
+    $ActivePrefix = Resolve-ScoopKnownMirrorPrefix -Prefix $ActivePrefix -Prefixes $Prefixes -Quiet
+    $bare = Get-ScoopKnownMainBucketUrl
+    $url = Join-ScoopMirrorUrl -Url $bare -Prefix $ActivePrefix -AllPrefixes $Prefixes
+    $label = Format-ScoopMirrorActiveLabel -ActivePrefix $ActivePrefix
+    Write-Info "Ensuring main bucket as git repo via $label ($url)"
+
+    if (Test-Path -LiteralPath $mainRoot) {
+        scoop bucket rm main 2>$null | Out-Null
+        if (Test-Path -LiteralPath $mainRoot) {
+            Remove-Item -LiteralPath $mainRoot -Recurse -Force -ErrorAction SilentlyContinue
+        }
+    }
+    if (Test-Path -LiteralPath $mainRoot) {
+        Write-ErrorAndExit "Could not remove zip main bucket at $mainRoot"
+    }
+
+    scoop bucket add main $url
+    if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $mainGit)) {
+        Write-ErrorAndExit (
+            "Failed to add main bucket via $label ($url). " +
+            'Check network/mirror, then rerun: vpr pm'
+        )
+    }
+}
+
 function Ensure-ScoopGitRepositories {
     param(
         [string]$ActivePrefix = '',
@@ -673,19 +726,24 @@ function Ensure-ScoopGitRepositories {
     if ([string]::IsNullOrWhiteSpace($ActivePrefix)) {
         $ActivePrefix = Get-ScoopMirrorActivePrefix
     }
-    $expectedRepo = Get-ScoopRepoTargetUrl -ActivePrefix $ActivePrefix -Accel $Accel
+    $prefixes = Get-ScoopMirrorPrefixes
+    $ActivePrefix = Resolve-ScoopKnownMirrorPrefix -Prefix $ActivePrefix -Prefixes $prefixes
+
+    $expectedRepo = Get-ScoopRepoTargetUrl -ActivePrefix $ActivePrefix -Accel $Accel -Prefixes $prefixes
     Repair-ScoopRepoConfig -ExpectedUrl $expectedRepo
 
-    Write-Info 'Running scoop update to convert Scoop/buckets into git repositories...'
+    # Must run before scoop update so it does not wipe zip main and clone official GitHub.
+    Ensure-ScoopMainBucketGit -ActivePrefix $ActivePrefix -Prefixes $prefixes
+
+    Write-Info 'Running scoop update to convert Scoop into a git repository...'
     scoop update
     Update-ScoopSessionPath
 
-    # Core .git is required for formal repair; tolerate partial bucket failures.
     if (-not (Test-Path -LiteralPath $scoopGit)) {
         Write-ErrorAndExit 'Scoop is still missing .git after scoop update'
     }
     if (-not (Test-Path -LiteralPath $mainGit)) {
-        Write-Warn 'main bucket is still missing .git; bucket mirror updates may be incomplete'
+        Write-ErrorAndExit 'main bucket is still missing .git after mirrored add + scoop update'
     }
 }
 
