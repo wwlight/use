@@ -57,6 +57,8 @@ const enableAccel = installer.slice(installer.indexOf('function Enable-ScoopAcce
 assert.match(enableAccel, /Install-ScoopMirrorAccelFiles/)
 assert.match(enableAccel, /Install-ScoopServicesFiles/)
 assert.match(enableAccel, /Resolve-ScoopKnownMirrorPrefix/)
+assert.match(enableAccel, /Set-ScoopRepoConfig/)
+assert.match(enableAccel, /Get-ScoopRepoTargetUrl/)
 assert.ok(!/Install-ScoopDownloadHook/.test(enableAccel), 'Enable must not install download hook')
 assert.ok(!/Set-ScoopBucketMirrors/.test(enableAccel), 'Enable must not rewrite bucket remotes')
 assert.ok(!/Install-ScoopAria2Accel/.test(enableAccel), 'Enable must not configure aria2')
@@ -279,17 +281,36 @@ assert.match(bootstrap, /Trying installer/)
 assert.match(bootstrap, /Installer succeeded/)
 assert.match(bootstrap, /Installer failed/)
 assert.match(bootstrap, /active mirror set to/)
-assert.match(bootstrap, /\$null\s*=\s*Invoke-Expression/,
-  'discard Scoop Write-InstallInfo Write-Output or it pollutes activePrefix/scoop_repo')
+assert.match(bootstrap, /\[ref\]\$OutPrefix/, 'OutPrefix avoids return-value pollution into ActivePrefix')
+assert.match(bootstrap, /ForEach-Object\s*\{\s*Write-Host/,
+  'installer Write-Output must go to host, not the success stream')
+assert.match(bootstrap, /\$OutPrefix\.Value\s*=\s*\$successPrefix/)
+assert.ok(!/return \$successPrefix/.test(bootstrap), 'do not return prefix via success stream')
 assert.match(bootstrap, /Resolve-ScoopKnownMirrorPrefix/)
-assert.match(bootstrap, /return \$successPrefix/)
 assert.ok(!/\$null\s*=\s*\$PreferredPrefix/.test(bootstrap), 'must not discard PreferredPrefix')
 assert.ok(!/Mirror acceleration starts after Scoop installs/.test(bootstrap))
 
 assert.match(installer, /function Resolve-ScoopKnownMirrorPrefix/)
+assert.match(installer, /function Test-ScoopRepoUrl/)
+assert.match(installer, /function Set-ScoopRepoConfig/)
+assert.match(installer, /function Repair-ScoopRepoConfig/)
+assert.match(installer, /function Get-ScoopRepoTargetUrl/)
 const knownPrefix = installer.match(/function Resolve-ScoopKnownMirrorPrefix[\s\S]*?\nfunction /)?.[0] || ''
-assert.match(knownPrefix, /Ignoring invalid Scoop mirror prefix/)
+assert.match(knownPrefix, /System\.Array|polluted installer output/)
+assert.match(knownPrefix, /Ignoring invalid Scoop mirror prefix|not in catalog/)
 assert.match(knownPrefix, /return ''/)
+
+const testRepoUrl = installer.match(/function Test-ScoopRepoUrl[\s\S]*?\nfunction /)?.[0] || ''
+assert.match(testRepoUrl, /Scoop was installed/)
+assert.match(testRepoUrl, /\^https\?:\/\//)
+
+const repairRepo = installer.match(/function Repair-ScoopRepoConfig[\s\S]*?\nfunction /)?.[0] || ''
+assert.match(repairRepo, /invalid\/polluted/)
+assert.match(repairRepo, /Set-ScoopRepoConfig/)
+
+const ensureGit = installer.match(/function Ensure-ScoopGitRepositories[\s\S]*?\nfunction /)?.[0] || ''
+assert.match(ensureGit, /Repair-ScoopRepoConfig/)
+assert.match(ensureGit, /Get-ScoopRepoTargetUrl/)
 
 const rewrite = installer.match(/function Rewrite-ScoopInstallerGithubUrls[\s\S]*?\nfunction /)?.[0] || ''
 assert.match(rewrite, /Get-ScoopInstallerBootstrapUrls|ScoopInstaller\/Scoop\/archive\/master\.zip/)
@@ -309,13 +330,14 @@ assert.match(fetchAttempts, /official: do not probe mirrors first|do not probe m
 
 const scoopInstall = read('runtime/scoop/install.ps1')
 assert.match(scoopInstall, /\$selectedPrefix = Resolve-ScoopMirrorSelection/)
-assert.match(scoopInstall, /\$activePrefix = Invoke-ScoopInstallScriptWithFallback/)
+assert.match(scoopInstall, /Invoke-ScoopInstallScriptWithFallback/)
+assert.match(scoopInstall, /OutPrefix\s*\(\[ref\]\$installedPrefix\)/)
 assert.match(scoopInstall, /Resolve-ScoopKnownMirrorPrefix/)
 assert.match(scoopInstall, /after install fallback/)
 assert.match(scoopInstall, /Enable-ScoopAccel/)
 assert.match(scoopInstall, /Test-ScoopFormalRepairReady/)
 assert.match(scoopInstall, /Install-ScoopBootstrapApps/)
-assert.match(scoopInstall, /Ensure-ScoopGitRepositories/)
+assert.match(scoopInstall, /Ensure-ScoopGitRepositories\s+-ActivePrefix/)
 assert.match(scoopInstall, /Install-ScoopDownloadHook/)
 assert.match(scoopInstall, /Set-ScoopBucketMirrors/)
 assert.match(scoopInstall, /Install-ScoopAria2Accel/)
@@ -355,6 +377,13 @@ assert.ok(!/function Install-ScoopBootstrap\b/.test(rootInstall), 'Scoop bootstr
 assert.ok(!/Install-ScoopBootstrap\b/.test(rootInstall), 'one-click must not bootstrap Scoop before pm')
 assert.ok(!/Node\.js >= 22/.test(rootInstall), 'installer must not hard-require Node 22')
 assert.match(rootInstall, /open a new terminal and rerun/)
+const expandZip = rootInstall.match(/function Expand-UseZipRepository[\s\S]*?\nfunction /)?.[0] || ''
+assert.match(expandZip, /use-new-/, 'stage zip extract under unique name before replacing Target')
+assert.match(expandZip, /Could not replace existing directory/)
+assert.ok(
+  !/Remove-Item -LiteralPath \$Target -Recurse -Force -ErrorAction SilentlyContinue/.test(expandZip),
+  'do not SilentlyContinue when replacing InstallDir — Move-Item would nest use-main inside it',
+)
 assert.ok(
   /Setup-NodeManager[\s\S]*Invoke-Expression[\s\S]*Test-NodeAvailable[\s\S]*open a new terminal/.test(
     rootInstall.match(/function Install-NodeViaVitePlus[\s\S]*?\nfunction /)?.[0] || '',

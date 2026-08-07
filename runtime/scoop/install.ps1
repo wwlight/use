@@ -47,8 +47,10 @@ if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
     try {
         $ErrorActionPreference = 'Stop'
         # Use the mirror that actually installed Scoop (preferred → fallback → official).
-        $activePrefix = Invoke-ScoopInstallScriptWithFallback -Accel $accel -PreferredPrefix $selectedPrefix
-        $activePrefix = Resolve-ScoopKnownMirrorPrefix -Prefix $activePrefix
+        # OutPrefix avoids installer Write-Output joining into ActivePrefix/scoop_repo.
+        $installedPrefix = ''
+        Invoke-ScoopInstallScriptWithFallback -Accel $accel -PreferredPrefix $selectedPrefix -OutPrefix ([ref]$installedPrefix)
+        $activePrefix = Resolve-ScoopKnownMirrorPrefix -Prefix $installedPrefix
         # Keep binary operators at end of line — PowerShell does not continue across bare newlines.
         $mirrorChanged = [string]$activePrefix -ne [string]$selectedPrefix -and -not (
             [string]::IsNullOrWhiteSpace($activePrefix) -and
@@ -87,7 +89,7 @@ Enable-ScoopAccel -Manifest $manifest -ActivePrefix $activePrefix
 $formalReady = Test-ScoopFormalRepairReady
 Install-ScoopDownloadHook
 Install-ScoopBootstrapApps
-Ensure-ScoopGitRepositories
+Ensure-ScoopGitRepositories -ActivePrefix $activePrefix -Accel $accel
 if (-not $formalReady) {
     Install-ScoopDownloadHook
 }

@@ -85,16 +85,33 @@ function Join-ScoopMirrorUrl {
 }
 
 # Empty string = official (no mirror). Unknown/polluted values → official + warning.
+# Accepts arrays: Scoop installer Write-Output can pollute pipeline returns; scan elements.
 function Resolve-ScoopKnownMirrorPrefix {
     param(
         [AllowNull()]
-        [string]$Prefix,
-        $Prefixes
+        $Prefix,
+        $Prefixes,
+        [switch]$Quiet
     )
     if ($null -eq $Prefixes) { $Prefixes = Get-ScoopMirrorPrefixes }
-    if ([string]::IsNullOrWhiteSpace($Prefix)) { return '' }
+    if ($null -eq $Prefix) { return '' }
 
-    $needle = $Prefix.Trim()
+    # Pipeline pollution → Object[]; find the last catalog prefix among elements.
+    if ($Prefix -is [System.Array]) {
+        $found = ''
+        foreach ($item in @($Prefix)) {
+            $hit = Resolve-ScoopKnownMirrorPrefix -Prefix $item -Prefixes $Prefixes -Quiet
+            if (-not [string]::IsNullOrWhiteSpace($hit)) { $found = $hit }
+        }
+        if ([string]::IsNullOrWhiteSpace($found) -and -not $Quiet) {
+            Write-Warn 'Ignoring invalid Scoop mirror prefix (polluted installer output)'
+        }
+        return $found
+    }
+
+    $needle = [string]$Prefix
+    if ([string]::IsNullOrWhiteSpace($needle)) { return '' }
+    $needle = $needle.Trim()
     foreach ($p in @($Prefixes)) {
         $known = [string]$p
         if ([string]::IsNullOrWhiteSpace($known)) { continue }
@@ -106,8 +123,73 @@ function Resolve-ScoopKnownMirrorPrefix {
         }
     }
 
-    Write-Warn "Ignoring invalid Scoop mirror prefix (not in catalog): $needle"
+    if (-not $Quiet) {
+        Write-Warn "Ignoring invalid Scoop mirror prefix (not in catalog): $needle"
+    }
     return ''
+}
+
+function Test-ScoopRepoUrl {
+    param([string]$Url)
+    if ([string]::IsNullOrWhiteSpace($Url)) { return $false }
+    $u = $Url.Trim()
+    if ($u -match '\s') { return $false }
+    if ($u -notmatch '^https?://') { return $false }
+    # Classic pollution: installer Write-Output joined into scoop_repo.
+    if ($u -match 'Initializing\.\.\.|Scoop was installed|Downloading\.\.\.|Extracting\.\.\.|Creating shim') {
+        return $false
+    }
+    return $true
+}
+
+function Get-ScoopRepoTargetUrl {
+    param(
+        [string]$ActivePrefix,
+        $Accel,
+        $Prefixes
+    )
+    if (-not $Accel) { $Accel = Get-ScoopAccelConfig }
+    if ($null -eq $Prefixes) { $Prefixes = Get-ScoopMirrorPrefixes }
+    $prefix = Resolve-ScoopKnownMirrorPrefix -Prefix $ActivePrefix -Prefixes $Prefixes -Quiet
+    $bare = [string]$Accel.scoopRepo
+    if ([string]::IsNullOrWhiteSpace($bare)) {
+        $bare = 'https://github.com/ScoopInstaller/Scoop'
+    }
+    return (Join-ScoopMirrorUrl -Url $bare -Prefix $prefix -AllPrefixes $Prefixes)
+}
+
+function Set-ScoopRepoConfig {
+    param([Parameter(Mandatory)][string]$Url)
+    if (-not (Test-ScoopRepoUrl -Url $Url)) {
+        Write-ErrorAndExit "Refusing to set scoop_repo to invalid URL: $Url"
+    }
+    # scoop config prints the value; discard so callers never capture it.
+    $null = scoop config scoop_repo $Url
+}
+
+# Self-heal polluted scoop_repo (from older installer return-value bugs) before scoop update.
+function Repair-ScoopRepoConfig {
+    param([Parameter(Mandatory)][string]$ExpectedUrl)
+
+    $current = ''
+    try {
+        $raw = scoop config scoop_repo 2>$null
+        if ($null -ne $raw) {
+            $current = ([string](@($raw) | Select-Object -Last 1)).Trim()
+        }
+    }
+    catch { }
+
+    if ((Test-ScoopRepoUrl -Url $current) -and $current -eq $ExpectedUrl) {
+        return
+    }
+    if (-not (Test-ScoopRepoUrl -Url $current)) {
+        Write-Warn "scoop_repo is invalid/polluted; resetting to $ExpectedUrl"
+    }
+    else {
+        Write-Info "Updating scoop_repo to $ExpectedUrl"
+    }
+    Set-ScoopRepoConfig -Url $ExpectedUrl
 }
 
 function Get-ScoopMirrorFetchAttempts {
@@ -353,7 +435,10 @@ function Rewrite-ScoopInstallerGithubUrls {
 function Invoke-ScoopInstallScriptWithFallback {
     param(
         $Accel,
-        [string]$PreferredPrefix = $null
+        [string]$PreferredPrefix = $null,
+        # Prefer [ref] over return: installer Write-Output must never join into ActivePrefix.
+        [Parameter(Mandatory)]
+        [ref]$OutPrefix
     )
 
     $url = [string]$Accel.installScript
@@ -367,6 +452,7 @@ function Invoke-ScoopInstallScriptWithFallback {
         Write-ErrorAndExit 'No Scoop installer URL candidates'
     }
 
+    $OutPrefix.Value = ''
     $errors = New-Object System.Collections.Generic.List[string]
     foreach ($attempt in $attempts) {
         $label = Format-ScoopMirrorActiveLabel -ActivePrefix $attempt.Prefix
@@ -386,20 +472,21 @@ function Invoke-ScoopInstallScriptWithFallback {
             }
 
             # Concatenate (do not interpolate) so installer $-variables stay intact.
-            # Scoop's Write-InstallInfo uses Write-Output; discard it or it pollutes this
-            # function's return value and later becomes scoop_repo (git: protocol '... https').
-            if (Test-Administrator) {
-                $null = Invoke-Expression ('& { ' + $script + ' } -RunAsAdmin')
+            # Scoop Write-InstallInfo → Write-Output: echo to host, never success stream.
+            $expression = if (Test-Administrator) {
+                '& { ' + $script + ' } -RunAsAdmin'
             }
             else {
-                $null = Invoke-Expression $script
+                $script
             }
+            Invoke-Expression $expression | ForEach-Object { Write-Host $_ }
 
             # Persist the source that actually installed Scoop (may differ from selection after fallback).
             $successPrefix = Resolve-ScoopKnownMirrorPrefix -Prefix $attempt.Prefix -Prefixes $prefixes
             $successLabel = Format-ScoopMirrorActiveLabel -ActivePrefix $successPrefix
             Write-Info "Installer succeeded ($successLabel); active mirror set to $successLabel"
-            return $successPrefix
+            $OutPrefix.Value = $successPrefix
+            return
         }
         catch {
             $msg = $_.Exception.Message
@@ -563,6 +650,11 @@ function Install-ScoopBootstrapApps {
 }
 
 function Ensure-ScoopGitRepositories {
+    param(
+        [string]$ActivePrefix = '',
+        $Accel
+    )
+
     if (-not (Get-Command git.exe -ErrorAction SilentlyContinue)) {
         Write-ErrorAndExit 'Git is required to convert Scoop into a git repository'
     }
@@ -576,6 +668,13 @@ function Ensure-ScoopGitRepositories {
         Write-Info 'Scoop and main bucket are already git repositories'
         return
     }
+
+    if (-not $Accel) { $Accel = Get-ScoopAccelConfig }
+    if ([string]::IsNullOrWhiteSpace($ActivePrefix)) {
+        $ActivePrefix = Get-ScoopMirrorActivePrefix
+    }
+    $expectedRepo = Get-ScoopRepoTargetUrl -ActivePrefix $ActivePrefix -Accel $Accel
+    Repair-ScoopRepoConfig -ExpectedUrl $expectedRepo
 
     Write-Info 'Running scoop update to convert Scoop/buckets into git repositories...'
     scoop update
@@ -730,13 +829,8 @@ function Enable-ScoopAccel {
         }
     }
 
-    if ([string]::IsNullOrWhiteSpace($ActivePrefix)) {
-        scoop config scoop_repo ([string]$accel.scoopRepo)
-    }
-    else {
-        $scoopRepo = Join-ScoopMirrorUrl -Url ([string]$accel.scoopRepo) -Prefix $ActivePrefix -AllPrefixes $prefixes
-        scoop config scoop_repo $scoopRepo
-    }
+    $scoopRepo = Get-ScoopRepoTargetUrl -ActivePrefix $ActivePrefix -Accel $accel -Prefixes $prefixes
+    Set-ScoopRepoConfig -Url $scoopRepo
 
     Install-ScoopMirrorAccelFiles -Accel $accel -ActivePrefix $ActivePrefix -Prefixes $prefixes
     Install-ScoopServicesFiles
