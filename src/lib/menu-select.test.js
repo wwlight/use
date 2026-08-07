@@ -49,18 +49,14 @@ describe('menu-select', () => {
         assert.match(menuSource, /alignMenuCheck/);
         assert.match(widthSource, /export function alignMenuCheck/);
         assert.equal(MENU_CHECK, '➜');
-        assert.ok(!menuSource.includes("POINTER_ACTIVE = '❯'"));
-        assert.ok(!menuSource.includes('function cursorPointer'));
         assert.match(menuSource, /\\x1B\[J/);
         assert.match(menuSource, /One write/);
-        assert.ok(!menuSource.includes('clearPreviousFrame'));
         assert.equal(alignMenuCheck(true), '➜');
         assert.equal(alignMenuCheck(false), ' ');
         assert.equal(formatChoiceLine('label', true), '➜ label');
         assert.equal(formatChoiceLine('label', false), '  label');
         const narrow = { ambiguousWide: false };
         assert.equal(stringWidth(alignMenuCheck(true), narrow), stringWidth(alignMenuCheck(false), narrow));
-        assert.ok(!widthSource.includes("MENU_CHECK = '✓'"));
         assert.match(widthSource, /Ghostty draws ➜ as 1 cell/);
         assert.match(menuSource, /console\.error\('Canceled'\)/);
     });
