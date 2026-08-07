@@ -244,9 +244,10 @@ function Get-ScoopMirrorUrlCandidates {
         $Prefixes,
         [string]$PreferredPrefix = $null
     )
+    # Pipe must end the previous line — Windows PowerShell 5.1 rejects a leading `|`.
     return @(
-        Get-ScoopMirrorFetchAttempts -Url $Url -Prefixes $Prefixes -PreferredPrefix $PreferredPrefix
-        | ForEach-Object { $_.Url }
+        Get-ScoopMirrorFetchAttempts -Url $Url -Prefixes $Prefixes -PreferredPrefix $PreferredPrefix |
+            ForEach-Object { $_.Url }
     )
 }
 
