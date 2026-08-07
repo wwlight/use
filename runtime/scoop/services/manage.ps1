@@ -7,6 +7,15 @@ param(
     [string[]]$CommandArgs
 )
 
+# powershell/pwsh -File often leaves tokens in $args instead of ValueFromRemainingArguments
+# when the other parameters are only switches. Fall back so `scoop services install nginx` works.
+if (($null -eq $CommandArgs -or @($CommandArgs).Count -eq 0) -and @($args).Count -gt 0) {
+    $CommandArgs = @($args | ForEach-Object { [string]$_ })
+}
+if ($null -eq $CommandArgs) {
+    $CommandArgs = @()
+}
+
 if (-not $env:SCOOP) {
     [Console]::Error.WriteLine('scoop services: $env:SCOOP is not set')
     $global:LASTEXITCODE = 1
@@ -193,7 +202,8 @@ function Invoke-ScoopServicesList {
         [Console]::Error.WriteLine("winsw: WinSW not found at $winswExe (run 'scoop install winsw-pre')")
         Stop-ScoopServicesCli -Code 1
     }
-    $xmls = Get-ChildItem (Join-Path $env:SCOOP 'persist\*-winsw-service.xml') -Recurse -ErrorAction SilentlyContinue
+    # XMLs live at persist/<app>/<app>-winsw-service.xml (same depth as scoop.ps1 / scoop.zsh).
+    $xmls = @(Get-ChildItem -Path (Join-Path $env:SCOOP 'persist\*\*-winsw-service.xml') -File -ErrorAction SilentlyContinue)
     Write-Output ("{0} {1} Path" -f ('Name'.PadRight(15)), ('Status'.PadRight(15)))
     foreach ($xml in $xmls) {
         $name = $xml.Directory.Name

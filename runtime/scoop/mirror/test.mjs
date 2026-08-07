@@ -279,6 +279,10 @@ assert.match(servicesHelper, /restartOnUpdate/)
 assert.match(servicesHelper, /Restarting service/)
 assert.match(servicesHelper, /WarnIfMissing/)
 assert.match(servicesHelper, /Get-ScoopServicesManifest -WarnIfMissing/)
+// -File leaves tokens in $args; list XMLs at persist/<app>/*-winsw-service.xml
+assert.match(servicesHelper, /\$CommandArgs = @\(\$args/)
+assert.match(servicesHelper, /persist\\\*\\\*-winsw-service\.xml/)
+assert.ok(!/Get-ChildItem \(Join-Path \$env:SCOOP 'persist\\\*-winsw-service\.xml'\)/.test(servicesHelper))
 
 const importBackup = read('runtime/scoop/import-backup.ps1')
 assert.match(importBackup, /New-ScoopMirroredImportFile/)
