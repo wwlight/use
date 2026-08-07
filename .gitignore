@@ -2,3 +2,4 @@
 .vscode
 .serena/
 node_modules/
+.tmp-vpr-sync-test/

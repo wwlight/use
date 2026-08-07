@@ -1,5 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import { info, warn } from "./log.js";
 import { loadManifest } from "./manifest.js";
 export function normalizeRepoUrl(url) {
@@ -43,35 +45,84 @@ function runGit(cwd, args) {
     const result = spawnSync('git', args, { cwd, stdio: 'ignore' });
     return result.status === 0;
 }
+export function isGitRepo(dir) {
+    return fs.existsSync(`${dir}/.git`);
+}
 export function isSameRemoteRepo(dir, expected) {
-    if (!fs.existsSync(`${dir}/.git`))
+    if (!isGitRepo(dir))
         return false;
     const result = spawnSync('git', ['-C', dir, 'remote', 'get-url', 'origin'], { encoding: 'utf8' });
     if (result.status !== 0)
         return false;
     return normalizeRepoUrl(result.stdout.trim()) === normalizeRepoUrl(expected);
 }
-export function syncGitRepoPlugin(repo, targetDir, pluginName, update = false) {
-    if (!fs.existsSync(targetDir)) {
-        info(`Downloading plugin: ${pluginName}...`);
-        for (const url of githubRepoCandidates(repo)) {
-            const result = spawnSync('git', ['clone', '--depth=1', url, targetDir], { stdio: 'ignore' });
-            if (result.status === 0) {
-                info(`Installed plugin: ${pluginName}`);
-                return;
-            }
+function cloneGitRepoPlugin(repo, targetDir, pluginName) {
+    info(`Downloading plugin: ${pluginName}...`);
+    for (const url of githubRepoCandidates(repo)) {
+        const result = spawnSync('git', ['clone', '--depth=1', url, targetDir], { stdio: 'ignore' });
+        if (result.status === 0) {
+            info(`Installed plugin: ${pluginName}`);
+            return;
         }
-        throw new Error(`Failed to install plugin: ${pluginName}`);
     }
+    throw new Error(`Failed to install plugin: ${pluginName}`);
+}
+function moveDir(src, dest) {
+    try {
+        fs.renameSync(src, dest);
+    }
+    catch (err) {
+        if (err?.code !== 'EXDEV')
+            throw err;
+        fs.cpSync(src, dest, { recursive: true });
+        fs.rmSync(src, { recursive: true, force: true });
+    }
+}
+/** Clone into a temp dir first; only replace target after a successful clone. */
+function reinstallGitRepoPlugin(repo, targetDir, pluginName) {
+    const parent = path.dirname(targetDir);
+    fs.mkdirSync(parent, { recursive: true });
+    const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), `vpr-plugin-${pluginName}-`));
+    const staged = path.join(tempDir, 'repo');
+    const backup = path.join(parent, `.${path.basename(targetDir)}.vpr-old-${process.pid}`);
+    try {
+        cloneGitRepoPlugin(repo, staged, pluginName);
+        fs.rmSync(backup, { recursive: true, force: true });
+        fs.renameSync(targetDir, backup);
+        try {
+            moveDir(staged, targetDir);
+        }
+        catch (err) {
+            fs.renameSync(backup, targetDir);
+            throw err;
+        }
+        fs.rmSync(backup, { recursive: true, force: true });
+    }
+    finally {
+        fs.rmSync(tempDir, { recursive: true, force: true });
+    }
+}
+export function syncGitRepoPlugin(repo, targetDir, pluginName, update = false) {
+    // init (update=false): present -> skip; missing -> install
     if (!update) {
-        info(`Plugin ${pluginName} already exists; skipping`);
+        if (fs.existsSync(targetDir)) {
+            info(`Plugin ${pluginName} already exists; skipping`);
+            return;
+        }
+        cloneGitRepoPlugin(repo, targetDir, pluginName);
         return;
     }
-    if (!isSameRemoteRepo(targetDir, repo)) {
-        warn(`Plugin ${pluginName} exists but remote does not match; skipping update`);
+    // vpr zsh-plugin / clink (update=true): always sync to latest
+    if (!fs.existsSync(targetDir)) {
+        cloneGitRepoPlugin(repo, targetDir, pluginName);
         return;
     }
-    info(`Plugin ${pluginName} is linked to the remote repository; updating...`);
+    if (!isGitRepo(targetDir) || !isSameRemoteRepo(targetDir, repo)) {
+        warn(`Plugin ${pluginName} is missing a matching git remote; reinstalling...`);
+        reinstallGitRepoPlugin(repo, targetDir, pluginName);
+        return;
+    }
+    info(`Updating plugin: ${pluginName}...`);
     const accel = githubAccelUrl(repo);
     spawnSync('git', ['-C', targetDir, 'remote', 'set-url', 'origin', accel], { stdio: 'ignore' });
     if (!runGit(targetDir, ['fetch', '--prune', 'origin'])) {

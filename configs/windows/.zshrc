@@ -5,12 +5,13 @@
 [[ -r $HOME/.vite-plus/env ]] && . "$HOME/.vite-plus/env"
 
 # PATH (N == Null Glob)
+# Strip bare "/" — MSYS resolves //cmd as UNC and stalls command lookup.
 typeset -U path PATH
 path=(
     $HOME/.local/bin(N)  # uv tool
     $HOME/.npm_global/bin(N)
     $HOME/.opencode/bin(N)
-    $path
+    ${path:#/}
 )
 
 [[ -r $HOME/.zsh/.zshrc_core ]] && source $HOME/.zsh/.zshrc_core

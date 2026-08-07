@@ -6,24 +6,46 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runMenuSelect } from "../lib/menu-select.js";
+
+/** Canonical directions used throughout the sync pipeline. */
+export const SYNC_DIRECTION_BACKUP = '1';
+export const SYNC_DIRECTION_RESTORE = '2';
+
+const DIRECTION_ALIASES = new Map([
+    ['1', SYNC_DIRECTION_BACKUP],
+    ['backup', SYNC_DIRECTION_BACKUP],
+    ['2', SYNC_DIRECTION_RESTORE],
+    ['restore', SYNC_DIRECTION_RESTORE],
+]);
+
 export const SYNC_DIRECTION_MESSAGE = 'Choose a copy direction';
 export const SYNC_DIRECTION_CHOICES = [
-    { value: '1', label: '1) Back up configuration -> repository' },
-    { value: '2', label: '2) Restore configuration -> local machine' },
+    { value: SYNC_DIRECTION_BACKUP, label: '1) Back up configuration -> repository' },
+    { value: SYNC_DIRECTION_RESTORE, label: '2) Restore configuration -> local machine' },
 ];
-export const SYNC_DIRECTION_HINT = '1=back up config to repository, 2=restore config locally';
-export const SYNC_DIRECTION_EXAMPLE = 'Example: vpr sync 2';
-export function isSyncDirection(value) {
-    return value === '1' || value === '2';
+export const SYNC_DIRECTION_HINT = '1|backup=back up config to repository, 2|restore=restore config locally';
+export const SYNC_DIRECTION_EXAMPLE = 'Example: vpr sync backup  |  vpr sync restore  |  vpr sync 2';
+
+/** Normalize CLI tokens like `1` / `backup` / `2` / `restore` to canonical `1`|`2`. */
+export function normalizeSyncDirection(value) {
+    if (value == null)
+        return null;
+    const key = String(value).trim().toLowerCase();
+    return DIRECTION_ALIASES.get(key) ?? null;
 }
+
+export function isSyncDirection(value) {
+    return normalizeSyncDirection(value) !== null;
+}
+
 export async function promptSyncDirectionMenu() {
     const direction = await runMenuSelect({
         message: SYNC_DIRECTION_MESSAGE,
         choices: SYNC_DIRECTION_CHOICES,
     });
-    const value = String(direction).trim();
-    if (!isSyncDirection(value)) {
-        throw new Error(`Invalid selection: ${value}`);
+    const value = normalizeSyncDirection(direction);
+    if (!value) {
+        throw new Error(`Invalid selection: ${direction}`);
     }
     return value;
 }

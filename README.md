@@ -137,8 +137,8 @@ vpr init -- full                  # 完整版
 vpr backup                        # 备份已装软件到仓库
 vpr setup                         # 从仓库恢复完整软件清单
 vpr sync                          # 交互选择同步方向
-vpr sync 1                        # 备份配置 → 仓库
-vpr sync 2                        # 恢复配置 → 本地
+vpr sync backup                   # 备份配置 → 仓库
+vpr sync restore                  # 恢复配置 → 本地
 vpr zsh-plugin                    # 安装/更新 zsh 插件
 vpr git-setup                     # Git 全局配置
 ```
