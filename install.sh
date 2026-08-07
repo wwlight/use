@@ -238,12 +238,12 @@ update_repo() {
 next_timestamped_dir() {
   local base="$1"
   local ts target
-  ts=$(date +%Y%m%d-%H%M%S)
-  target="${base}-${ts}"
+  ts=$(date +%Y%m%d%H%M%S)
+  target="${base}${ts}"
   while [ -e "$target" ]; do
     sleep 1
-    ts=$(date +%Y%m%d-%H%M%S)
-    target="${base}-${ts}"
+    ts=$(date +%Y%m%d%H%M%S)
+    target="${base}${ts}"
   done
   printf '%s' "$target"
 }
@@ -354,11 +354,14 @@ install_macos() {
   step "Step ${USE_STEP_CURRENT}/${USE_STEP_TOTAL}: Installing package manager ..."
   run_cli pm
 
+  # pm already deployed helpers; init sync skips pmHelper pairs.
+  export SYNC_SKIP_PM_HELPERS=1
   if [ -n "$profile" ]; then
     run_cli init -- "$profile"
   else
     run_cli init
   fi
+  unset SYNC_SKIP_PM_HELPERS
 
   info "Installation complete!"
   # curl | bash runs in a subshell; start an interactive shell through /dev/tty.

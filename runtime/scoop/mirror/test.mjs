@@ -435,12 +435,20 @@ assert.ok(!/function Install-ScoopBootstrap\b/.test(rootInstall), 'Scoop bootstr
 assert.ok(!/Install-ScoopBootstrap\b/.test(rootInstall), 'one-click must not bootstrap Scoop before pm')
 assert.ok(!/Node\.js >= 22/.test(rootInstall), 'installer must not hard-require Node 22')
 assert.match(rootInstall, /open a new terminal and rerun/)
+assert.match(rootInstall, /function Resolve-NodeExe/)
+assert.match(rootInstall, /node\.exe/, 'prefer node.exe over node.ps1 (PS 5.1 eats --)')
+assert.match(rootInstall, /Start-Process -FilePath \$node/)
+assert.match(rootInstall, /Invoke-UseCli -CliArgs @\('init', \$InstallProfile\)/)
+assert.ok(!/Invoke-UseCli @\('init', '--'/.test(rootInstall), 'never pass bare -- into init on PS 5.1')
+assert.match(rootInstall, /SYNC_SKIP_PM_HELPERS\s*=\s*'1'/)
 const expandZip = rootInstall.match(/function Expand-UseZipRepository[\s\S]*?\nfunction /)?.[0] || ''
 assert.match(expandZip, /Could not replace existing directory/)
 assert.ok(!/use-new-/.test(expandZip), 'no staging/in-place zip refresh — caller uses a fresh InstallDir')
 assert.ok(!/Refreshing repository at \$InstallDir \(Git not available yet\)/.test(rootInstall),
   'do not zip-refresh into an existing checkout that may be the shell cwd')
 assert.match(rootInstall, /Get-NextTimestampedDir \$InstallDir/)
+assert.match(rootInstall, /yyyyMMddHHmmss/, 'sibling dir is use + timestamp, no hyphens')
+assert.match(rootInstall, /"\$Base\$ts"/)
 assert.ok(
   /Setup-NodeManager[\s\S]*Invoke-Expression[\s\S]*Test-NodeAvailable[\s\S]*open a new terminal/.test(
     rootInstall.match(/function Install-NodeViaVitePlus[\s\S]*?\nfunction /)?.[0] || '',
@@ -454,10 +462,11 @@ const fetchCalls = [...rootMain.matchAll(/^\s*Fetch-UseRepository\b/gm)]
 assert.ok(ensureNodeCalls.length >= 1, 'expected Ensure-NodeRuntime call')
 assert.ok(fetchCalls.length >= 1, 'expected Fetch-UseRepository call')
 assert.ok(ensureNodeCalls[0].index < fetchCalls[0].index, 'Node check must run before repo fetch')
-const pmCall = rootMain.indexOf("Invoke-UseCli @pmArgs")
-assert.ok(pmCall > fetchCalls[0].index, 'pm must run after fetch')
+assert.ok(rootMain.indexOf('Invoke-UseCli -CliArgs $pmArgs') > fetchCalls[0].index, 'pm must run after fetch')
 
 const cliTs = read('src/cli.js')
+assert.match(cliTs, /stripArgSeparator\(process\.argv\.slice\(2\)\)/,
+  'cli strips -- before reading task (PS 5.1 may shift -- into argv[2])')
 assert.match(cliTs, /runtime\/scoop\/install\.ps1/)
 assert.match(cliTs, /markCliInteractive/)
 assert.match(cliTs, /runInitCommand/)

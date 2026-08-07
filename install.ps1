@@ -329,11 +329,44 @@ Node.js is required. Install vite-plus (includes Node) or Node itself, then reru
   Write-Info "Using Node $(node -v)"
 }
 
+function Resolve-NodeExe {
+  # Prefer node.exe over node.ps1: PS 5.1's binder eats bare "--" when invoking .ps1 shims,
+  # which can make node see argv[2]="--" instead of "init".
+  foreach ($name in @('node.exe', 'node')) {
+    $cmd = Get-Command $name -ErrorAction SilentlyContinue
+    if (-not $cmd) { continue }
+    $path = $cmd.Source
+    if (-not $path) { $path = $cmd.Path }
+    if (-not $path) { continue }
+    if ($path -like '*.ps1') {
+      $exe = [IO.Path]::ChangeExtension($path, '.exe')
+      if (Test-Path -LiteralPath $exe) { return $exe }
+      continue
+    }
+    return $path
+  }
+  return 'node'
+}
+
+function ConvertTo-ProcessArgumentString {
+  param([string[]]$Parts)
+  return (($Parts | ForEach-Object {
+    $s = "$_"
+    if ($s -notmatch '[\s"]') { $s }
+    else { '"' + ($s -replace '"', '\"') + '"' }
+  }) -join ' ')
+}
+
 function Invoke-UseCli {
-  param([Parameter(ValueFromRemainingArguments = $true)][string[]]$CliArgs)
-  & node (Join-Path $InstallDir 'src/cli.js') @CliArgs
-  if ($LASTEXITCODE -ne 0) {
-    Write-ErrorAndExit "CLI failed: node src/cli.js $($CliArgs -join ' ')"
+  param([Parameter(Mandatory = $true)][string[]]$CliArgs)
+  $cliJs = Join-Path $InstallDir 'src/cli.js'
+  $argv = @($CliArgs | Where-Object { $_ -ne $null -and "$_" -ne '' -and "$_" -ne '--' })
+  $node = Resolve-NodeExe
+  $argLine = ConvertTo-ProcessArgumentString (@($cliJs) + $argv)
+  # Start-Process + explicit exe avoids PS 5.1 call-operator / .ps1 shim mangling.
+  $proc = Start-Process -FilePath $node -ArgumentList $argLine -WorkingDirectory $InstallDir -NoNewWindow -Wait -PassThru
+  if ($proc.ExitCode -ne 0) {
+    Write-ErrorAndExit "CLI failed: node src/cli.js $($argv -join ' ')"
   }
 }
 
@@ -396,12 +429,12 @@ function Update-UseRepository {
 
 function Get-NextTimestampedDir {
   param([string]$Base)
-  $ts = Get-Date -Format 'yyyyMMdd-HHmmss'
-  $target = "$Base-$ts"
+  $ts = Get-Date -Format 'yyyyMMddHHmmss'
+  $target = "$Base$ts"
   while (Test-Path $target) {
     Start-Sleep -Seconds 1
-    $ts = Get-Date -Format 'yyyyMMdd-HHmmss'
-    $target = "$Base-$ts"
+    $ts = Get-Date -Format 'yyyyMMddHHmmss'
+    $target = "$Base$ts"
   }
   return $target
 }
@@ -437,15 +470,17 @@ if (-not [string]::IsNullOrWhiteSpace($env:USE_ACCEL)) {
 }
 $pmArgs = @('pm')
 if ($scoopInstallArgs.Count -gt 0) { $pmArgs += $scoopInstallArgs }
-Invoke-UseCli @pmArgs
+Invoke-UseCli -CliArgs $pmArgs
 
 $env:SYNC_INTERACTIVE = '1'
-
+# pm already deployed helpers; init sync skips pmHelper pairs.
+$env:SYNC_SKIP_PM_HELPERS = '1'
 if ($InstallProfile) {
-  Invoke-UseCli @('init', '--', $InstallProfile)
+  Invoke-UseCli -CliArgs @('init', $InstallProfile)
 } else {
-  Invoke-UseCli @('init')
+  Invoke-UseCli -CliArgs @('init')
 }
+Remove-Item Env:SYNC_SKIP_PM_HELPERS -ErrorAction SilentlyContinue
 
 Write-Info 'Installation complete!'
 

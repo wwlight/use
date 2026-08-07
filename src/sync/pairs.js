@@ -32,6 +32,7 @@ function normalizeLocalForPair(local, platform) {
 }
 export function readSyncItems(platform, direction, profile) {
     const liteOnly = profile === 'lite' || process.env.SYNC_PROFILE === 'lite';
+    const skipPmHelpers = process.env.SYNC_SKIP_PM_HELPERS === '1';
     const items = [];
     for (const scope of syncScopes(platform)) {
         const manifest = loadManifest(scope);
@@ -39,6 +40,8 @@ export function readSyncItems(platform, direction, profile) {
             if (liteOnly && item.lite === false)
                 continue;
             if (direction === '1' && item.restoreOnly === true)
+                continue;
+            if (skipPmHelpers && item.pmHelper)
                 continue;
             const normalized = {
                 ...item,

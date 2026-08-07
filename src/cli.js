@@ -49,8 +49,11 @@ async function runTask(task, args) {
     }
 }
 async function main() {
-    const task = process.argv[2];
-    const args = stripArgSeparator(process.argv.slice(3));
+    // Strip every "--" first. Windows PowerShell 5.1 may insert/shift a bare "--"
+    // (especially via node.ps1 shims) so argv[2] is not the real task.
+    const tokens = stripArgSeparator(process.argv.slice(2));
+    const task = tokens[0];
+    const args = tokens.slice(1);
     if (!task || !ALL.includes(task)) {
         console.error(`Usage: node src/cli.js <${ALL.join('|')}> [args...]`);
         process.exit(1);
