@@ -331,6 +331,8 @@ Node.js is required. Install vite-plus (includes Node) or Node itself, then reru
 
 function Invoke-UseCli {
   param([Parameter(ValueFromRemainingArguments = $true)][string[]]$CliArgs)
+  # PS 5.1 mangles bare "--" in native arg-passing; strip so node sees argv correctly.
+  $CliArgs = @($CliArgs | Where-Object { $_ -ne '--' })
   & node (Join-Path $InstallDir 'src/cli.js') @CliArgs
   if ($LASTEXITCODE -ne 0) {
     Write-ErrorAndExit "CLI failed: node src/cli.js $($CliArgs -join ' ')"
@@ -396,12 +398,12 @@ function Update-UseRepository {
 
 function Get-NextTimestampedDir {
   param([string]$Base)
-  $ts = Get-Date -Format 'yyyyMMdd-HHmmss'
-  $target = "$Base-$ts"
+  $ts = Get-Date -Format 'yyyyMMddHHmmss'
+  $target = "$Base$ts"
   while (Test-Path $target) {
     Start-Sleep -Seconds 1
-    $ts = Get-Date -Format 'yyyyMMdd-HHmmss'
-    $target = "$Base-$ts"
+    $ts = Get-Date -Format 'yyyyMMddHHmmss'
+    $target = "$Base$ts"
   }
   return $target
 }
@@ -440,12 +442,14 @@ if ($scoopInstallArgs.Count -gt 0) { $pmArgs += $scoopInstallArgs }
 Invoke-UseCli @pmArgs
 
 $env:SYNC_INTERACTIVE = '1'
-
+# pm already deployed helpers; init sync skips pmHelper pairs.
+$env:SYNC_SKIP_PM_HELPERS = '1'
 if ($InstallProfile) {
-  Invoke-UseCli @('init', '--', $InstallProfile)
+  Invoke-UseCli @('init', $InstallProfile)
 } else {
   Invoke-UseCli @('init')
 }
+Remove-Item Env:SYNC_SKIP_PM_HELPERS -ErrorAction SilentlyContinue
 
 Write-Info 'Installation complete!'
 
