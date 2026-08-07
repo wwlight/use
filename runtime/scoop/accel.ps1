@@ -702,6 +702,82 @@ function Ensure-ScoopMainBucketGit {
     }
 }
 
+function Get-ScoopCoreBranch {
+    $branch = ''
+    try {
+        $raw = scoop config scoop_branch 2>$null
+        if ($null -ne $raw) {
+            $branch = ([string](@($raw) | Select-Object -Last 1)).Trim()
+        }
+    }
+    catch { }
+    if ([string]::IsNullOrWhiteSpace($branch)) { return 'master' }
+    return $branch
+}
+
+# Finish zip Scoop → git when scoop update cloned to apps\scoop\new but could not rename
+# (Windows: current is often locked by the running scoop/pwsh session).
+function Complete-ScoopCoreGitConversion {
+    param([string]$RepoUrl)
+
+    $scoopApps = Join-Path $env:SCOOP 'apps\scoop'
+    $current = Join-Path $scoopApps 'current'
+    $newDir = Join-Path $scoopApps 'new'
+    $oldDir = Join-Path $scoopApps 'old'
+    $currentGit = Join-Path $current '.git'
+    if (Test-Path -LiteralPath $currentGit) { return $true }
+
+    $newScoop = Join-Path $newDir 'bin\scoop.ps1'
+    if (-not (Test-Path -LiteralPath $newScoop)) {
+        if ([string]::IsNullOrWhiteSpace($RepoUrl)) { return $false }
+        if (Test-Path -LiteralPath $newDir) {
+            Remove-Item -LiteralPath $newDir -Recurse -Force -ErrorAction SilentlyContinue
+        }
+        $branch = Get-ScoopCoreBranch
+        Write-Info "Cloning Scoop core ($branch): $RepoUrl"
+        git clone -q --branch $branch --single-branch $RepoUrl $newDir
+        if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $newScoop)) {
+            if (Test-Path -LiteralPath $newDir) {
+                Remove-Item -LiteralPath $newDir -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            return $false
+        }
+    }
+
+    for ($i = 0; $i -lt 3; $i++) {
+        try {
+            if (Test-Path -LiteralPath $oldDir) {
+                Remove-Item -LiteralPath $oldDir -Recurse -Force -ErrorAction SilentlyContinue
+            }
+            Rename-Item -LiteralPath $current -NewName 'old' -ErrorAction Stop
+            Rename-Item -LiteralPath $newDir -NewName 'current' -ErrorAction Stop
+            Remove-Item -LiteralPath $oldDir -Recurse -Force -ErrorAction SilentlyContinue
+            Update-ScoopSessionPath
+            return (Test-Path -LiteralPath (Join-Path $scoopApps 'current\.git'))
+        }
+        catch {
+            Start-Sleep -Seconds 1
+        }
+    }
+
+    # Folder still locked: adopt .git into current without renaming the directory.
+    $newGit = Join-Path $newDir '.git'
+    if (-not (Test-Path -LiteralPath $newGit)) { return $false }
+
+    Write-Warn 'Scoop folder in use; adopting git metadata into current install (no directory rename)'
+    if (Test-Path -LiteralPath $currentGit) {
+        Remove-Item -LiteralPath $currentGit -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    Copy-Item -LiteralPath $newGit -Destination $currentGit -Recurse -Force
+    git -C $current reset --hard HEAD 2>$null | Out-Null
+    Remove-Item -LiteralPath $newDir -Recurse -Force -ErrorAction SilentlyContinue
+    if (Test-Path -LiteralPath $oldDir) {
+        Remove-Item -LiteralPath $oldDir -Recurse -Force -ErrorAction SilentlyContinue
+    }
+    Update-ScoopSessionPath
+    return (Test-Path -LiteralPath $currentGit)
+}
+
 function Ensure-ScoopGitRepositories {
     param(
         [string]$ActivePrefix = '',
@@ -735,13 +811,22 @@ function Ensure-ScoopGitRepositories {
     # Must run before scoop update so it does not wipe zip main and clone official GitHub.
     Ensure-ScoopMainBucketGit -ActivePrefix $ActivePrefix -Prefixes $prefixes
 
-    Write-Info 'Running scoop update to convert Scoop into a git repository...'
-    scoop update
-    Update-ScoopSessionPath
+    if (-not (Test-Path -LiteralPath $scoopGit)) {
+        Write-Info 'Running scoop update to convert Scoop into a git repository...'
+        scoop update
+        Update-ScoopSessionPath
+    }
 
     if (-not (Test-Path -LiteralPath $scoopGit)) {
-        Write-ErrorAndExit 'Scoop is still missing .git after scoop update'
+        Write-Info 'Completing Scoop core git conversion after folder-in-use / partial update...'
+        if (-not (Complete-ScoopCoreGitConversion -RepoUrl $expectedRepo)) {
+            Write-ErrorAndExit (
+                'Scoop is still missing .git after scoop update. ' +
+                "If apps\scoop\new exists, close other Scoop shells and rename current→old, new→current; then rerun."
+            )
+        }
     }
+
     if (-not (Test-Path -LiteralPath $mainGit)) {
         Write-ErrorAndExit 'main bucket is still missing .git after mirrored add + scoop update'
     }
