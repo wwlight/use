@@ -378,12 +378,11 @@ assert.ok(!/Install-ScoopBootstrap\b/.test(rootInstall), 'one-click must not boo
 assert.ok(!/Node\.js >= 22/.test(rootInstall), 'installer must not hard-require Node 22')
 assert.match(rootInstall, /open a new terminal and rerun/)
 const expandZip = rootInstall.match(/function Expand-UseZipRepository[\s\S]*?\nfunction /)?.[0] || ''
-assert.match(expandZip, /use-new-/, 'stage zip extract under unique name before replacing Target')
 assert.match(expandZip, /Could not replace existing directory/)
-assert.ok(
-  !/Remove-Item -LiteralPath \$Target -Recurse -Force -ErrorAction SilentlyContinue/.test(expandZip),
-  'do not SilentlyContinue when replacing InstallDir — Move-Item would nest use-main inside it',
-)
+assert.ok(!/use-new-/.test(expandZip), 'no staging/in-place zip refresh — caller uses a fresh InstallDir')
+assert.ok(!/Refreshing repository at \$InstallDir \(Git not available yet\)/.test(rootInstall),
+  'do not zip-refresh into an existing checkout that may be the shell cwd')
+assert.match(rootInstall, /Get-NextTimestampedDir \$InstallDir/)
 assert.ok(
   /Setup-NodeManager[\s\S]*Invoke-Expression[\s\S]*Test-NodeAvailable[\s\S]*open a new terminal/.test(
     rootInstall.match(/function Install-NodeViaVitePlus[\s\S]*?\nfunction /)?.[0] || '',
