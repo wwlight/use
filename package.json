@@ -21,7 +21,7 @@
     "check:brew": "node ./src/generate/generate-brew.js --check",
     "generate:github-accel": "node ./src/generate/generate-github-accel.js",
     "check:github-accel": "node ./src/generate/generate-github-accel.js --check",
-    "test": "node --test src/**/*.test.js && node ./runtime/brew/mirror.test.mjs && node ./runtime/scoop/mirror/test.mjs && npm run check:brew && npm run check:github-accel"
+    "test": "node --test && node ./src/generate/generate-brew.js --check && node ./src/generate/generate-github-accel.js --check"
   },
   "author": "wwlight",
   "license": "ISC",
