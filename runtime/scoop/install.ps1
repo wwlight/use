@@ -64,7 +64,7 @@ if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
         Write-ErrorAndExit "Scoop installation failed: $($_.Exception.Message)"
     }
 
-    $env:PATH = "$scoopDir\shims;$env:PATH"
+    Update-ScoopSessionPath
 
     if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
         Write-ErrorAndExit 'Scoop is still unavailable in this session; open a new terminal and rerun the installer'
@@ -79,17 +79,17 @@ else {
     }
 }
 
-Enable-ScoopAccel -Manifest $manifest -ActivePrefix $activePrefix -SkipAria2
+# Deploy scoop-mirror files + scoop_repo only.
+Enable-ScoopAccel -Manifest $manifest -ActivePrefix $activePrefix
 
-if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
-    Write-Info 'Installing Git...'
-    Assert-ScoopWorktreeClean
-    scoop install git
-    if ($LASTEXITCODE -ne 0) {
-        Write-ErrorAndExit 'Git installation failed'
-    }
+# Zip Scoop / no Git → temporary download hook for 7zip/git; formal repair after scoop update.
+$formalReady = Test-ScoopFormalRepairReady
+Install-ScoopDownloadHook
+Install-ScoopBootstrapApps
+Ensure-ScoopGitRepositories
+if (-not $formalReady) {
+    Install-ScoopDownloadHook
 }
 
-Install-ScoopDownloadHook
-Assert-ScoopWorktreeClean
+Set-ScoopBucketMirrors -ActivePrefix $activePrefix
 Install-ScoopAria2Accel -Accel $accel

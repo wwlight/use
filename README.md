@@ -3,9 +3,7 @@
 <!-- BEGIN GENERATED GITHUB ACCEL DOCS -->
 使用需要 Node.js 环境。
 
-## 安装 [vite.plus](https://viteplus.dev/)
-
-仓库：https://github.com/voidzero-dev/vite-plus
+## 前置：安装 [vite.plus](https://viteplus.dev/)
 
 ### macos
 
@@ -196,7 +194,7 @@ Get-ChildItem runtime,configs -Recurse -Include *.ps1,*.psm1 | Unblock-File
 └── assets/                       # README 流程图
 ```
 
-职责一眼区分：`manifests` 定清单，`configs` 存配置，`runtime` 给壳/部署，`src` 跑 CLI。
+## macos
 
 ```sh
 vpr pm                            # 安装 brew，交互选镜像

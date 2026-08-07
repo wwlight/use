@@ -145,6 +145,19 @@ github_zip_candidates() {
   printf '%s\n' "$REPO_ZIP"
 }
 
+github_url_candidates() {
+  local bare="$1" preferred prefix
+  preferred=$(resolve_accel_prefix)
+  if [ -n "$preferred" ]; then
+    printf '%s%s\n' "$preferred" "$bare"
+  fi
+  for prefix in "${GITHUB_ACCEL_PREFIXES[@]}"; do
+    [ "$prefix" = "$preferred" ] && continue
+    printf '%s%s\n' "$prefix" "$bare"
+  done
+  printf '%s\n' "$bare"
+}
+
 download_zip_repo() {
   local target="$1" url tmp zipfile parent
   parent=$(dirname "$target")
@@ -259,13 +272,62 @@ ensure_repo() {
 }
 
 ensure_node() {
+  if [ -d "${HOME}/.vite-plus/bin" ]; then
+    export PATH="${HOME}/.vite-plus/bin:${PATH}"
+  fi
+
   if ! command -v node >/dev/null 2>&1; then
-    error "Node.js >= 22 is required. Install Node, then rerun. (https://nodejs.org/)"
+    info "Node.js was not found."
+    if [[ ! -c /dev/tty ]]; then
+      error "Node.js is required. Install vite-plus (includes Node) or Node itself, then rerun:
+  curl -fsSL https://vite.plus | bash
+  # or: https://nodejs.org/"
+    fi
+
+    printf '\nInstall Node.js via vite-plus? (https://vite.plus)\n' >/dev/tty
+    printf '  Y / Enter  install vite-plus (manages Node)\n' >/dev/tty
+    printf '  N          cancel\n' >/dev/tty
+    printf 'Proceed: ' >/dev/tty
+    local answer
+    IFS= read -r answer </dev/tty || answer=n
+    case "$answer" in
+      n|N|no|NO)
+        error "Node.js is required. Install from https://vite.plus or https://nodejs.org/, then rerun."
+        ;;
+    esac
+
+    info "Installing Node.js via vite-plus..."
+    export VP_NODE_MANAGER=yes
+    local url script
+    while IFS= read -r url; do
+      [ -n "$url" ] || continue
+      info "Trying vite-plus installer: $url"
+      if ! script=$(curl -fsSL "$url"); then
+        info "vite-plus installer fetch failed: $url"
+        continue
+      fi
+      case "$script" in
+        *setup_node_manager*) ;;
+        *) info "Response does not look like the vite-plus installer"; continue ;;
+      esac
+      if printf '%s\n' "$script" | bash; then
+        [ -d "${HOME}/.vite-plus/bin" ] && export PATH="${HOME}/.vite-plus/bin:${PATH}"
+        if command -v node >/dev/null 2>&1; then
+          break
+        fi
+        error "vite-plus finished but node is unavailable in this session; open a new terminal and rerun"
+      fi
+      info "vite-plus installer failed: $url"
+    done < <(github_url_candidates "https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.sh")
+  fi
+
+  if ! command -v node >/dev/null 2>&1; then
+    error "Failed to install Node.js via vite-plus. Install manually from https://vite.plus or https://nodejs.org/, then rerun."
   fi
   local major
   major=$(node -p "process.versions.node.split('.')[0]" 2>/dev/null || echo 0)
-  if [ "${major:-0}" -lt 22 ]; then
-    error "Node.js >= 22 is required (found $(node -v)). Upgrade Node, then rerun."
+  if [ "${major:-0}" -lt 18 ]; then
+    error "Node.js >= 18 is required (found $(node -v))"
   fi
   info "Using Node $(node -v)"
 }
@@ -276,9 +338,9 @@ run_cli() {
 
 install_macos() {
   local profile="$1"
+  ensure_node
   ensure_repo
   cd "$INSTALL_DIR"
-  ensure_node
 
   # The installer completes step 1; the total includes subsequent init steps.
   local init_steps=4

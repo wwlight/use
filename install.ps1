@@ -11,11 +11,6 @@ $Repo = 'https://github.com/wwlight/use.git'
 $RepoZip = 'https://github.com/wwlight/use/archive/refs/heads/main.zip'
 $ZipExtractName = 'use-main'
 $InstallDir = "$env:USERPROFILE\Desktop\use"
-# Keep aligned with manifests/windows.json defaults (clone has not happened yet).
-$ScoopDir = if (-not [string]::IsNullOrWhiteSpace($env:SCOOP)) { $env:SCOOP } else { 'D:\SoftwareApps\Scoop' }
-$SoftwareAppsDir = 'D:\SoftwareApps'
-$ScoopInstallScript = 'https://raw.githubusercontent.com/ScoopInstaller/Install/master/install.ps1'
-$ScoopRepo = 'https://github.com/ScoopInstaller/Scoop'
 # BEGIN GENERATED GITHUB ACCEL
 $GithubAccelIds = @(
     'ghproxy',
@@ -76,18 +71,6 @@ function Get-Os {
     if ($env:WINDIR) { return 'windows' }
 
     return 'unknown'
-}
-
-function Test-Administrator {
-    try {
-        $currentIdentity = [Security.Principal.WindowsIdentity]::GetCurrent()
-        if ($null -eq $currentIdentity) { return $false }
-        $principal = [Security.Principal.WindowsPrincipal]::new($currentIdentity)
-        return $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
-    }
-    catch {
-        return $false
-    }
 }
 
 if ($InstallProfile -match '^(-h|--help|help)$') {
@@ -152,10 +135,6 @@ function Test-GitAvailable {
   return [bool](Get-Command git -ErrorAction SilentlyContinue)
 }
 
-function Test-ScoopAvailable {
-  return [bool](Get-Command scoop -ErrorAction SilentlyContinue)
-}
-
 function Test-SameRemoteRepo {
   param([string]$Dir)
   $gitDir = Join-Path $Dir '.git'
@@ -176,12 +155,6 @@ function Resolve-GithubAccelPrefix {
     }
   }
   return ''
-}
-
-function Format-AccelLabel {
-  param([string]$Prefix)
-  if ([string]::IsNullOrWhiteSpace($Prefix)) { return 'Upstream' }
-  return $Prefix
 }
 
 function Join-AccelUrl {
@@ -268,21 +241,86 @@ function Unblock-UseScripts {
     Unblock-File -ErrorAction SilentlyContinue
 }
 
+function Test-NodeAvailable {
+  return [bool](Get-Command node -ErrorAction SilentlyContinue)
+}
+
+function Test-UseInstallInteractive {
+  if ($env:CI -eq 'true') { return $false }
+  if (-not [Environment]::UserInteractive) { return $false }
+  return $true
+}
+
+function Update-NodeShimPath {
+  $vpBin = Join-Path $env:USERPROFILE '.vite-plus\bin'
+  if (Test-Path -LiteralPath $vpBin) {
+    $env:PATH = "$vpBin;$env:PATH"
+  }
+}
+
+function Install-NodeViaVitePlus {
+  Write-Info 'Installing Node.js via vite-plus...'
+  $env:VP_NODE_MANAGER = 'yes'
+  $scriptUrl = 'https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.ps1'
+  $errors = New-Object System.Collections.Generic.List[string]
+
+  foreach ($url in (Get-GithubUrlCandidates -Url $scriptUrl)) {
+    Write-Info "Trying vite-plus installer: $url"
+    try {
+      $script = [string](Invoke-RestMethod -Uri $url)
+      if ($script -notmatch 'function\s+Setup-NodeManager') {
+        throw 'Response does not look like the vite-plus installer'
+      }
+      Invoke-Expression $script
+    }
+    catch {
+      Write-Warn "vite-plus installer failed ($url): $($_.Exception.Message)"
+      [void]$errors.Add($_.Exception.Message)
+      continue
+    }
+
+    Update-NodeShimPath
+    if (Test-NodeAvailable) { return }
+    # Installer ran; do not try another mirror (avoids reinstall loops).
+    Write-ErrorAndExit 'vite-plus finished but node is unavailable in this session; open a new terminal and rerun'
+  }
+
+  Write-ErrorAndExit (
+    'Failed to install Node.js via vite-plus. Install manually from https://vite.plus or https://nodejs.org/, then rerun. ' +
+    ($errors -join '; ')
+  )
+}
+
 function Ensure-NodeRuntime {
-  $node = Get-Command node -ErrorAction SilentlyContinue
-  if (-not $node) {
-    Write-ErrorAndExit 'Node.js >= 22 is required. Install Node, then rerun. (https://nodejs.org/)'
+  Update-NodeShimPath
+  if (-not (Test-NodeAvailable)) {
+    Write-Warn 'Node.js was not found.'
+    if (-not (Test-UseInstallInteractive)) {
+      Write-ErrorAndExit @'
+Node.js is required. Install vite-plus (includes Node) or Node itself, then rerun:
+  irm https://vite.plus/ps1 | iex
+  # or: https://nodejs.org/
+'@
+    }
+
+    Write-Host ''
+    Write-Host 'Install Node.js via vite-plus? (https://vite.plus)' -ForegroundColor Yellow
+    Write-Host '  Y / Enter  install vite-plus (manages Node)'
+    Write-Host '  N          cancel'
+    $answer = Read-Host 'Proceed'
+    if ($answer -match '^(n|no)$') {
+      Write-ErrorAndExit 'Node.js is required. Install from https://vite.plus or https://nodejs.org/, then rerun.'
+    }
+    Install-NodeViaVitePlus
+  }
+
+  if (-not (Test-NodeAvailable)) {
+    Write-ErrorAndExit 'Node.js is required but still unavailable'
   }
   $major = 0
-  try {
-    $major = [int]((node -p "process.versions.node.split('.')[0]").Trim())
-  }
-  catch {
-    $major = 0
-  }
-  if ($major -lt 22) {
-    $ver = & node -v
-    Write-ErrorAndExit "Node.js >= 22 is required (found $ver). Upgrade Node, then rerun."
+  try { $major = [int]((node -p "process.versions.node.split('.')[0]").Trim()) } catch { }
+  if ($major -lt 18) {
+    Write-ErrorAndExit "Node.js >= 18 is required (found $(node -v))"
   }
   Write-Info "Using Node $(node -v)"
 }
@@ -331,189 +369,6 @@ function Fetch-UseRepository {
   Write-ErrorAndExit 'Failed to fetch repository (zip and git clone both failed). Try another USE_ACCEL mirror or check the network.'
 }
 
-function Get-ScoopBootstrapAttempts {
-  $preferred = Resolve-GithubAccelPrefix
-  $attempts = New-Object System.Collections.Generic.List[object]
-  $seen = New-Object 'System.Collections.Generic.HashSet[string]' ([StringComparer]::OrdinalIgnoreCase)
-
-  $prefixOrder = New-Object System.Collections.Generic.List[string]
-  if (-not [string]::IsNullOrWhiteSpace($preferred)) {
-    [void]$prefixOrder.Add($preferred)
-  }
-  foreach ($prefix in $GithubAccelPrefixes) {
-    if (-not [string]::IsNullOrWhiteSpace($preferred) -and $prefix.Equals($preferred, [StringComparison]::OrdinalIgnoreCase)) {
-      continue
-    }
-    [void]$prefixOrder.Add($prefix)
-  }
-  [void]$prefixOrder.Add('')
-
-  foreach ($prefix in $prefixOrder) {
-    $fetchUrl = Join-AccelUrl -Url $ScoopInstallScript -Prefix $prefix
-    if (-not $seen.Add($fetchUrl)) { continue }
-    [void]$attempts.Add([pscustomobject]@{
-        Prefix = $prefix
-        Url    = $fetchUrl
-      })
-  }
-  return $attempts
-}
-
-function Get-ScoopInstallerBootstrapUrls {
-  @(
-    'https://github.com/ScoopInstaller/Scoop/archive/master.zip',
-    'https://github.com/ScoopInstaller/Main/archive/master.zip',
-    'https://github.com/ScoopInstaller/Scoop.git',
-    'https://github.com/ScoopInstaller/Main.git'
-  )
-}
-
-function Rewrite-ScoopInstallerGithubUrls {
-  param(
-    [string]$Script,
-    [string]$Prefix
-  )
-
-  if ([string]::IsNullOrWhiteSpace($Script) -or [string]::IsNullOrWhiteSpace($Prefix)) {
-    return $Script
-  }
-
-  $targets = @(Get-ScoopInstallerBootstrapUrls) | Sort-Object { $_.Length } -Descending
-  $rewritten = 0
-  foreach ($bare in $targets) {
-    $mirrored = Join-AccelUrl -Url $bare -Prefix $Prefix
-    if ($mirrored -eq $bare) { continue }
-    if ($Script.Contains($bare)) {
-      $Script = $Script.Replace($bare, $mirrored)
-      $rewritten++
-    }
-  }
-
-  if ($rewritten -eq 0) {
-    throw 'Scoop installer bootstrap URLs were not rewritten; refusing to run against upstream GitHub'
-  }
-
-  $mirroredHit = $false
-  foreach ($bare in $targets) {
-    $mirrored = Join-AccelUrl -Url $bare -Prefix $Prefix
-    if ($mirrored -ne $bare -and $Script.Contains($mirrored)) {
-      $mirroredHit = $true
-      break
-    }
-  }
-  if (-not $mirroredHit) {
-    throw 'Scoop installer rewrite produced no mirrored Scoop/Main URLs'
-  }
-  return $Script
-}
-
-function Update-ScoopShimPath {
-  $env:PATH = "$ScoopDir\shims;$ScoopDir\apps\scoop\current\bin;$env:PATH"
-}
-
-function Install-ScoopBootstrap {
-  if (Test-ScoopAvailable) {
-    Write-Info 'Scoop is already installed'
-    if (-not $env:SCOOP) { $env:SCOOP = $ScoopDir }
-    Update-ScoopShimPath
-    return (Resolve-GithubAccelPrefix)
-  }
-
-  Write-Info 'Scoop is not installed; installing before cloning the repository...'
-
-  if (-not (Test-Path -LiteralPath $SoftwareAppsDir)) {
-    New-Item -ItemType Directory -Path $SoftwareAppsDir -Force | Out-Null
-  }
-
-  $env:SCOOP = $ScoopDir
-  [Environment]::SetEnvironmentVariable('SCOOP', $env:SCOOP, 'User')
-
-  $attempts = @(Get-ScoopBootstrapAttempts)
-  $errors = New-Object System.Collections.Generic.List[string]
-  $successPrefix = $null
-
-  foreach ($attempt in $attempts) {
-    $label = Format-AccelLabel -Prefix $attempt.Prefix
-    Write-Info "Trying Scoop installer ($label): $($attempt.Url)"
-    try {
-      $script = [string](Invoke-RestMethod -Uri $attempt.Url)
-      if ([string]::IsNullOrWhiteSpace($script)) {
-        throw 'Empty installer response'
-      }
-      if ($script -notmatch 'function\s+Install-Scoop' -and $script -notmatch 'SCOOP_PACKAGE_GIT_REPO') {
-        throw 'Response does not look like the Scoop installer'
-      }
-
-      if (-not [string]::IsNullOrWhiteSpace($attempt.Prefix)) {
-        $script = Rewrite-ScoopInstallerGithubUrls -Script $script -Prefix $attempt.Prefix
-      }
-
-      # Concatenate (do not interpolate) so installer $-variables stay intact.
-      if (Test-Administrator) {
-        Invoke-Expression ('& { ' + $script + ' } -RunAsAdmin')
-      }
-      else {
-        Invoke-Expression $script
-      }
-
-      $successPrefix = [string]$attempt.Prefix
-      Write-Info "Scoop installer succeeded ($label)"
-      break
-    }
-    catch {
-      $msg = $_.Exception.Message
-      Write-Warn "Scoop installer failed ($label): $msg"
-      [void]$errors.Add("${label}: $msg")
-    }
-  }
-
-  if ($null -eq $successPrefix -and $errors.Count -gt 0 -and -not (Test-ScoopAvailable)) {
-    Write-ErrorAndExit ("Scoop installation failed after trying all sources: " + ($errors -join '; '))
-  }
-
-  Update-ScoopShimPath
-  if (-not (Test-ScoopAvailable)) {
-    Write-ErrorAndExit 'Scoop is still unavailable after bootstrap; open a new terminal and rerun'
-  }
-
-  # Help the first scoop install 7zip/git resolve the Scoop repo via the working mirror.
-  if (-not [string]::IsNullOrWhiteSpace($successPrefix)) {
-    $mirroredRepo = Join-AccelUrl -Url $ScoopRepo -Prefix $successPrefix
-    scoop config scoop_repo $mirroredRepo 2>$null | Out-Null
-  }
-
-  return $successPrefix
-}
-
-function Install-ScoopBootstrapApps {
-  Update-ScoopShimPath
-  if (-not (Test-ScoopAvailable)) {
-    Write-ErrorAndExit 'Scoop is required to install 7zip and git'
-  }
-
-  foreach ($app in @('7zip', 'git')) {
-    $shim = Get-Command $app -ErrorAction SilentlyContinue
-    if ($app -eq '7zip') {
-      $shim = Get-Command '7z' -ErrorAction SilentlyContinue
-    }
-    if ($shim) {
-      Write-Info "$app is already available; skipping"
-      continue
-    }
-
-    Write-Info "Installing $app via Scoop..."
-    scoop install $app
-    if ($LASTEXITCODE -ne 0) {
-      Write-ErrorAndExit "Failed to install $app via Scoop"
-    }
-    Update-ScoopShimPath
-  }
-
-  if (-not (Test-GitAvailable)) {
-    Write-ErrorAndExit 'Git is still unavailable after scoop install git'
-  }
-}
-
 function Update-UseRepository {
   param([string]$Target)
 
@@ -547,10 +402,7 @@ function Get-NextTimestampedDir {
   return $target
 }
 
-# Scoop/Git must exist before clone/sync; not part of the numbered init step chain.
-Write-Info 'Ensuring Scoop, 7zip, and Git...'
-$null = Install-ScoopBootstrap
-Install-ScoopBootstrapApps
+Ensure-NodeRuntime
 
 if (-not (Test-Path $InstallDir)) {
   Write-Info "Fetching repository to $InstallDir ..."
@@ -560,6 +412,14 @@ elseif (Test-SameRemoteRepo $InstallDir) {
   Write-Info "Existing repository found at $InstallDir; syncing with origin/main ..."
   Update-UseRepository $InstallDir
 }
+elseif (
+  -not (Test-GitAvailable) -and
+  -not (Test-Path -LiteralPath (Join-Path $InstallDir '.git')) -and
+  (Test-Path -LiteralPath (Join-Path $InstallDir 'src\cli.js'))
+) {
+  Write-Info "Refreshing repository at $InstallDir (Git not available yet)..."
+  Fetch-UseRepository $InstallDir
+}
 else {
   $InstallDir = Get-NextTimestampedDir $InstallDir
   Write-Info "Directory is in use; fetching to $InstallDir ..."
@@ -567,16 +427,13 @@ else {
 }
 
 Set-Location $InstallDir
-Ensure-NodeRuntime
 
-# The installer completes step 1; the total includes subsequent init steps.
 $initSteps = 4
 $env:USE_STEP_CHAIN = '1'
 $env:USE_STEP_CURRENT = '1'
 $env:USE_STEP_TOTAL = "$([int]$env:USE_STEP_CURRENT + $initSteps)"
 Write-Step "Step $($env:USE_STEP_CURRENT)/$($env:USE_STEP_TOTAL): Configuring package manager acceleration ..."
 
-# Scoop is already installed; this applies scoop-mirror / aria2 and keeps USE_ACCEL explicit.
 $scoopInstallArgs = @()
 if (-not [string]::IsNullOrWhiteSpace($env:USE_ACCEL)) {
     $scoopInstallArgs = @("$($env:USE_ACCEL.Trim())")

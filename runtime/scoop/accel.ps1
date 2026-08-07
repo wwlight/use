@@ -445,9 +445,57 @@ function Invoke-ScoopMirrorAccelFilterInit {
     }
 }
 
+function Test-ScoopCoreGitRepo {
+    if ([string]::IsNullOrWhiteSpace($env:SCOOP)) { return $false }
+    return (Test-Path -LiteralPath (Join-Path $env:SCOOP 'apps\scoop\current\.git'))
+}
+
+function Test-ScoopFormalRepairReady {
+    return [bool](Get-Command git.exe -ErrorAction SilentlyContinue) -and (Test-ScoopCoreGitRepo)
+}
+
+function Update-ScoopSessionPath {
+    if ([string]::IsNullOrWhiteSpace($env:SCOOP)) { return }
+    $env:PATH = "$env:SCOOP\shims;$env:SCOOP\apps\scoop\current\bin;$env:PATH"
+}
+
+# Append one dot-source line; keep original bytes/BOM/encoding untouched (scoop update discards this file).
+function Install-ScoopDownloadHookTemporary {
+    $hookHelper = Join-Path $env:SCOOP 'config\scoop-mirror\hook.ps1'
+    if (-not (Test-Path -LiteralPath $hookHelper)) {
+        Write-ErrorAndExit "scoop-mirror/hook.ps1 not found: $hookHelper (deploy mirror files first)"
+    }
+
+    $download = Get-ScoopLibDownloadPath
+    $bytes = [System.IO.File]::ReadAllBytes($download)
+    # Scoop's download.ps1 is UTF-8; marker check is enough for idempotent append.
+    if ([System.Text.Encoding]::UTF8.GetString($bytes).Contains('scoop-mirror\hook.ps1')) {
+        return
+    }
+
+    $useCrlf = $false
+    for ($i = 0; $i -lt ($bytes.Length - 1); $i++) {
+        if ($bytes[$i] -eq 13 -and $bytes[$i + 1] -eq 10) {
+            $useCrlf = $true
+            break
+        }
+    }
+    $nl = if ($useCrlf) { "`r`n" } else { "`n" }
+    $prefix = ''
+    if ($bytes.Length -eq 0 -or $bytes[$bytes.Length - 1] -ne 10) {
+        $prefix = $nl
+    }
+    $hookLine = [string]::Concat('. "', '$env:SCOOP\config\scoop-mirror\hook.ps1', '"')
+    $append = [System.Text.Encoding]::UTF8.GetBytes($prefix + $hookLine + $nl)
+    $out = New-Object byte[] ($bytes.Length + $append.Length)
+    [System.Buffer]::BlockCopy($bytes, 0, $out, 0, $bytes.Length)
+    [System.Buffer]::BlockCopy($append, 0, $out, $bytes.Length, $append.Length)
+    [System.IO.File]::WriteAllBytes($download, $out)
+}
+
 function Install-ScoopDownloadHook {
-    if (-not (Get-Command git.exe -ErrorAction SilentlyContinue)) {
-        Write-Warn 'Git is not available yet; deferring the Scoop download hook until Git installs'
+    if (-not (Test-ScoopFormalRepairReady)) {
+        Install-ScoopDownloadHookTemporary
         return
     }
 
@@ -455,11 +503,67 @@ function Install-ScoopDownloadHook {
     Write-Info 'Scoop mirror hook and clean-worktree filter are ready'
 }
 
-function Assert-ScoopWorktreeClean {
+function Install-ScoopBootstrapApps {
+    param(
+        [string[]]$Apps = @('7zip', 'git')
+    )
+
+    if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
+        Write-ErrorAndExit 'Scoop is required to install bootstrap apps'
+    }
+
+    foreach ($app in $Apps) {
+        $commandName = if ($app -eq '7zip') { '7z' } else { $app }
+        if (Get-Command $commandName -ErrorAction SilentlyContinue) {
+            Write-Info "$app is already available; skipping"
+            continue
+        }
+
+        Write-Info "Installing $app via Scoop..."
+        # --no-update-scoop: Scoop's pre-install update needs Git and aborts on a zip bootstrap.
+        Assert-ScoopWorktreeClean
+        scoop install --no-update-scoop $app
+        if ($LASTEXITCODE -ne 0) {
+            Write-ErrorAndExit "Failed to install $app via Scoop"
+        }
+        Update-ScoopSessionPath
+    }
+
+    if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
+        Write-ErrorAndExit 'Git is still unavailable after scoop install git'
+    }
+}
+
+function Ensure-ScoopGitRepositories {
     if (-not (Get-Command git.exe -ErrorAction SilentlyContinue)) {
-        # A fresh Scoop bootstrap has no hook yet and installs Git before acceleration is activated.
+        Write-ErrorAndExit 'Git is required to convert Scoop into a git repository'
+    }
+    if (-not $env:SCOOP) {
+        Write-ErrorAndExit 'SCOOP environment variable is not set'
+    }
+
+    $scoopGit = Join-Path $env:SCOOP 'apps\scoop\current\.git'
+    $mainGit = Join-Path $env:SCOOP 'buckets\main\.git'
+    if ((Test-Path -LiteralPath $scoopGit) -and (Test-Path -LiteralPath $mainGit)) {
+        Write-Info 'Scoop and main bucket are already git repositories'
         return
     }
+
+    Write-Info 'Running scoop update to convert Scoop/buckets into git repositories...'
+    scoop update
+    Update-ScoopSessionPath
+
+    # Core .git is required for formal repair; tolerate partial bucket failures.
+    if (-not (Test-Path -LiteralPath $scoopGit)) {
+        Write-ErrorAndExit 'Scoop is still missing .git after scoop update'
+    }
+    if (-not (Test-Path -LiteralPath $mainGit)) {
+        Write-Warn 'main bucket is still missing .git; bucket mirror updates may be incomplete'
+    }
+}
+
+function Assert-ScoopWorktreeClean {
+    if (-not (Test-ScoopFormalRepairReady)) { return }
     Invoke-ScoopMirrorAccelFilterInit -FailureMessage 'Scoop package operation aborted because its tracked worktree is not clean'
 }
 
@@ -468,6 +572,10 @@ function Set-ScoopBucketMirrors {
         [string]$ActivePrefix,
         $Prefixes
     )
+
+    if (-not (Test-ScoopFormalRepairReady)) {
+        return
+    }
 
     if (-not $Prefixes) { $Prefixes = Get-ScoopMirrorPrefixes }
     $bucketsRoot = Join-Path $env:SCOOP 'buckets'
@@ -557,12 +665,13 @@ function Install-ScoopAria2Accel {
     Write-Info 'aria2 configuration complete'
 }
 
+# Deploy scoop-mirror files + scoop_repo. Hook / bucket remotes / aria2 are applied by the caller
+# after bootstrap apps and scoop update (see runtime/scoop/install.ps1).
 function Enable-ScoopAccel {
     param(
         $Manifest,
         [string]$Mirror = '',
-        $ActivePrefix,
-        [switch]$SkipAria2
+        $ActivePrefix
     )
 
     if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
@@ -603,12 +712,5 @@ function Enable-ScoopAccel {
 
     Install-ScoopMirrorAccelFiles -Accel $accel -ActivePrefix $ActivePrefix -Prefixes $prefixes
     Install-ScoopServicesFiles
-    Install-ScoopDownloadHook
-    Set-ScoopBucketMirrors -ActivePrefix $ActivePrefix -Prefixes $prefixes
-
-    if (-not $SkipAria2) {
-        Install-ScoopAria2Accel -Accel $accel
-    }
-
-    Write-Info "Scoop acceleration configured (mirror: $activeLabel)"
+    Write-Info "Scoop acceleration files deployed (mirror: $activeLabel)"
 }
