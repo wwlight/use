@@ -1,20 +1,15 @@
 # Scoop services manager (WinSW).
+# IMPORTANT: do not declare ValueFromRemainingArguments here.
+# Under `pwsh -File script.ps1 install nginx`, that binding often leaves BOTH
+# CommandArgs and $args empty, so every command silently falls back to `ls`.
+# With only switches in param(), unbound tokens reliably land in $args.
 param(
     [switch]$PrepareUninstall,
     [switch]$PrepareUpdate,
-    [switch]$RestartChanged,
-    [Parameter(ValueFromRemainingArguments = $true)]
-    [string[]]$CommandArgs
+    [switch]$RestartChanged
 )
 
-# powershell/pwsh -File often leaves tokens in $args instead of ValueFromRemainingArguments
-# when the other parameters are only switches. Fall back so `scoop services install nginx` works.
-if (($null -eq $CommandArgs -or @($CommandArgs).Count -eq 0) -and @($args).Count -gt 0) {
-    $CommandArgs = @($args | ForEach-Object { [string]$_ })
-}
-if ($null -eq $CommandArgs) {
-    $CommandArgs = @()
-}
+$CommandArgs = @($args | ForEach-Object { [string]$_ })
 
 if (-not $env:SCOOP) {
     [Console]::Error.WriteLine('scoop services: $env:SCOOP is not set')
@@ -177,7 +172,8 @@ function Ensure-ScoopServiceXml {
   <onfailure action="restart" delay="20 sec" />
 </service>
 "@
-    Set-Content -LiteralPath $xml -Value $template.Trim() -Encoding UTF8
+    $utf8 = New-Object System.Text.UTF8Encoding $false
+    [IO.File]::WriteAllText($xml, ($template.Trim() + "`n"), $utf8)
     Write-Host "Generated: $xml"
     return $true
 }
@@ -203,7 +199,8 @@ function Invoke-ScoopServicesList {
         Stop-ScoopServicesCli -Code 1
     }
     # XMLs live at persist/<app>/<app>-winsw-service.xml (same depth as scoop.ps1 / scoop.zsh).
-    $xmls = @(Get-ChildItem -Path (Join-Path $env:SCOOP 'persist\*\*-winsw-service.xml') -File -ErrorAction SilentlyContinue)
+    # Use a literal wildcard path — Join-Path can mishandle '*' on some hosts.
+    $xmls = @(Get-ChildItem -Path "$env:SCOOP\persist\*\*-winsw-service.xml" -File -ErrorAction SilentlyContinue)
     Write-Output ("{0} {1} Path" -f ('Name'.PadRight(15)), ('Status'.PadRight(15)))
     foreach ($xml in $xmls) {
         $name = $xml.Directory.Name
@@ -219,10 +216,10 @@ function Invoke-ScoopServicesList {
 }
 
 function Invoke-ScoopServicesManager {
-    param([string[]]$Args)
+    param([string[]]$Tokens)
 
-    $action = if ($Args -and $Args.Count -gt 0) { $Args[0] } else { 'ls' }
-    $svc = if ($Args -and $Args.Count -gt 1) { $Args[1] } else { $null }
+    $action = if ($Tokens -and $Tokens.Count -gt 0) { $Tokens[0] } else { 'ls' }
+    $svc = if ($Tokens -and $Tokens.Count -gt 1) { $Tokens[1] } else { $null }
 
     switch ($action) {
         'ls' { Invoke-ScoopServicesList }
@@ -237,15 +234,17 @@ function Invoke-ScoopServicesManager {
                 Write-Host "'$svc' is not in the service manifest"
                 return
             }
-            if (Ensure-ScoopServiceXml -Name $svc) {
-                $status = Get-ScoopWinSwStatusText -Name $svc
-                if ($status -eq 'NonExistent') {
-                    Invoke-ScoopWinSw install $svc
-                    Invoke-ScoopWinSw start $svc
-                }
-                else {
-                    Write-Host "Service '$svc' is already registered ($status)"
-                }
+            if (-not (Ensure-ScoopServiceXml -Name $svc)) {
+                Write-Host "Failed to prepare service definition for '$svc'"
+                return
+            }
+            $status = Get-ScoopWinSwStatusText -Name $svc
+            if ($status -eq 'NonExistent') {
+                Invoke-ScoopWinSw install $svc
+                Invoke-ScoopWinSw start $svc
+            }
+            else {
+                Write-Host "Service '$svc' is already registered ($status)"
             }
         }
         'uninstall' {
@@ -393,7 +392,7 @@ try {
         Invoke-ScoopServicesRestartChanged
         Stop-ScoopServicesCli -Code 0
     }
-    Invoke-ScoopServicesManager -Args $CommandArgs
+    Invoke-ScoopServicesManager -Tokens $CommandArgs
     Stop-ScoopServicesCli -Code 0
 }
 catch {

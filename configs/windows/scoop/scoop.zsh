@@ -1,17 +1,46 @@
 # Scoop shell wrappers (`scoop mirror` / `scoop services` / winsw).
 
+_scoop_ps_quote() {
+  # Single-quote for PowerShell literals; escape embedded single quotes.
+  local s=$1
+  s=${s//\'/\'\'}
+  print -r -- "'$s'"
+}
+
 _scoop_ps() {
   local file="$1"
   shift
+  local ps_exe
   if command -v pwsh.exe >/dev/null 2>&1; then
-    pwsh.exe -NoProfile -ExecutionPolicy Bypass -File "$file" "$@"
+    ps_exe=pwsh.exe
+  elif command -v pwsh >/dev/null 2>&1; then
+    ps_exe=pwsh
+  else
+    ps_exe=powershell.exe
+  fi
+
+  # Prefer a Windows path for -Command; MSYS /d/... paths are unreliable in pwsh.
+  if command -v cygpath >/dev/null 2>&1; then
+    file="$(cygpath -w "$file")"
+  fi
+
+  # Avoid `pwsh -File script.ps1 install nginx`: unbound tokens are often dropped.
+  # Build an explicit PowerShell call so switches/args always reach the script.
+  if (( $# == 0 )); then
+    "$ps_exe" -NoProfile -ExecutionPolicy Bypass -File "$file"
     return $?
   fi
-  if command -v pwsh >/dev/null 2>&1; then
-    pwsh -NoProfile -ExecutionPolicy Bypass -File "$file" "$@"
-    return $?
-  fi
-  powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$file" "$@"
+  local call="& $(_scoop_ps_quote "$file")"
+  local a
+  for a in "$@"; do
+    # Keep -Switch tokens bare so PowerShell binds them as parameters.
+    if [[ "$a" == -* ]]; then
+      call+=" $a"
+    else
+      call+=" $(_scoop_ps_quote "$a")"
+    fi
+  done
+  "$ps_exe" -NoProfile -ExecutionPolicy Bypass -Command "$call"
 }
 
 winsw() {
