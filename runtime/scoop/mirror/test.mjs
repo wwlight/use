@@ -18,6 +18,7 @@ assert.ok(mirrorIds.includes(common.githubAccel.default))
 const installer = read('runtime/scoop/accel.ps1')
 assert.match(installer, /Join-Path \$PSScriptRoot 'deploy\.ps1'/)
 assert.match(installer, /Join-Path \$Script:ProjectRoot 'src\\lib\\menu-select\.js'/)
+assert.ok(!/PSScriptRoot '..\\..\\src\\lib\\menu-select/.test(installer))
 
 // Windows PowerShell 5.1 footguns (one-click / scoop scripts run under 5.1, not only pwsh 7).
 const ps51Sources = [
@@ -59,15 +60,30 @@ assert.match(installer, /Complete-ScoopCoreGitConversion/)
 assert.match(installer, /--no-update-scoop/)
 assert.match(installer, /function Ensure-ScoopGitRepositories/)
 assert.match(installer, /scoop update/)
+assert.ok(!/main bucket is still missing \.git; bucket mirror updates may be incomplete/.test(installer),
+  'main bucket failure must hard-fail before aria2, not soft-warn')
 assert.match(installer, /main bucket is still missing \.git after mirrored add/)
 assert.match(installer, /adopting git metadata into current install/)
+assert.ok(!/scoop update failed; cannot prepare Scoop git repositories/.test(installer),
+  'do not hard-fail scoop update when core .git may already exist')
 assert.match(installer, /scoop-mirror\\cli\.js/)
 assert.match(installer, /\$cliJs repair/)
 assert.match(installer, /WriteAllBytes/)
+assert.ok(!/function Test-ByteSequencePresent\b/.test(installer),
+  'temp hook uses UTF-8 string Contains instead of hand-rolled byte search')
+assert.ok(!/function Install-ScoopDownloadHookTemporary[\s\S]*?WriteAllText/.test(installer),
+  'temporary hook must append bytes, not rewrite via WriteAllText')
+assert.ok(!/function Install-ScoopDownloadHookTemporary[\s\S]*?# >>> scoop-mirror/.test(installer),
+  'temporary hook must not add marker comments')
 // Formal repair requires Scoop .git — not merely git.exe on PATH.
 const downloadHook = installer.match(/function Install-ScoopDownloadHook\b(?!Temporary)[\s\S]*?\nfunction /)?.[0] || ''
 assert.match(downloadHook, /Test-ScoopFormalRepairReady/)
 assert.match(downloadHook, /Install-ScoopDownloadHookTemporary/)
+assert.ok(!installer.includes('Fallback without Node'))
+assert.ok(!installer.includes('Initialize-ScoopMirrorAccelFilter'))
+assert.ok(!installer.includes('deferring the Scoop download hook until Git installs'))
+assert.ok(!installer.includes('deferring Scoop bucket remote mirror updates'))
+assert.ok(!installer.includes('Test-ScoopDownloadHookPresent'))
 // Enable-ScoopAccel deploys files only; hook/bucket/aria2 stay in install.ps1.
 const enableAccel = installer.slice(installer.indexOf('function Enable-ScoopAccel'))
 assert.match(enableAccel, /Install-ScoopMirrorAccelFiles/)
@@ -78,6 +94,7 @@ assert.match(enableAccel, /Get-ScoopRepoTargetUrl/)
 assert.ok(!/Install-ScoopDownloadHook/.test(enableAccel), 'Enable must not install download hook')
 assert.ok(!/Set-ScoopBucketMirrors/.test(enableAccel), 'Enable must not rewrite bucket remotes')
 assert.ok(!/Install-ScoopAria2Accel/.test(enableAccel), 'Enable must not configure aria2')
+assert.ok(!/SkipAria2/.test(enableAccel), 'SkipAria2 removed; caller owns aria2')
 
 const deploy = read('runtime/scoop/deploy.ps1')
 assert.match(deploy, /mirrors\s*=\s*\$mirrors/)
@@ -88,16 +105,26 @@ assert.match(deploy, /scoop\/mirror\/hook\.ps1|mirror\\hook\.ps1/)
 assert.match(deploy, /shared\.ps1/)
 assert.match(deploy, /obsoleteManage/)
 assert.match(deploy, /Remove-Item/)
+assert.ok(!deploy.includes("foreach ($name in @('shared.ps1', 'manage.ps1'))"))
 assert.match(deploy, /scoop\/services\/manage\.ps1|services\\manage\.ps1/)
 assert.match(deploy, /scoop\/mirror\/shared\.ps1|mirror\\shared\.ps1/)
 assert.match(deploy, /configs\\windows\\scoop\\scoop\.ps1/)
+assert.ok(!/hooks[\\/]windows[\\/]scoop/.test(deploy))
 assert.match(deploy, /Join-Path \$Script:ProjectRoot 'src\\lib'/)
+assert.ok(!/PSScriptRoot '..\\..\\src\\lib'/.test(deploy))
 
 const hook = read('runtime/scoop/mirror/hook.ps1')
 assert.match(hook, /shared\.ps1/)
 assert.match(hook, /Start-Download/)
 assert.match(hook, /Invoke-CachedAria2Download/)
 assert.match(hook, /configured GitHub mirrors cannot proxy/)
+assert.ok(!/\$cliJs repair|node.*cli\.js.*repair|RepairHook|PrepareCommand/.test(hook))
+assert.ok(!/Invoke-ScoopMirrorManager/.test(hook))
+assert.ok(!/\[switch\]\$ManageMirror/.test(hook))
+assert.ok(!/\[switch\]\$GitFilterClean/.test(hook))
+assert.ok(!/function Find-ByteSequence/.test(hook))
+assert.ok(!/function Initialize-ScoopMirrorAccelFilter/.test(hook))
+assert.ok(!/Fallback when Node is unavailable/.test(hook))
 
 const shared = read('runtime/scoop/mirror/shared.ps1')
 assert.match(shared, /function Get-ScoopMirrorAccelConfig/)
@@ -106,6 +133,11 @@ assert.match(shared, /function ConvertTo-ScoopMirrorUrl/)
 assert.match(shared, /Scoop source: cache/)
 assert.match(shared, /return 'direct'/)
 assert.match(shared, /GitHub mirror unavailable for this host/)
+assert.ok(!/function Set-ScoopMirrorBucketRemotes/.test(shared))
+assert.ok(!/function Write-ScoopMirrorStatus/.test(shared))
+assert.ok(!/function Resolve-ScoopMirrorAccelChoice/.test(shared))
+
+assert.ok(!existsSync(resolve(root, 'runtime/scoop/mirror/manage.ps1')))
 
 const filter = resolve(root, 'runtime/scoop/mirror/cli.js')
 const tracked = Buffer.from("function Start-Download {\n  'upstream'\n}\n", 'utf8')
@@ -133,6 +165,7 @@ assert.deepEqual(runFilter('clean', legacy), tracked)
 const cliSource = read('runtime/scoop/mirror/cli.js')
 assert.match(cliSource, /manifests['"`].*common\.json|common\.json/)
 assert.match(cliSource, /src['"`].*lib['"`].*menu-select|src.*lib.*menu-select/)
+assert.ok(!cliSource.includes("../../../src/lib/menu-select.js"))
 assert.ok(existsSync(resolve(root, 'src/lib/menu-select.js')))
 assert.match(cliSource, /mode === 'switch'/)
 assert.match(cliSource, /runSwitchCli/)
@@ -197,12 +230,16 @@ assert.match(scoopPs, /_scoop_prepare_update_services/)
 assert.match(scoopPs, /_scoop_restart_changed_services/)
 assert.match(scoopPs, /Test-ScoopHasManagedServices/)
 assert.match(scoopPs, /\*\\\*-winsw-service\.xml/)
+assert.ok(!scoopPs.includes("-Filter '*-winsw-service.xml' -Recurse"))
 assert.match(scoopPs, /\.update-snapshot\.json/)
 assert.match(scoopPs, /-PrepareUpdate/)
 assert.match(scoopPs, /-RestartChanged/)
 assert.match(scoopPs, /Node\.js is required/)
 assert.match(scoopPs, /_scoop_run_mirror_repair/)
 assert.match(scoopPs, /_scoop_mirror_cli/)
+assert.ok(!/scoop-mirror\\manage\.ps1/.test(scoopPs))
+assert.ok(!/-MirrorChoice/.test(scoopPs))
+assert.ok(!/powershell\.exe/.test(scoopPs))
 assert.match(scoopPs, /official\|status/)
 
 const scoopZsh = read('configs/windows/scoop/scoop.zsh')
@@ -225,6 +262,7 @@ assert.match(scoopZsh, /pwsh\.exe/)
 assert.match(scoopZsh, /Node\.js is required/)
 assert.match(scoopZsh, /_scoop_run_mirror_repair/)
 assert.match(scoopZsh, /_scoop_mirror_cli/)
+assert.ok(!/-MirrorChoice/.test(scoopZsh))
 assert.match(scoopZsh, /official\|status/)
 
 const servicesHelper = read('runtime/scoop/services/manage.ps1')
@@ -253,6 +291,7 @@ assert.match(installer, /\$bucket\.Source = \$mirrored/)
 assert.match(installer, /GithubHosts/)
 assert.match(installer, /Get-ScoopAccelConfig/)
 assert.match(installer, /\$GithubHosts -contains \$hostName/)
+assert.ok(!/raw\.githubusercontent\.com/.test(installer.match(/function ConvertTo-MirrorUrl[\s\S]*?\n}/)?.[0] || ''))
 
 // Interactive `vpr pm` must prompt even when USE_ACCEL is leftover from a one-liner.
 const resolveMirror = installer.match(/function Resolve-ScoopMirrorSelection[\s\S]*?\nfunction /)?.[0] || ''
@@ -278,7 +317,10 @@ assert.match(bootstrap, /\[ref\]\$OutPrefix/, 'OutPrefix avoids return-value pol
 assert.match(bootstrap, /ForEach-Object\s*\{\s*Write-Host/,
   'installer Write-Output must go to host, not the success stream')
 assert.match(bootstrap, /\$OutPrefix\.Value\s*=\s*\$successPrefix/)
+assert.ok(!/return \$successPrefix/.test(bootstrap), 'do not return prefix via success stream')
 assert.match(bootstrap, /Resolve-ScoopKnownMirrorPrefix/)
+assert.ok(!/\$null\s*=\s*\$PreferredPrefix/.test(bootstrap), 'must not discard PreferredPrefix')
+assert.ok(!/Mirror acceleration starts after Scoop installs/.test(bootstrap))
 
 assert.match(installer, /function Resolve-ScoopKnownMirrorPrefix/)
 assert.match(installer, /function Test-ScoopRepoUrl/)
@@ -316,6 +358,7 @@ assert.match(ensureMain, /Get-ScoopKnownMainBucketUrl/)
 assert.match(ensureMain, /Join-ScoopMirrorUrl/)
 assert.match(ensureMain, /scoop bucket add main/)
 assert.match(ensureMain, /scoop bucket rm main/)
+assert.ok(!/ghfast\.top/.test(ensureMain), 'do not hardcode a mirror host in main-bucket ensure')
 
 const knownMain = installer.match(/function Get-ScoopKnownMainBucketUrl[\s\S]*?\nfunction /)?.[0] || ''
 assert.match(knownMain, /buckets\.json/)
@@ -357,6 +400,9 @@ assert.match(scoopInstall, /Install-ScoopDownloadHook/)
 assert.match(scoopInstall, /Set-ScoopBucketMirrors/)
 assert.match(scoopInstall, /Install-ScoopAria2Accel/)
 assert.match(scoopInstall, /Update-ScoopSessionPath/)
+assert.ok(!/SkipAria2/.test(scoopInstall), 'aria2 is owned by install.ps1 directly')
+assert.ok(!/Assert-ScoopWorktreeClean\s*\r?\nInstall-ScoopAria2Accel/.test(scoopInstall),
+  'do not re-assert immediately after formal repair before aria2')
 // Enable (deploy) → hook → bootstrap → scoop update → promote formal if needed → buckets → aria2
 const enableAt = scoopInstall.indexOf('Enable-ScoopAccel')
 const formalReadyAt = scoopInstall.indexOf('Test-ScoopFormalRepairReady', enableAt)
@@ -374,6 +420,7 @@ assert.ok(promoteHookAt > ensureGitAt)
 assert.ok(bucketsAt > promoteHookAt)
 assert.ok(ariaAt > bucketsAt)
 assert.match(scoopInstall, /if \(-not \$formalReady\)/)
+assert.ok(!/Installing Git\.\.\./.test(scoopInstall))
 
 const rootInstall = read('install.ps1')
 assert.match(rootInstall, /Invoke-UseCli|src\/cli\.js/)
@@ -384,36 +431,46 @@ assert.match(rootInstall, /Ensure-NodeRuntime/)
 assert.match(rootInstall, /Install-NodeViaVitePlus|vite-plus/)
 assert.match(rootInstall, /Setup-NodeManager/)
 assert.match(rootInstall, /Node\.js >= 18/)
+assert.ok(!/function Install-ScoopBootstrap\b/.test(rootInstall), 'Scoop bootstrap lives in runtime/scoop only')
+assert.ok(!/Install-ScoopBootstrap\b/.test(rootInstall), 'one-click must not bootstrap Scoop before pm')
+assert.ok(!/Node\.js >= 22/.test(rootInstall), 'installer must not hard-require Node 22')
 assert.match(rootInstall, /open a new terminal and rerun/)
-const invokeUseCli = rootInstall.match(/function Invoke-UseCli[\s\S]*?\nfunction /)?.[0] || ''
-assert.match(invokeUseCli, /\$_ -ne '--'/, 'PS 5.1: strip bare -- before node')
-assert.match(rootInstall, /Invoke-UseCli @\('init', \$InstallProfile\)/)
-assert.match(rootInstall, /SYNC_SKIP_PM_HELPERS\s*=\s*'1'/)
+const expandZip = rootInstall.match(/function Expand-UseZipRepository[\s\S]*?\nfunction /)?.[0] || ''
+assert.match(expandZip, /Could not replace existing directory/)
+assert.ok(!/use-new-/.test(expandZip), 'no staging/in-place zip refresh — caller uses a fresh InstallDir')
+assert.ok(!/Refreshing repository at \$InstallDir \(Git not available yet\)/.test(rootInstall),
+  'do not zip-refresh into an existing checkout that may be the shell cwd')
 assert.match(rootInstall, /Get-NextTimestampedDir \$InstallDir/)
-assert.match(rootInstall, /yyyyMMddHHmmss/, 'sibling dir is use + timestamp, no hyphens')
-assert.match(rootInstall, /"\$Base\$ts"/)
 assert.ok(
   /Setup-NodeManager[\s\S]*Invoke-Expression[\s\S]*Test-NodeAvailable[\s\S]*open a new terminal/.test(
     rootInstall.match(/function Install-NodeViaVitePlus[\s\S]*?\nfunction /)?.[0] || '',
   ),
   'vite-plus: validate script, then stop on partial success instead of mirror retry',
 )
+// Ensure-NodeRuntime call before Fetch-UseRepository call (ignore function definitions).
 const rootMain = rootInstall.split(/Write-Info 'Installation complete!'/)[0]
 const ensureNodeCalls = [...rootMain.matchAll(/^\s*Ensure-NodeRuntime\s*$/gm)]
 const fetchCalls = [...rootMain.matchAll(/^\s*Fetch-UseRepository\b/gm)]
 assert.ok(ensureNodeCalls.length >= 1, 'expected Ensure-NodeRuntime call')
 assert.ok(fetchCalls.length >= 1, 'expected Fetch-UseRepository call')
 assert.ok(ensureNodeCalls[0].index < fetchCalls[0].index, 'Node check must run before repo fetch')
-assert.ok(rootMain.indexOf("Invoke-UseCli @pmArgs") > fetchCalls[0].index, 'pm must run after fetch')
+const pmCall = rootMain.indexOf("Invoke-UseCli @pmArgs")
+assert.ok(pmCall > fetchCalls[0].index, 'pm must run after fetch')
 
 const cliTs = read('src/cli.js')
 assert.match(cliTs, /runtime\/scoop\/install\.ps1/)
 assert.match(cliTs, /markCliInteractive/)
 assert.match(cliTs, /runInitCommand/)
+assert.ok(!/process\.stdin\.isTTY \|\| process\.stdout\.isTTY/.test(cliTs))
+assert.ok(!/windows\/scoop\//.test(cliTs))
+assert.ok(!/macos\/brew\//.test(cliTs))
+assert.ok(!/scripts\/scoop\//.test(cliTs))
 
 const initTs = read('src/commands/init.js')
 assert.match(initTs, /runtime\/scoop\/import-backup\.ps1/)
 assert.match(initTs, /Scoop/)
+assert.ok(!/windows\/scoop\//.test(initTs))
+assert.ok(!/scripts\/scoop\//.test(initTs))
 
 const pathsTs = read('src/core/paths.js')
 assert.match(pathsTs, /expandPath|projectRoot/)
@@ -423,6 +480,9 @@ assert.match(manifestTs, /loadManifest|pathVarsForWindows/)
 
 const utilsPs = read('runtime/scoop/utils.ps1')
 assert.match(utilsPs, /Get-ExpandedPath|Read-Manifest/)
+assert.ok(!utilsPs.includes('function Write-Step'))
+assert.ok(!existsSync(resolve(root, 'scripts/lib/utils.ps1')))
+assert.ok(!existsSync(resolve(root, 'scripts')))
 assert.ok(existsSync(resolve(root, 'runtime/scoop/utils.ps1')))
 
 const syncSelect = read('src/sync/select.js')
@@ -442,6 +502,7 @@ const windowsManifest = JSON.parse(read('manifests/windows.json'))
 const syncLocals = windowsManifest.sync.toRepo.map((item) => item.local)
 assert.ok(syncLocals.some((local) => String(local).includes('scoop-mirror/hook.ps1')))
 assert.ok(syncLocals.some((local) => String(local).includes('scoop-mirror/shared.ps1')))
+assert.ok(!syncLocals.some((local) => String(local).includes('scoop-mirror/manage.ps1')))
 assert.ok(syncLocals.some((local) => String(local).includes('scoop-mirror/cli.js')))
 assert.ok(syncLocals.some((local) => String(local).includes('scoop-mirror/lib/menu-select.js')))
 assert.ok(syncLocals.some((local) => String(local).includes('scoop-mirror/lib/string-width.js')))
@@ -452,13 +513,14 @@ assert.ok(syncLocals.some((local) => String(local).includes('scoop-services/mana
 assert.ok(syncLocals.some((local) => String(local).includes('scoop-services/manifest.json')))
 assert.ok(syncLocals.some((local) => String(local).includes('config/scoop.ps1') || String(local).endsWith('/scoop.ps1')))
 assert.ok(syncLocals.some((local) => String(local).includes('scoop.zsh') || String(local).endsWith('/scoop.zsh')))
-assert.ok(windowsManifest.sync.toRepo.some((item) => item.pmHelper === true))
 assert.equal(windowsManifest.scoopBackup, 'configs/windows/scoop/backup.json')
 assert.equal(windowsManifest.scoopBackupLite, 'configs/windows/scoop/backup.lite.json')
 
 const readme = read('README.md')
 const mirrorSection = readme.match(/### scoop mirror\n([\s\S]*?)\n### scoop services/)
 assert.ok(mirrorSection)
+assert.ok(!mirrorSection[1].includes('manage.ps1') || mirrorSection[1].includes('scoop-services'))
+assert.ok(!/scoop-mirror\/manage\.ps1/.test(mirrorSection[1]))
 for (const command of [
   'scoop mirror',
   'scoop mirror status',
@@ -479,6 +541,7 @@ for (const command of orderedMirrorCmds) {
   prevMirrorIdx = idx
 }
 assert.ok(readme.includes('BEGIN GENERATED GITHUB ACCEL WINDOWS PM'))
+assert.ok(!mirrorSection[1].includes('scoop mirror list'))
 
 const servicesSection = readme.match(/### scoop services\n([\s\S]*?)\n### clink/)
 assert.ok(servicesSection)

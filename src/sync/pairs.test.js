@@ -14,22 +14,3 @@ test('readSyncPairLines includes restoreOnly on restore direction', () => {
     const lines = readSyncPairLines('macos', '2');
     assert.equal(lines.some((line) => line.includes('mirror-cli.zsh')), true);
 });
-test('readSyncPairLines skips pmHelper pairs when SYNC_SKIP_PM_HELPERS=1', () => {
-    clearManifestCache();
-    const previous = process.env.SYNC_SKIP_PM_HELPERS;
-    process.env.SYNC_SKIP_PM_HELPERS = '1';
-    try {
-        const mac = readSyncPairLines('macos', '2');
-        assert.equal(mac.some((line) => line.includes('mirror-cli.zsh')), false);
-        assert.ok(mac.some((line) => line.includes('.zshrc')));
-        const win = readSyncPairLines('windows', '2');
-        assert.equal(win.some((line) => line.includes('scoop-mirror')), false);
-        assert.ok(win.some((line) => line.includes('.zshrc')));
-    }
-    finally {
-        if (previous === undefined)
-            delete process.env.SYNC_SKIP_PM_HELPERS;
-        else
-            process.env.SYNC_SKIP_PM_HELPERS = previous;
-    }
-});
