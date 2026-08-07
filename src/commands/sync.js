@@ -3,7 +3,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { error } from "../core/log.js";
 import { markCliInteractive } from "../core/platform.js";
-import { SYNC_DIRECTION_EXAMPLE, SYNC_DIRECTION_HINT, isSyncDirection, promptSyncDirectionMenu, } from "../sync/direction.js";
+import { SYNC_DIRECTION_EXAMPLE, SYNC_DIRECTION_HINT, isSyncDirection, normalizeSyncDirection, promptSyncDirectionMenu, } from "../sync/direction.js";
 import { runConfigSync } from "../sync/engine.js";
 import { cleanupSyncTempFile, readSyncPairLines } from "../sync/pairs.js";
 import { runSyncSelectPrompt } from "../sync/select.js";
@@ -15,8 +15,9 @@ function parseSyncDirection(args) {
         return '__HELP__';
     }
     for (const arg of meaningful) {
-        if (arg === '1' || arg === '2')
-            return arg;
+        const direction = normalizeSyncDirection(arg);
+        if (direction)
+            return direction;
     }
     return '__INVALID__';
 }
@@ -24,20 +25,22 @@ async function promptSyncDirection(args) {
     const parsed = parseSyncDirection(args);
     if (parsed === '__HELP__') {
         console.log([
-            'Usage: vpr sync [1|2]',
+            'Usage: vpr sync [1|2|backup|restore]',
             '',
-            '  1  Back up configuration -> repository',
-            '  2  Restore configuration -> local machine',
+            '  1 / backup   Back up configuration -> repository',
+            '  2 / restore  Restore configuration -> local machine',
             '',
             'Examples:',
             '  vpr sync',
+            '  vpr sync backup',
+            '  vpr sync restore',
             '  vpr sync -- 1',
             '  vpr sync -- 2',
         ].join('\n'));
         process.exit(0);
     }
     if (parsed === '__INVALID__') {
-        error('Invalid sync direction; use 1 or 2');
+        error('Invalid sync direction; use 1, 2, backup, or restore');
         console.error(SYNC_DIRECTION_EXAMPLE);
         process.exit(1);
     }
@@ -67,7 +70,7 @@ export async function runSyncCommand(platform, args) {
     if (process.env.SYNC_SELECT_ALL === '1') {
         const direction = (parseSyncDirection(args) || '2');
         if (!isSyncDirection(direction)) {
-            error('Invalid sync direction; use 1 or 2');
+            error('Invalid sync direction; use 1, 2, backup, or restore');
             return 1;
         }
         await runConfigSync({ platform, direction, fromDispatch: true });

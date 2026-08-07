@@ -103,7 +103,7 @@ export async function runInitCommand(platform, args) {
     if (platform === 'windows') {
         await runZshInstallCommand([]);
     }
-    await runZshPluginCommand([]);
+    await runZshPluginCommand([], { update: false });
     nextStep(current, total, 'Syncing configuration...');
     process.env.SYNC_PROFILE = profile;
     process.env.SYNC_SELECT_ALL = '1';
