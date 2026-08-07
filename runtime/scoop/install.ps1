@@ -48,6 +48,7 @@ if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
         $ErrorActionPreference = 'Stop'
         # Use the mirror that actually installed Scoop (preferred → fallback → official).
         $activePrefix = Invoke-ScoopInstallScriptWithFallback -Accel $accel -PreferredPrefix $selectedPrefix
+        $activePrefix = Resolve-ScoopKnownMirrorPrefix -Prefix $activePrefix
         # Keep binary operators at end of line — PowerShell does not continue across bare newlines.
         $mirrorChanged = [string]$activePrefix -ne [string]$selectedPrefix -and -not (
             [string]::IsNullOrWhiteSpace($activePrefix) -and

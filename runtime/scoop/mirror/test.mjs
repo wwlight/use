@@ -56,6 +56,7 @@ assert.ok(!installer.includes('Test-ScoopDownloadHookPresent'))
 const enableAccel = installer.slice(installer.indexOf('function Enable-ScoopAccel'))
 assert.match(enableAccel, /Install-ScoopMirrorAccelFiles/)
 assert.match(enableAccel, /Install-ScoopServicesFiles/)
+assert.match(enableAccel, /Resolve-ScoopKnownMirrorPrefix/)
 assert.ok(!/Install-ScoopDownloadHook/.test(enableAccel), 'Enable must not install download hook')
 assert.ok(!/Set-ScoopBucketMirrors/.test(enableAccel), 'Enable must not rewrite bucket remotes')
 assert.ok(!/Install-ScoopAria2Accel/.test(enableAccel), 'Enable must not configure aria2')
@@ -278,9 +279,17 @@ assert.match(bootstrap, /Trying installer/)
 assert.match(bootstrap, /Installer succeeded/)
 assert.match(bootstrap, /Installer failed/)
 assert.match(bootstrap, /active mirror set to/)
+assert.match(bootstrap, /\$null\s*=\s*Invoke-Expression/,
+  'discard Scoop Write-InstallInfo Write-Output or it pollutes activePrefix/scoop_repo')
+assert.match(bootstrap, /Resolve-ScoopKnownMirrorPrefix/)
 assert.match(bootstrap, /return \$successPrefix/)
 assert.ok(!/\$null\s*=\s*\$PreferredPrefix/.test(bootstrap), 'must not discard PreferredPrefix')
 assert.ok(!/Mirror acceleration starts after Scoop installs/.test(bootstrap))
+
+assert.match(installer, /function Resolve-ScoopKnownMirrorPrefix/)
+const knownPrefix = installer.match(/function Resolve-ScoopKnownMirrorPrefix[\s\S]*?\nfunction /)?.[0] || ''
+assert.match(knownPrefix, /Ignoring invalid Scoop mirror prefix/)
+assert.match(knownPrefix, /return ''/)
 
 const rewrite = installer.match(/function Rewrite-ScoopInstallerGithubUrls[\s\S]*?\nfunction /)?.[0] || ''
 assert.match(rewrite, /Get-ScoopInstallerBootstrapUrls|ScoopInstaller\/Scoop\/archive\/master\.zip/)
@@ -301,6 +310,7 @@ assert.match(fetchAttempts, /official: do not probe mirrors first|do not probe m
 const scoopInstall = read('runtime/scoop/install.ps1')
 assert.match(scoopInstall, /\$selectedPrefix = Resolve-ScoopMirrorSelection/)
 assert.match(scoopInstall, /\$activePrefix = Invoke-ScoopInstallScriptWithFallback/)
+assert.match(scoopInstall, /Resolve-ScoopKnownMirrorPrefix/)
 assert.match(scoopInstall, /after install fallback/)
 assert.match(scoopInstall, /Enable-ScoopAccel/)
 assert.match(scoopInstall, /Test-ScoopFormalRepairReady/)

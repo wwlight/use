@@ -84,6 +84,32 @@ function Join-ScoopMirrorUrl {
     return ($Prefix + $bare)
 }
 
+# Empty string = official (no mirror). Unknown/polluted values → official + warning.
+function Resolve-ScoopKnownMirrorPrefix {
+    param(
+        [AllowNull()]
+        [string]$Prefix,
+        $Prefixes
+    )
+    if ($null -eq $Prefixes) { $Prefixes = Get-ScoopMirrorPrefixes }
+    if ([string]::IsNullOrWhiteSpace($Prefix)) { return '' }
+
+    $needle = $Prefix.Trim()
+    foreach ($p in @($Prefixes)) {
+        $known = [string]$p
+        if ([string]::IsNullOrWhiteSpace($known)) { continue }
+        if (
+            $needle.Equals($known, [StringComparison]::OrdinalIgnoreCase) -or
+            $needle.TrimEnd('/').Equals($known.TrimEnd('/'), [StringComparison]::OrdinalIgnoreCase)
+        ) {
+            return $known
+        }
+    }
+
+    Write-Warn "Ignoring invalid Scoop mirror prefix (not in catalog): $needle"
+    return ''
+}
+
 function Get-ScoopMirrorFetchAttempts {
     param(
         [string]$Url,
@@ -360,15 +386,17 @@ function Invoke-ScoopInstallScriptWithFallback {
             }
 
             # Concatenate (do not interpolate) so installer $-variables stay intact.
+            # Scoop's Write-InstallInfo uses Write-Output; discard it or it pollutes this
+            # function's return value and later becomes scoop_repo (git: protocol '... https').
             if (Test-Administrator) {
-                Invoke-Expression ('& { ' + $script + ' } -RunAsAdmin')
+                $null = Invoke-Expression ('& { ' + $script + ' } -RunAsAdmin')
             }
             else {
-                Invoke-Expression $script
+                $null = Invoke-Expression $script
             }
 
             # Persist the source that actually installed Scoop (may differ from selection after fallback).
-            $successPrefix = [string]$attempt.Prefix
+            $successPrefix = Resolve-ScoopKnownMirrorPrefix -Prefix $attempt.Prefix -Prefixes $prefixes
             $successLabel = Format-ScoopMirrorActiveLabel -ActivePrefix $successPrefix
             Write-Info "Installer succeeded ($successLabel); active mirror set to $successLabel"
             return $successPrefix
@@ -688,7 +716,7 @@ function Enable-ScoopAccel {
     if (-not $PSBoundParameters.ContainsKey('ActivePrefix')) {
         $ActivePrefix = Resolve-ScoopMirrorSelection -Choice $Mirror
     }
-    $ActivePrefix = [string]$ActivePrefix
+    $ActivePrefix = Resolve-ScoopKnownMirrorPrefix -Prefix $ActivePrefix -Prefixes $prefixes
 
     $activeLabel = Format-ScoopMirrorActiveLabel -ActivePrefix $ActivePrefix
     Write-Info "Applying Scoop acceleration; active mirror: $activeLabel"
