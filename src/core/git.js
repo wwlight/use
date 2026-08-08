@@ -21,24 +21,44 @@ export function normalizeRepoUrl(url) {
     u = u.replace(/:/g, '/');
     return u;
 }
+function needsGithubAccel(repo) {
+    return /^https?:\/\/github\.com\//i.test(repo)
+        || /^https?:\/\/raw\.githubusercontent\.com\//i.test(repo);
+}
+/** Preferred single accel URL (selected → default → first mirror). */
 export function githubAccelUrl(repo) {
+    const candidates = githubRepoCandidates(repo);
+    return candidates[0] ?? repo;
+}
+/**
+ * Fetch/clone order: selected (USE_ACCEL) → other mirrors → official.
+ * Matches install.sh / Scoop Get-ScoopMirrorFetchAttempts when a mirror is selected.
+ */
+export function githubRepoCandidates(repo) {
+    if (!needsGithubAccel(repo))
+        return [repo];
     const common = loadManifest('common');
     const mirrors = common.githubAccel?.mirrors ?? [];
-    const preferred = process.env.USE_ACCEL
-        || common.githubAccel?.default;
-    const mirror = mirrors.find((m) => m.id === preferred) || mirrors[0];
-    if (!mirror)
-        return repo;
-    if (/^https?:\/\/github\.com\//i.test(repo) || /^https?:\/\/raw\.githubusercontent\.com\//i.test(repo)) {
-        return `${mirror.prefix}${repo}`;
+    if (mirrors.length === 0)
+        return [repo];
+    const preferredId = process.env.USE_ACCEL || common.githubAccel?.default;
+    const preferred = mirrors.find((m) => m.id === preferredId) || mirrors[0];
+    const out = [];
+    const seen = new Set();
+    const push = (url) => {
+        if (!seen.has(url)) {
+            seen.add(url);
+            out.push(url);
+        }
+    };
+    if (preferred)
+        push(`${preferred.prefix}${repo}`);
+    for (const mirror of mirrors) {
+        if (preferred && mirror.id === preferred.id)
+            continue;
+        push(`${mirror.prefix}${repo}`);
     }
-    return repo;
-}
-export function githubRepoCandidates(repo) {
-    const out = [repo];
-    const accel = githubAccelUrl(repo);
-    if (accel !== repo)
-        out.unshift(accel);
+    push(repo);
     return out;
 }
 function runGit(cwd, args) {
@@ -123,9 +143,15 @@ export function syncGitRepoPlugin(repo, targetDir, pluginName, update = false) {
         return;
     }
     info(`Updating plugin: ${pluginName}...`);
-    const accel = githubAccelUrl(repo);
-    spawnSync('git', ['-C', targetDir, 'remote', 'set-url', 'origin', accel], { stdio: 'ignore' });
-    if (!runGit(targetDir, ['fetch', '--prune', 'origin'])) {
+    let fetched = false;
+    for (const url of githubRepoCandidates(repo)) {
+        spawnSync('git', ['-C', targetDir, 'remote', 'set-url', 'origin', url], { stdio: 'ignore' });
+        if (runGit(targetDir, ['fetch', '--prune', 'origin'])) {
+            fetched = true;
+            break;
+        }
+    }
+    if (!fetched) {
         throw new Error(`Failed to update plugin: ${pluginName}`);
     }
     let branch = spawnSync('git', ['-C', targetDir, 'rev-parse', '--abbrev-ref', 'HEAD'], { encoding: 'utf8' }).stdout.trim();

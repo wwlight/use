@@ -17,11 +17,11 @@
     "git-setup": "node ./src/cli.js git-setup",
     "git-extras": "node ./src/cli.js git-extras",
     "clink": "node ./src/cli.js clink",
-    "generate:brew": "node ./src/generate/generate-brew.js",
-    "check:brew": "node ./src/generate/generate-brew.js --check",
-    "generate:github-accel": "node ./src/generate/generate-github-accel.js",
-    "check:github-accel": "node ./src/generate/generate-github-accel.js --check",
-    "test": "node --test && node ./src/generate/generate-brew.js --check && node ./src/generate/generate-github-accel.js --check"
+    "generate:brew": "node ./src/generate/brew-artifacts.js",
+    "check:brew": "node ./src/generate/brew-artifacts.js --check",
+    "generate:github-accel": "node ./src/generate/github-accel.js",
+    "check:github-accel": "node ./src/generate/github-accel.js --check",
+    "test": "node --test"
   },
   "author": "wwlight",
   "license": "ISC",

@@ -1,5 +1,12 @@
+#!/usr/bin/env node
+/**
+ * Homebrew artifacts: mirrors.tsv (mirror catalog) + Brewfile.lite (lite profile).
+ * CLI: node src/generate/brew-artifacts.js [--check]
+ */
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { projectRoot } from "../core/paths.js";
 const CATALOG_HEADER = '# use-homebrew-mirrors-v1';
 const BREW_DIRECTIVE = /^\s*(tap|brew|cask|mas|vscode|whalebrew)\s+"([^"]+)"/;
 function atomicWrite(filePath, content) {
@@ -156,3 +163,53 @@ export function writeBrewLiteBackup(projectRoot, manifest) {
     atomicWrite(litePath, result.content);
     return result;
 }
+
+function loadMacosManifest(root) {
+    return JSON.parse(fs.readFileSync(path.join(root, 'manifests/macos.json'), 'utf8'));
+}
+
+/** @returns {{ ok: true } | { ok: false, reason: string }} */
+export function checkBrewGenerated(root = projectRoot()) {
+    const manifest = loadMacosManifest(root);
+    const expectedCatalog = renderBrewMirrorCatalog(manifest);
+    const expectedLite = renderBrewLite(fs.readFileSync(path.join(root, manifest.brewfile), 'utf8'), manifest);
+    if (expectedLite.missing.length > 0) {
+        throw new Error(`Brew lite items missing from Brewfile: ${expectedLite.missing.join(', ')}`);
+    }
+    const currentCatalog = fs.readFileSync(path.join(root, manifest.brewMirrorCatalog), 'utf8');
+    const currentLite = fs.readFileSync(path.join(root, manifest.brewfileLite), 'utf8');
+    if (currentCatalog !== expectedCatalog || currentLite !== expectedLite.content) {
+        return { ok: false, reason: 'Generated brew files are stale; run: npm run generate:brew' };
+    }
+    return { ok: true };
+}
+
+export function generateBrewFiles(root = projectRoot()) {
+    const manifest = loadMacosManifest(root);
+    const expectedLite = renderBrewLite(fs.readFileSync(path.join(root, manifest.brewfile), 'utf8'), manifest);
+    if (expectedLite.missing.length > 0) {
+        throw new Error(`Brew lite items missing from Brewfile: ${expectedLite.missing.join(', ')}`);
+    }
+    const catalog = writeBrewMirrorCatalog(root, manifest);
+    const lite = writeBrewLiteBackup(root, manifest);
+    return { catalog, lite };
+}
+
+function main() {
+    if (process.argv.includes('--check')) {
+        const result = checkBrewGenerated();
+        if (!result.ok) {
+            console.error(result.reason);
+            process.exit(1);
+        }
+        console.log('Generated brew files are current');
+        return;
+    }
+    const { catalog, lite } = generateBrewFiles();
+    console.log(`Generated brew catalog (${catalog.written} mirrors) and lite Brewfile (${lite.written} items)`);
+}
+
+const isDirectRun = Boolean(process.argv[1])
+    && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isDirectRun)
+    main();

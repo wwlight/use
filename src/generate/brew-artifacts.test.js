@@ -3,8 +3,9 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it } from 'node:test';
 import { projectRoot } from "../core/paths.js";
-import { listBrewMirrors, renderBrewLite, renderBrewMirrorCatalog, } from "./brew.js";
-describe('brew generate', () => {
+import { checkBrewGenerated, listBrewMirrors, renderBrewLite, renderBrewMirrorCatalog, } from "./brew-artifacts.js";
+
+describe('brew-artifacts', () => {
     const root = projectRoot();
     const manifest = JSON.parse(fs.readFileSync(path.join(root, 'manifests/macos.json'), 'utf8'));
     const full = fs.readFileSync(path.join(root, manifest.brewfile), 'utf8');
@@ -32,5 +33,8 @@ describe('brew generate', () => {
         assert.match(tapped.content, /tap "owner\/tap"/);
         assert.match(tapped.content, /brew "owner\/tap\/tool"/);
         assert.ok(!tapped.content.includes('brew "other"'));
+    });
+    it('keeps on-disk brew generated files current', () => {
+        assert.deepEqual(checkBrewGenerated(root), { ok: true });
     });
 });

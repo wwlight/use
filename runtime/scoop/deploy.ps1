@@ -119,7 +119,7 @@ function Install-ScoopServicesFiles {
     Copy-FileDataOnly -SourceFile $src -DestinationFile $dest -Encoding 'utf8Bom'
     Write-Info "Synced scoop-services helper to $dest"
 
-    $manifestSrc = Join-Path $Script:ProjectRoot 'configs\windows\scoop\services\manifest.json'
+    $manifestSrc = Join-Path $Script:ProjectRoot 'configs\windows\scoop\services-manifest.json'
     $manifestDest = Join-Path $servicesDir 'manifest.json'
     if (Test-Path -LiteralPath $manifestSrc) {
         Copy-FileDataOnly -SourceFile $manifestSrc -DestinationFile $manifestDest

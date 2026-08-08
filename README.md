@@ -148,8 +148,8 @@ vpr git-setup                     # Git 全局配置
 ```sh
 vpr generate:github-accel         # 从 manifest 更新 GitHub 加速配置与 README
 vpr check:github-accel            # 检查生成内容是否需要更新
-vpr generate:brew             # 从 manifest 更新 Homebrew 镜像目录与 Brewfile.lite
-vpr check:brew                # 检查 Homebrew 生成内容是否需要更新
+vpr generate:brew                 # 从 manifest 更新 Homebrew 镜像目录与 Brewfile.lite
+vpr check:brew                    # 检查 Homebrew 生成内容是否需要更新
 vpr test                          # 运行项目检查
 ```
 
@@ -161,6 +161,9 @@ Get-ChildItem runtime,configs -Recurse -Include *.ps1,*.psm1 | Unblock-File
 ```
 
 ## 目录结构
+
+`src/`：Node 可移植业务（CLI / sync / brew pm 编排）。
+`runtime/`：部署到本机、或必须原生壳执行的 brew/scoop 运行时（Scoop 安装与 download hook 在此）。
 
 ```text
 .
@@ -174,22 +177,29 @@ Get-ChildItem runtime,configs -Recurse -Include *.ps1,*.psm1 | Unblock-File
 │   ├── common/                   # 跨平台公共配置
 │   ├── macos/                    # macOS + brew 备份 / mirrors.tsv
 │   └── windows/                  # Windows + scoop 备份 / shell 扩展
-├── runtime/                      # brew/scoop 壳侧运行时（部署或被 CLI 调用）
+├── runtime/                      # 本机部署 / 原生壳运行时（非可移植业务）
 │   ├── brew/
 │   │   ├── mirror-cli.zsh        # → ~/.config/homebrew/mirror-cli.zsh
 │   │   └── mirror-menu.js        # → ~/.config/homebrew/lib/mirror-menu.js
 │   └── scoop/
-│       ├── install.ps1           # vpr pm（Windows）
-│       ├── accel.ps1 / deploy.ps1 / import-backup.ps1 / utils.ps1
+│       ├── install.ps1           # vpr pm（Windows；由 src/pm/scoop.js 调用）
+│       ├── accel.ps1             # 镜像安装 / 加速编排
+│       ├── deploy.ps1            # 部署 scoop-mirror / scoop-services 文件
+│       ├── import-backup.ps1     # scoop import（init/setup）
+│       ├── utils.ps1             # 共享 PS 助手
 │       ├── mirror/               # → $SCOOP/config/scoop-mirror/
-│       └── services/             # → $SCOOP/config/scoop-services/
-├── src/                          # Node CLI（业务逻辑）
+│       │   ├── cli.js
+│       │   ├── hook.ps1
+│       │   └── shared.ps1
+│       └── services/
+│           └── manage.ps1        # → $SCOOP/config/scoop-services/manage.ps1
+├── src/                          # Node CLI（可移植业务逻辑）
 │   ├── cli.js
 │   ├── commands/                 # init / backup / setup / sync / …
 │   ├── core/                     # manifest / paths / platform
-│   ├── generate/                 # brew catalog、github-accel、scoop-lite
+│   ├── generate/                 # brew-artifacts / github-accel / scoop-lite
 │   ├── lib/                      # ↑↓ 菜单（部署到 brew/scoop lib）
-│   ├── pm/                       # brew 安装与镜像
+│   ├── pm/                       # brew.js（macOS）/ scoop.js（Windows 薄封装）
 │   └── sync/                     # 配置同步引擎
 └── assets/                       # README 流程图
 ```
@@ -230,7 +240,7 @@ configs/macos/
 └── utils.zsh                     # zsh 自定义函数
 ```
 
-本机 brew 镜像运行时（由 `vpr pm` / sync 部署）：
+本机 brew 镜像运行时（由 `vpr pm / sync` 部署）：
 
 ```text
 ~/.config/homebrew/
@@ -283,8 +293,7 @@ configs/windows/
 │   ├── backup.lite.json          # 尝鲜版最小依赖
 │   ├── scoop.ps1                 # PowerShell：scoop mirror / services
 │   ├── scoop.zsh                 # zsh：scoop mirror / services
-│   └── services/
-│       └── manifest.json         # → $SCOOP/config/scoop-services/manifest.json
+│   └── services-manifest.json    # → $SCOOP/config/scoop-services/manifest.json
 ├── starship.lua                  # cmd 下 clink + starship
 └── utils.zsh                     # 自定义函数
 ```
@@ -297,9 +306,11 @@ configs/windows/
 
 运行时在 `$SCOOP/config/scoop-mirror/` 生成 `config.json`；菜单依赖同步到同目录 `lib/`。
 
+下载规则：已选镜像 → 其他镜像 → 官方（非 GitHub URL 直连）。`scoop mirror` 只改首选；真正下载仍按该顺序 fallback。
+
 ```sh
 scoop mirror                      # 交互选择（↑↓ / Enter；Esc/Ctrl+C 取消；回车选中当前 * 则直接退出）
-scoop mirror status               # 显示当前镜像
+scoop mirror status               # 显示当前镜像与下载规则
 scoop mirror ghproxy              # 直接切换到 gh-proxy.com
 scoop mirror ghfast               # 直接切换到 ghfast.top
 scoop mirror official             # 恢复官方源
@@ -308,7 +319,7 @@ scoop mirror official             # 恢复官方源
 
 ### scoop services
 
-需先 `scoop install winsw-pre`，并配置 `configs/windows/scoop/services/manifest.json`。
+需先 `scoop install winsw-pre`，并配置 `configs/windows/scoop/services-manifest.json`。
 
 ```sh
 scoop services help
@@ -323,7 +334,7 @@ scoop update nginx                # 版本变更且服务原在运行 → 自动
 ```
 
 > [!NOTE]
-> `scoop update` / `scoop update *` 会对 manifest 中已注册且更新前在运行的服务，在版本号变化后自动重启。  
+> `scoop update` / `scoop update *` 会对 manifest 中已注册且更新前在运行的服务，在版本号变化后自动重启。
 > 清单项可设 `"restartOnUpdate": false` 退出该行为；缺省为启用。
 
 ### clink

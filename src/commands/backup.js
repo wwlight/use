@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { info, warn, error } from "../core/log.js";
 import { loadManifest } from "../core/manifest.js";
 import { projectRoot } from "../core/paths.js";
-import { writeBrewLiteBackup } from "../generate/brew.js";
+import { writeBrewLiteBackup } from "../generate/brew-artifacts.js";
 import { writeScoopLiteBackup } from "../generate/scoop-lite.js";
 import { runBrew } from "../pm/brew.js";
 export async function runBackupCommand(platform) {

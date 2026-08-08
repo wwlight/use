@@ -4,7 +4,8 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { isGitRepo, syncGitRepoPlugin } from "./git.js";
+import { githubRepoCandidates, isGitRepo, syncGitRepoPlugin } from "./git.js";
+import { loadManifest } from "./manifest.js";
 
 function git(cwd, args, opts = {}) {
     const r = spawnSync('git', args, { cwd, encoding: 'utf8', ...opts });
@@ -37,6 +38,44 @@ function readPlugin(dir) {
 function head(dir) {
     return git(dir, ['rev-parse', 'HEAD']);
 }
+
+test('githubRepoCandidates: selected → other mirrors → official', () => {
+    const repo = 'https://github.com/example/demo.git';
+    const common = loadManifest('common');
+    const mirrors = common.githubAccel?.mirrors ?? [];
+    assert.ok(mirrors.length >= 2, 'fixture expects at least two githubAccel mirrors');
+
+    const prev = process.env.USE_ACCEL;
+    try {
+        const secondary = mirrors.find((m) => m.id !== common.githubAccel.default) || mirrors[1];
+        process.env.USE_ACCEL = secondary.id;
+        const candidates = githubRepoCandidates(repo);
+        assert.deepEqual(candidates, [
+            `${secondary.prefix}${repo}`,
+            ...mirrors.filter((m) => m.id !== secondary.id).map((m) => `${m.prefix}${repo}`),
+            repo,
+        ]);
+
+        delete process.env.USE_ACCEL;
+        const defaultId = common.githubAccel.default;
+        const preferred = mirrors.find((m) => m.id === defaultId) || mirrors[0];
+        assert.deepEqual(githubRepoCandidates(repo), [
+            `${preferred.prefix}${repo}`,
+            ...mirrors.filter((m) => m.id !== preferred.id).map((m) => `${m.prefix}${repo}`),
+            repo,
+        ]);
+
+        assert.deepEqual(githubRepoCandidates('git@github.com:example/demo.git'), [
+            'git@github.com:example/demo.git',
+        ]);
+    }
+    finally {
+        if (prev === undefined)
+            delete process.env.USE_ACCEL;
+        else
+            process.env.USE_ACCEL = prev;
+    }
+});
 
 test('init path: missing installs, existing skips', () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vpr-git-init-'));

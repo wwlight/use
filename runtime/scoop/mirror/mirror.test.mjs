@@ -477,13 +477,18 @@ assert.ok(rootMain.indexOf('Invoke-UseCli -CliArgs $pmArgs') > fetchCalls[0].ind
 const cliTs = read('src/cli.js')
 assert.match(cliTs, /stripArgSeparator\(process\.argv\.slice\(2\)\)/,
   'cli strips -- before reading task (PS 5.1 may shift -- into argv[2])')
-assert.match(cliTs, /runtime\/scoop\/install\.ps1/)
+assert.match(cliTs, /runScoopPmCommand/)
+assert.match(cliTs, /runBrewPmCommand/)
 assert.match(cliTs, /markCliInteractive/)
 assert.match(cliTs, /runInitCommand/)
 assert.ok(!/process\.stdin\.isTTY \|\| process\.stdout\.isTTY/.test(cliTs))
 assert.ok(!/windows\/scoop\//.test(cliTs))
 assert.ok(!/macos\/brew\//.test(cliTs))
 assert.ok(!/scripts\/scoop\//.test(cliTs))
+
+const scoopPmTs = read('src/pm/scoop.js')
+assert.match(scoopPmTs, /runtime\/scoop\/install\.ps1/)
+assert.match(scoopPmTs, /runScoopPmCommand/)
 
 const initTs = read('src/commands/init.js')
 assert.match(initTs, /runtime\/scoop\/import-backup\.ps1/)
@@ -568,4 +573,4 @@ assert.ok(servicesSection[1].includes('scoop update nginx'))
 assert.ok(servicesSection[1].includes('restartOnUpdate'))
 assert.ok(servicesSection[1].includes(':changed'))
 
-console.log('scoop/mirror/test.mjs: ok')
+console.log('scoop/mirror/mirror.test.mjs: ok')

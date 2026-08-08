@@ -1,8 +1,5 @@
-import path from 'node:path';
 import { error } from "./core/log.js";
-import { runPwsh } from "./core/exec.js";
 import { markCliInteractive, requirePlatform, stripArgSeparator } from "./core/platform.js";
-import { projectRoot } from "./core/paths.js";
 import { runBackupCommand } from "./commands/backup.js";
 import { runGitSetupCommand } from "./commands/git-setup.js";
 import { runInitCommand } from "./commands/init.js";
@@ -11,6 +8,7 @@ import { runSyncCommand } from "./commands/sync.js";
 import { runClinkCommand, runGitExtrasCommand, runZshInstallCommand } from "./commands/windows-extras.js";
 import { runZshPluginCommand } from "./commands/zsh-plugin.js";
 import { runBrewPmCommand } from "./pm/brew.js";
+import { runScoopPmCommand } from "./pm/scoop.js";
 const CROSS_PLATFORM = ['pm', 'init', 'backup', 'setup', 'sync', 'zsh-plugin', 'git-setup'];
 const WIN_ONLY = ['zsh', 'git-extras', 'clink'];
 const ALL = [...CROSS_PLATFORM, ...WIN_ONLY];
@@ -21,23 +19,23 @@ async function runTask(task, args) {
         return 1;
     }
     switch (task) {
-        case 'sync':
-            return runSyncCommand(platform, args);
-        case 'git-setup':
-            return runGitSetupCommand(args);
-        case 'zsh-plugin':
-            return runZshPluginCommand(args);
+        case 'pm':
+            markCliInteractive();
+            if (platform === 'macos')
+                return runBrewPmCommand(args);
+            return runScoopPmCommand(args);
         case 'init':
             return runInitCommand(platform, args);
         case 'backup':
             return runBackupCommand(platform);
         case 'setup':
             return runSetupCommand(platform, args);
-        case 'pm':
-            markCliInteractive();
-            if (platform === 'macos')
-                return runBrewPmCommand(args);
-            return runPwsh(path.join(projectRoot(), 'runtime/scoop/install.ps1'), args, projectRoot());
+        case 'sync':
+            return runSyncCommand(platform, args);
+        case 'zsh-plugin':
+            return runZshPluginCommand(args);
+        case 'git-setup':
+            return runGitSetupCommand(args);
         case 'zsh':
             return runZshInstallCommand(args);
         case 'git-extras':

@@ -1,3 +1,7 @@
+/**
+ * Scoop lite backup: backup.lite.json from full export (manifest.scoopLiteApps).
+ * Used by vpr backup (no standalone CLI).
+ */
 import fs from 'node:fs';
 import path from 'node:path';
 function loadGithubAccelPrefixes(projectRoot) {

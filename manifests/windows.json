@@ -55,7 +55,7 @@
       { "local": "~/.zsh/functions/aliases.win.zsh", "repo": "configs/windows/aliases.zsh" },
       { "local": "~/.zsh/functions/scoop.zsh", "repo": "configs/windows/scoop/scoop.zsh" },
       { "local": "{scoopDir}/config/scoop.ps1", "repo": "configs/windows/scoop/scoop.ps1", "restoreOnly": true, "encoding": "utf8Bom", "pmHelper": true },
-      { "local": "{scoopDir}/config/scoop-services/manifest.json", "repo": "configs/windows/scoop/services/manifest.json", "pmHelper": true },
+      { "local": "{scoopDir}/config/scoop-services/manifest.json", "repo": "configs/windows/scoop/services-manifest.json", "pmHelper": true },
       { "local": "{scoopDir}/config/scoop-services/manage.ps1", "repo": "runtime/scoop/services/manage.ps1", "restoreOnly": true, "encoding": "utf8Bom", "pmHelper": true },
       { "local": "{scoopDir}/config/scoop-mirror/hook.ps1", "repo": "runtime/scoop/mirror/hook.ps1", "restoreOnly": true, "encoding": "utf8Bom", "pmHelper": true },
       { "local": "{scoopDir}/config/scoop-mirror/shared.ps1", "repo": "runtime/scoop/mirror/shared.ps1", "restoreOnly": true, "encoding": "utf8Bom", "pmHelper": true },

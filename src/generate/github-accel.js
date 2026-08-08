@@ -1,10 +1,13 @@
 #!/usr/bin/env node
+/**
+ * GitHub accel blocks: install.sh/ps1, github-accel.zsh, README docs.
+ * CLI: node src/generate/github-accel.js [--check]
+ */
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { projectRoot } from "../core/paths.js";
-const root = projectRoot();
-const manifestPath = path.join(root, 'manifests/common.json');
-const checkOnly = process.argv.includes('--check');
+
 const MARKERS = {
     code: {
         start: '# BEGIN GENERATED GITHUB ACCEL',
@@ -23,7 +26,9 @@ const MARKERS = {
         end: '<!-- END GENERATED GITHUB ACCEL SCOOP MIRROR -->',
     },
 };
-function loadMirrors() {
+
+function loadMirrors(root) {
+    const manifestPath = path.join(root, 'manifests/common.json');
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     const config = manifest.githubAccel;
     if (!config || !Array.isArray(config.mirrors) || config.mirrors.length === 0) {
@@ -54,6 +59,7 @@ function loadMirrors() {
         throw new Error(`githubAccel.default is not present in mirrors: ${defaultId}`);
     return [defaultMirror, ...mirrors.filter((item) => item !== defaultMirror)];
 }
+
 function replaceBlock(content, markers, body, relativePath) {
     const startIndex = content.indexOf(markers.start);
     const endIndex = content.indexOf(markers.end);
@@ -67,6 +73,7 @@ function replaceBlock(content, markers, body, relativePath) {
     const generated = `${markers.start}\n${body}\n${markers.end}`;
     return content.slice(0, startIndex) + generated + content.slice(endIndex + markers.end.length);
 }
+
 function shellConfig(mirrors) {
     return [
         'GITHUB_ACCEL_IDS=(',
@@ -77,6 +84,7 @@ function shellConfig(mirrors) {
         ')',
     ].join('\n');
 }
+
 function powershellConfig(mirrors) {
     return [
         '$GithubAccelIds = @(',
@@ -87,6 +95,7 @@ function powershellConfig(mirrors) {
         ')',
     ].join('\n');
 }
+
 function zshConfig(mirrors) {
     return [
         'typeset -ga GITHUB_ACCEL_MIRRORS=(',
@@ -94,9 +103,11 @@ function zshConfig(mirrors) {
         ')',
     ].join('\n');
 }
+
 function codeBlock(language, command) {
     return `\`\`\`${language}\n${command}\n\`\`\``;
 }
+
 function commandVariants(officialUrl, mirrors, format) {
     return [
         { url: officialUrl, accel: null },
@@ -105,12 +116,14 @@ function commandVariants(officialUrl, mirrors, format) {
         .map(({ url, accel }) => codeBlock(format.language, format.command(url, accel)))
         .join('\n\n');
 }
+
 function shInstallCommand(url, accel, profile) {
     const args = profile ? ` -s -- ${profile}` : '';
     if (!accel)
         return `curl -fsSL ${url} | bash${args}`;
     return `curl -fsSL ${url} | USE_ACCEL=${accel} bash${args}`;
 }
+
 function psInstallCommand(url, accel, profile) {
     const parts = [];
     if (profile)
@@ -120,6 +133,7 @@ function psInstallCommand(url, accel, profile) {
     parts.push(`irm ${url} | iex`);
     return parts.join('; ');
 }
+
 function hostLabel(prefix) {
     try {
         return new URL(prefix).host;
@@ -128,9 +142,11 @@ function hostLabel(prefix) {
         return prefix.replace(/^https?:\/\//, '').replace(/\/$/, '');
     }
 }
+
 function padComment(command, width) {
     return command.padEnd(width);
 }
+
 function windowsPmDocs(mirrors) {
     const width = 34;
     const lines = [
@@ -145,11 +161,12 @@ function windowsPmDocs(mirrors) {
     ];
     return codeBlock('sh', lines.join('\n'));
 }
+
 function scoopMirrorDocs(mirrors) {
     const width = 34;
     const lines = [
         `${padComment('scoop mirror', width)}# 交互选择（↑↓ / Enter；Esc/Ctrl+C 取消；回车选中当前 * 则直接退出）`,
-        `${padComment('scoop mirror status', width)}# 显示当前镜像`,
+        `${padComment('scoop mirror status', width)}# 显示当前镜像与下载规则`,
         ...mirrors.map(({ id, prefix }) => (
             `${padComment(`scoop mirror ${id}`, width)}# 直接切换到 ${hostLabel(prefix)}`
         )),
@@ -160,9 +177,12 @@ function scoopMirrorDocs(mirrors) {
         '',
         '运行时在 `$SCOOP/config/scoop-mirror/` 生成 `config.json`；菜单依赖同步到同目录 `lib/`。',
         '',
+        '下载规则：已选镜像 → 其他镜像 → 官方（非 GitHub URL 直连）。`scoop mirror` 只改首选；真正下载仍按该顺序 fallback。',
+        '',
         codeBlock('sh', lines.join('\n')),
     ].join('\n');
 }
+
 function readmeDocs(mirrors) {
     const useBase = 'https://raw.githubusercontent.com/wwlight/use/main';
     const viteBase = 'https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli';
@@ -238,27 +258,62 @@ function readmeDocs(mirrors) {
     ];
     return sections.join('\n');
 }
-function updateGeneratedFile(relativePath, markers, body) {
+
+function updateGeneratedFile(root, relativePath, markers, body, write) {
     const filePath = path.join(root, relativePath);
     const current = fs.readFileSync(filePath, 'utf8');
     const expected = replaceBlock(current, markers, body, relativePath);
     if (current === expected)
         return false;
-    if (!checkOnly)
+    if (write)
         fs.writeFileSync(filePath, expected);
     return true;
 }
-const mirrors = loadMirrors();
-const changed = [
-    updateGeneratedFile('install.sh', MARKERS.code, shellConfig(mirrors)),
-    updateGeneratedFile('install.ps1', MARKERS.code, powershellConfig(mirrors)),
-    updateGeneratedFile('configs/common/github-accel.zsh', MARKERS.code, zshConfig(mirrors)),
-    updateGeneratedFile('README.md', MARKERS.docs, readmeDocs(mirrors)),
-    updateGeneratedFile('README.md', MARKERS.windowsPm, windowsPmDocs(mirrors)),
-    updateGeneratedFile('README.md', MARKERS.scoopMirror, scoopMirrorDocs(mirrors)),
-];
-if (checkOnly && changed.some(Boolean)) {
-    console.error('Generated GitHub acceleration content is stale; run: npm run generate:github-accel');
-    process.exit(1);
+
+function applyGithubAccelGenerated(root, { write }) {
+    const mirrors = loadMirrors(root);
+    return [
+        updateGeneratedFile(root, 'install.sh', MARKERS.code, shellConfig(mirrors), write),
+        updateGeneratedFile(root, 'install.ps1', MARKERS.code, powershellConfig(mirrors), write),
+        updateGeneratedFile(root, 'configs/common/github-accel.zsh', MARKERS.code, zshConfig(mirrors), write),
+        updateGeneratedFile(root, 'README.md', MARKERS.docs, readmeDocs(mirrors), write),
+        updateGeneratedFile(root, 'README.md', MARKERS.windowsPm, windowsPmDocs(mirrors), write),
+        updateGeneratedFile(root, 'README.md', MARKERS.scoopMirror, scoopMirrorDocs(mirrors), write),
+    ];
 }
-console.log(checkOnly ? 'Generated GitHub acceleration content is current' : 'Generated GitHub acceleration content updated');
+
+/** @returns {{ ok: true } | { ok: false, reason: string }} */
+export function checkGithubAccelGenerated(root = projectRoot()) {
+    const changed = applyGithubAccelGenerated(root, { write: false });
+    if (changed.some(Boolean)) {
+        return {
+            ok: false,
+            reason: 'Generated GitHub acceleration content is stale; run: npm run generate:github-accel',
+        };
+    }
+    return { ok: true };
+}
+
+export function generateGithubAccelFiles(root = projectRoot()) {
+    const changed = applyGithubAccelGenerated(root, { write: true });
+    return { updated: changed.some(Boolean) };
+}
+
+function main() {
+    if (process.argv.includes('--check')) {
+        const result = checkGithubAccelGenerated();
+        if (!result.ok) {
+            console.error(result.reason);
+            process.exit(1);
+        }
+        console.log('Generated GitHub acceleration content is current');
+        return;
+    }
+    generateGithubAccelFiles();
+    console.log('Generated GitHub acceleration content updated');
+}
+
+const isDirectRun = Boolean(process.argv[1])
+    && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isDirectRun)
+    main();

@@ -965,6 +965,8 @@ function Enable-ScoopAccel {
     Write-Info "Applying Scoop acceleration; active mirror: $activeLabel"
 
     if (-not [string]::IsNullOrWhiteSpace($ActivePrefix)) {
+        # Soft probe only: writes activePrefix either way. Downloads still try
+        # selected → other mirrors → official (hook fallback); failure here is a warn.
         $probeTarget = [string]$accel.installScript
         if ([string]::IsNullOrWhiteSpace($probeTarget)) { $probeTarget = [string]$accel.scoopRepo }
         $probeUrl = Join-ScoopMirrorUrl -Url $probeTarget -Prefix $ActivePrefix -AllPrefixes $prefixes

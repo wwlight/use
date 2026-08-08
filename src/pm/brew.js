@@ -1,3 +1,7 @@
+/**
+ * macOS Homebrew pm: install brew, select/deploy mirror, ensure shell hook.
+ * Mirror catalog/runtime helpers: brew-mirror.js. Scoop pm: scoop.js → runtime/scoop.
+ */
 import fs from 'node:fs';
 import path from 'node:path';
 import { runCommand, exitStatus } from "../core/exec.js";
