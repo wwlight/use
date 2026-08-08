@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { ensureDir, expandPath, homeDir, projectRoot } from "../core/paths.js";
-import { info, warn } from "../core/log.js";
+import { ensureDir, expandPath, formatLocalDisplay, homeDir, projectRoot } from "../core/paths.js";
+import { step, success, warn } from "../core/log.js";
 import { loadManifest } from "../core/manifest.js";
 import { copyFileDataOnly } from "../sync/copy.js";
 const BEGIN = '# >>> use-homebrew';
@@ -178,12 +178,19 @@ export async function deployBrewRuntime() {
             throw new Error(`Homebrew runtime file not found: ${file}`);
     }
     ensureDir(path.join(target, 'lib'));
-    await copyFileDataOnly(catalog, path.join(target, 'mirrors.tsv'));
-    await copyFileDataOnly(helper, path.join(target, 'mirror-cli.zsh'));
-    await copyFileDataOnly(menuCli, path.join(target, 'lib/mirror-menu.js'));
-    await copyFileDataOnly(menu, path.join(target, 'lib/menu-select.js'));
-    await copyFileDataOnly(width, path.join(target, 'lib/string-width.js'));
-    await copyFileDataOnly(tty, path.join(target, 'lib/tty-term.js'));
+    step('Deploying Homebrew mirror runtime...');
+    const deploys = [
+        [catalog, path.join(target, 'mirrors.tsv')],
+        [helper, path.join(target, 'mirror-cli.zsh')],
+        [menuCli, path.join(target, 'lib/mirror-menu.js')],
+        [menu, path.join(target, 'lib/menu-select.js')],
+        [width, path.join(target, 'lib/string-width.js')],
+        [tty, path.join(target, 'lib/tty-term.js')],
+    ];
+    for (const [src, dest] of deploys) {
+        await copyFileDataOnly(src, dest);
+        success(`Deployed ${formatLocalDisplay(dest, homeDir())}`);
+    }
     for (const legacy of ['menu.js', 'menu.ts', 'menu-select.ts', 'string-width.ts', 'tty-term.ts', 'menu.mjs', 'menu-select.mjs', 'string-width.mjs', 'tty-term.mjs']) {
         const p = path.join(target, 'lib', legacy);
         try {
@@ -195,5 +202,5 @@ export async function deployBrewRuntime() {
         }
     }
     removeBrewMirrorLegacy();
-    info(`Deployed Homebrew mirror runtime to ${target}`);
+    success(`Deployed Homebrew mirror runtime to ${target}`);
 }

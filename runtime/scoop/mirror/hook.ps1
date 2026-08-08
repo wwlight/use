@@ -104,14 +104,14 @@ if (Get-Command Invoke-CachedAria2Download -ErrorAction SilentlyContinue) {
             catch {
                 $lastError = $_
                 if ($i -lt $maxAttempts - 1) {
-                    Write-Host "aria2 failed; trying the next mirror ($($i + 2)/$maxAttempts)..." -ForegroundColor Yellow
+                    Write-Host "⚠ aria2 failed; trying the next mirror ($($i + 2)/$maxAttempts)..." -ForegroundColor Yellow
                 }
             }
         }
 
         $script:ScoopMirrorAria2Attempt = 0
         if ($directHosts.Count -gt 0) {
-            Write-Host "Direct aria2 download failed; configured GitHub mirrors cannot proxy $($directHosts -join ', ')." -ForegroundColor Yellow
+            Write-Host "⚠ Direct aria2 download failed; configured GitHub mirrors cannot proxy $($directHosts -join ', ')." -ForegroundColor Yellow
         }
         if ($lastError) { throw $lastError.Exception }
         throw "aria2 download failed for $app"

@@ -53,7 +53,7 @@ function loadCatalogRows(catalogPath) {
         if (!label || !api || !bottle || !git) {
             throw new Error(`brew mirror: invalid catalog row for ${id}`);
         }
-        const detail = (api !== '-') ? api : ((git !== '-') ? git : label);
+        const detail = (label !== '-') ? label : ((api !== '-') ? api : git);
         rows.push({ value: id, name: id, detail });
     }
     if (rows.length === 0) {

@@ -1,4 +1,4 @@
-# GitHub acceleration (prefixes generated from manifests/common.json via generate:github-accel).
+# GitHub acceleration (prefixes generated from manifests/common.json via vpr generate github-accel).
 # BEGIN GENERATED GITHUB ACCEL
 typeset -ga GITHUB_ACCEL_MIRRORS=(
   'https://gh-proxy.com/'

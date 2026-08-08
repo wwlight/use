@@ -77,13 +77,13 @@ test('githubRepoCandidates: selected → other mirrors → official', () => {
     }
 });
 
-test('init path: missing installs, existing skips', () => {
+test('init path: missing installs, existing skips', async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vpr-git-init-'));
     try {
         const { remote, work } = makeRemoteRepo(root);
         const plugin = path.join(root, 'plugin');
 
-        syncGitRepoPlugin(remote, plugin, 'demo', false);
+        await syncGitRepoPlugin(remote, plugin, 'demo', false);
         assert.equal(isGitRepo(plugin), true);
         assert.equal(readPlugin(plugin), 'v1\n');
         const sha = head(plugin);
@@ -93,7 +93,7 @@ test('init path: missing installs, existing skips', () => {
         git(work, ['commit', '-m', 'v2']);
         git(work, ['push']);
 
-        syncGitRepoPlugin(remote, plugin, 'demo', false);
+        await syncGitRepoPlugin(remote, plugin, 'demo', false);
         assert.equal(head(plugin), sha, 'init skip must not advance existing install');
         assert.equal(readPlugin(plugin), 'v1\n');
     }
@@ -102,13 +102,13 @@ test('init path: missing installs, existing skips', () => {
     }
 });
 
-test('zsh-plugin path: matching git repo fetches latest', () => {
+test('zsh-plugin path: matching git repo fetches latest', async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vpr-git-update-'));
     try {
         const { remote, work } = makeRemoteRepo(root);
         const plugin = path.join(root, 'plugin');
 
-        syncGitRepoPlugin(remote, plugin, 'demo', true);
+        await syncGitRepoPlugin(remote, plugin, 'demo', true);
         const sha1 = head(plugin);
 
         fs.writeFileSync(path.join(work, 'plugin.txt'), 'v2\n');
@@ -117,7 +117,7 @@ test('zsh-plugin path: matching git repo fetches latest', () => {
         git(work, ['push']);
         const remoteHead = git(work, ['rev-parse', 'HEAD']);
 
-        syncGitRepoPlugin(remote, plugin, 'demo', true);
+        await syncGitRepoPlugin(remote, plugin, 'demo', true);
         assert.equal(head(plugin), remoteHead);
         assert.notEqual(head(plugin), sha1);
         assert.equal(readPlugin(plugin), 'v2\n');
@@ -127,7 +127,7 @@ test('zsh-plugin path: matching git repo fetches latest', () => {
     }
 });
 
-test('zsh-plugin path: non-git dir reinstalls via temp replace', () => {
+test('zsh-plugin path: non-git dir reinstalls via temp replace', async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vpr-git-nongit-'));
     try {
         const { remote } = makeRemoteRepo(root);
@@ -135,7 +135,7 @@ test('zsh-plugin path: non-git dir reinstalls via temp replace', () => {
         fs.mkdirSync(plugin);
         fs.writeFileSync(path.join(plugin, 'stale.txt'), 'keep-me-if-clone-fails\n');
 
-        syncGitRepoPlugin(remote, plugin, 'demo', true);
+        await syncGitRepoPlugin(remote, plugin, 'demo', true);
         assert.equal(isGitRepo(plugin), true);
         assert.equal(readPlugin(plugin), 'v1\n');
         assert.equal(fs.existsSync(path.join(plugin, 'stale.txt')), false);
@@ -145,14 +145,14 @@ test('zsh-plugin path: non-git dir reinstalls via temp replace', () => {
     }
 });
 
-test('zsh-plugin path: wrong remote reinstalls to expected repo', () => {
+test('zsh-plugin path: wrong remote reinstalls to expected repo', async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vpr-git-remote-'));
     try {
         const expected = makeRemoteRepo(root, 'expected');
         const other = makeRemoteRepo(root, 'other');
         const plugin = path.join(root, 'plugin');
 
-        syncGitRepoPlugin(other.remote, plugin, 'demo', true);
+        await syncGitRepoPlugin(other.remote, plugin, 'demo', true);
         assert.equal(readPlugin(plugin), 'v1\n');
 
         fs.writeFileSync(path.join(expected.work, 'plugin.txt'), 'expected-latest\n');
@@ -160,7 +160,7 @@ test('zsh-plugin path: wrong remote reinstalls to expected repo', () => {
         git(expected.work, ['commit', '-m', 'expected']);
         git(expected.work, ['push']);
 
-        syncGitRepoPlugin(expected.remote, plugin, 'demo', true);
+        await syncGitRepoPlugin(expected.remote, plugin, 'demo', true);
         assert.equal(readPlugin(plugin), 'expected-latest\n');
         assert.equal(isSameOrigin(plugin, expected.remotePath), true);
     }
@@ -169,14 +169,14 @@ test('zsh-plugin path: wrong remote reinstalls to expected repo', () => {
     }
 });
 
-test('failed reinstall keeps original non-git directory', () => {
+test('failed reinstall keeps original non-git directory', async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vpr-git-keep-'));
     try {
         const plugin = path.join(root, 'plugin');
         fs.mkdirSync(plugin);
         fs.writeFileSync(path.join(plugin, 'stale.txt'), 'original\n');
 
-        assert.throws(
+        await assert.rejects(
             () => syncGitRepoPlugin('file:///no/such/repo.git', plugin, 'demo', true),
             /Failed to install plugin/,
         );

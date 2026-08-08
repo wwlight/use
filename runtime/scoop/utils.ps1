@@ -93,17 +93,27 @@ function Get-GithubAccelSelectionMap {
 
 function Write-Info {
     param([string]$Message)
-    Write-Host "[INFO] $Message" -ForegroundColor Green
+    Write-Host "$Message"
+}
+
+function Write-Success {
+    param([string]$Message)
+    Write-Host "  ✔ $Message" -ForegroundColor Green
+}
+
+function Write-Note {
+    param([string]$Message)
+    Write-Host "  ✔ $Message" -ForegroundColor Blue
 }
 
 function Write-Warn {
     param([string]$Message)
-    Write-Host "[WARN] $Message" -ForegroundColor Yellow
+    Write-Host "⚠ $Message" -ForegroundColor Yellow
 }
 
 function Write-ErrorAndExit {
     param([string]$Message)
-    Write-Host "[ERROR] $Message" -ForegroundColor Red
+    Write-Host "✗ $Message" -ForegroundColor Red
     exit 1
 }
 

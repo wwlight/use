@@ -145,11 +145,14 @@ vpr git-setup                     # Git 全局配置
 
 ### 其他命令
 
+> [!NOTE]
+> `vpr generate` 只更新仓库内派生文件；运行时文件需再执行 `vpr sync restore`（或 `vpr pm`）部署到本地
+
 ```sh
-vpr generate:github-accel         # 从 manifest 更新 GitHub 加速配置与 README
-vpr check:github-accel            # 检查生成内容是否需要更新
-vpr generate:brew                 # 从 manifest 更新 Homebrew 镜像目录与 Brewfile.lite
-vpr check:brew                    # 检查 Homebrew 生成内容是否需要更新
+vpr generate                      # 交互选择要生成的产物（改 manifest 后执行）
+vpr generate all                  # 生成全部产物
+vpr generate github-accel         # 更新 GitHub 加速配置与 README
+vpr generate brew-mirror          # 更新 Homebrew 镜像目录 mirrors.tsv
 vpr test                          # 运行项目检查
 ```
 
@@ -195,11 +198,11 @@ Get-ChildItem runtime,configs -Recurse -Include *.ps1,*.psm1 | Unblock-File
 │           └── manage.ps1        # → $SCOOP/config/scoop-services/manage.ps1
 ├── src/                          # Node CLI（可移植业务逻辑）
 │   ├── cli.js
-│   ├── commands/                 # init / backup / setup / sync / …
-│   ├── core/                     # manifest / paths / platform
-│   ├── generate/                 # brew-artifacts / github-accel / scoop-lite
+│   ├── commands/                 # init / backup / setup / sync / generate / …
+│   ├── core/                     # manifest / paths / platform / args / usage / log / git / spinner
+│   ├── generate/                 # brew-mirror / github-accel
 │   ├── lib/                      # ↑↓ 菜单（部署到 brew/scoop lib）
-│   ├── pm/                       # brew.js（macOS）/ scoop.js（Windows 薄封装）
+│   ├── pm/                       # brew / brew-mirror / restore（macOS）；scoop（Windows 薄封装）
 │   └── sync/                     # 配置同步引擎
 └── assets/                       # README 流程图
 ```

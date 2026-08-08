@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
-import { formatInitUsage, formatPmUsage, hasMirror, hasProfile, loadManifest, mirrorInstallMode, profileLabel, resolveProfileArtifact, zshPluginsDir, } from "./manifest.js";
+import { hasMirror, hasProfile, loadManifest, mirrorInstallMode, profileLabel, resolveProfileArtifact, zshPluginsDir, } from "./manifest.js";
+import { formatInitUsage, formatPmUsage } from "./usage.js";
 describe('manifest', () => {
     const common = loadManifest('common');
     const macos = loadManifest('macos');

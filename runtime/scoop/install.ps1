@@ -73,10 +73,10 @@ if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
         Write-ErrorAndExit 'Scoop is still unavailable in this session; open a new terminal and rerun the installer'
     }
 
-    Write-Info 'Scoop installation complete'
+    Write-Success 'Scoop installation complete'
 }
 else {
-    Write-Info 'Scoop is already installed'
+    Write-Note 'Scoop is already installed'
     if (-not $env:SCOOP) {
         $env:SCOOP = $scoopDir
     }

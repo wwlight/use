@@ -485,7 +485,7 @@ function Invoke-ScoopInstallScriptWithFallback {
             # Persist the source that actually installed Scoop (may differ from selection after fallback).
             $successPrefix = Resolve-ScoopKnownMirrorPrefix -Prefix $attempt.Prefix -Prefixes $prefixes
             $successLabel = Format-ScoopMirrorActiveLabel -ActivePrefix $successPrefix
-            Write-Info "Installer succeeded ($successLabel); active mirror set to $successLabel"
+            Write-Success "Installer succeeded ($successLabel); active mirror set to $successLabel"
             $OutPrefix.Value = $successPrefix
             return
         }
@@ -616,7 +616,7 @@ function Install-ScoopDownloadHook {
     }
 
     Invoke-ScoopMirrorAccelFilterInit -FailureMessage 'Could not install the Scoop download acceleration hook'
-    Write-Info 'Scoop mirror hook and clean-worktree filter are ready'
+    Write-Success 'Scoop mirror hook and clean-worktree filter are ready'
 }
 
 function Install-ScoopBootstrapApps {
@@ -631,7 +631,7 @@ function Install-ScoopBootstrapApps {
     foreach ($app in $Apps) {
         $commandName = if ($app -eq '7zip') { '7z' } else { $app }
         if (Get-Command $commandName -ErrorAction SilentlyContinue) {
-            Write-Info "$app is already available; skipping"
+            Write-Note "$app is already available; skipping"
             continue
         }
 
@@ -643,6 +643,7 @@ function Install-ScoopBootstrapApps {
             Write-ErrorAndExit "Failed to install $app via Scoop"
         }
         Update-ScoopSessionPath
+        Write-Success "$app installed via Scoop"
     }
 
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
@@ -701,6 +702,7 @@ function Ensure-ScoopMainBucketGit {
             'Check network/mirror, then rerun: vpr pm'
         )
     }
+    Write-Success "main bucket now a git repo ($label)"
 }
 
 function Get-ScoopCoreBranch {
@@ -827,6 +829,7 @@ function Ensure-ScoopGitRepositories {
             )
         }
     }
+    Write-Success 'Scoop core is now a git repository'
 
     if (-not (Test-Path -LiteralPath $mainGit)) {
         Write-ErrorAndExit 'main bucket is still missing .git after mirrored add + scoop update'
@@ -933,7 +936,7 @@ function Install-ScoopAria2Accel {
     if ($null -ne $aria.split) { scoop config aria2-split $aria.split }
     if ($null -ne $aria.maxConnectionPerServer) { scoop config aria2-max-connection-per-server $aria.maxConnectionPerServer }
     if ($null -ne $aria.minSplitSize) { scoop config aria2-min-split-size $aria.minSplitSize }
-    Write-Info 'aria2 configuration complete'
+    Write-Success 'aria2 configuration complete'
 }
 
 # Deploy scoop-mirror files + scoop_repo. Hook / bucket remotes / aria2 are applied by the caller
@@ -980,5 +983,5 @@ function Enable-ScoopAccel {
 
     Install-ScoopMirrorAccelFiles -Accel $accel -ActivePrefix $ActivePrefix -Prefixes $prefixes
     Install-ScoopServicesFiles
-    Write-Info "Scoop acceleration files deployed (mirror: $activeLabel)"
+    Write-Success "Scoop acceleration files deployed (mirror: $activeLabel)"
 }

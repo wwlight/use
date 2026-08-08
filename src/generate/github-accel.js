@@ -288,7 +288,7 @@ export function checkGithubAccelGenerated(root = projectRoot()) {
     if (changed.some(Boolean)) {
         return {
             ok: false,
-            reason: 'Generated GitHub acceleration content is stale; run: npm run generate:github-accel',
+            reason: 'Generated GitHub acceleration content is stale; run: vpr generate github-accel',
         };
     }
     return { ok: true };

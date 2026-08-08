@@ -5,20 +5,18 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { runCommand, exitStatus } from "../core/exec.js";
-import { info } from "../core/log.js";
-import { formatPmUsage, hasMirror, loadManifest, mirrorInstallMode, } from "../core/manifest.js";
+import { skip, step, success } from "../core/log.js";
+import { formatPmUsage } from "../core/usage.js";
+import { hasMirror, loadManifest, mirrorInstallMode, } from "../core/manifest.js";
 import { projectRoot } from "../core/paths.js";
 import { formatAlignedChoices, runMenuSelect } from "../lib/menu-select.js";
 import { canOpenTerminal } from "../lib/tty-term.js";
 import { brewMirrorConfigFile, brewMirrorEnv, deployBrewRuntime, ensureBrewZprofile, findBrewBinary, } from "./brew-mirror.js";
+import { firstValueArg, isHelpFlag } from "../core/args.js";
 function parseMirrorArg(args) {
-    const clean = args.filter((a) => a !== '--');
-    if (clean[0] === '-h' || clean[0] === '--help' || clean[0] === 'help')
+    if (isHelpFlag(args))
         return '__HELP__';
-    let value = clean[0] || '';
-    if (value.startsWith('--'))
-        value = value.slice(2);
-    return value;
+    return firstValueArg(args);
 }
 async function resolveBrewMirror(args) {
     const arg = parseMirrorArg(args);
@@ -68,7 +66,7 @@ function applySelectedMirror(mirror) {
     const env = brewMirrorEnv(mirror);
     ensureBrewZprofile();
     const display = loadManifest('macos').zprofile || '~/.zprofile';
-    info(`Configured Homebrew mirror (${mirror}) in ${display}`);
+    success(`Configured Homebrew mirror (${mirror}) in ${display}`);
     return env;
 }
 function runInstallScript(mirror, env) {
@@ -99,16 +97,13 @@ function runInstallScript(mirror, env) {
 async function installBrew(mirror) {
     await deployBrewRuntime();
     if (findBrewBinary()) {
+        skip('Homebrew is already installed; skipping');
         applySelectedMirror(mirror);
-        info('Homebrew is already installed; skipping');
         return;
     }
-    if (mirror === 'official') {
-        info('Homebrew is not installed; installing from upstream...');
-    }
-    else {
-        info(`Homebrew is not installed; installing from the ${mirror} mirror...`);
-    }
+    step(mirror === 'official'
+        ? 'Installing Homebrew from upstream...'
+        : `Installing Homebrew from the ${mirror} mirror...`);
     const env = brewMirrorEnv(mirror);
     runInstallScript(mirror, env);
     applySelectedMirror(mirror);
@@ -118,7 +113,7 @@ async function installBrew(mirror) {
     const update = runCommand(brew, ['update'], { env: brewMirrorEnv(mirror) });
     if (exitStatus(update) !== 0)
         throw new Error('Homebrew update failed!');
-    info('Homebrew installation complete');
+    success('Homebrew installation complete');
 }
 function activeBrewMirrorId() {
     if (process.env.USE_HOMEBREW_MIRROR)

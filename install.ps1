@@ -22,20 +22,21 @@ $GithubAccelPrefixes = @(
 )
 # END GENERATED GITHUB ACCEL
 
-function Write-Info  { Write-Host "[INFO] $args" -ForegroundColor Green }
-function Write-Step  { Write-Host "[INFO] $args" -ForegroundColor Blue }
-function Write-Warn  { Write-Host "[WARN] $args" -ForegroundColor Yellow }
+function Write-Info     { Write-Host "$args" }
+function Write-Step     { Write-Host "`n➤ $args" -ForegroundColor Magenta }
+function Write-Success  { Write-Host "  ✔ $args" -ForegroundColor Green }
+function Write-Warn     { Write-Host "⚠ $args" -ForegroundColor Yellow }
 
 # irm|iex runs in the current host. Throw and catch at the top level to avoid closing the session.
 function Write-ErrorAndExit {
-    Write-Host "[ERROR] $args" -ForegroundColor Red
+    Write-Host "✗ $args" -ForegroundColor Red
     throw 'USE_FATAL'
 }
 
 function Complete-UseFatal {
     param($ErrorRecord)
     if ("$($ErrorRecord.Exception.Message)" -ne 'USE_FATAL') {
-        Write-Host "[ERROR] $($ErrorRecord.Exception.Message)" -ForegroundColor Red
+        Write-Host "✗ $($ErrorRecord.Exception.Message)" -ForegroundColor Red
     }
     $global:LASTEXITCODE = 1
     # Exit the process for -File; under iex, stop only the script and retain the exit code.
@@ -308,7 +309,7 @@ Node.js is required. Install vite-plus (includes Node) or Node itself, then reru
     }
 
     Write-Host ''
-    Write-Host 'Install Node.js via vite-plus? (https://vite.plus)' -ForegroundColor Yellow
+    Write-Warn 'Install Node.js via vite-plus? (https://vite.plus)'
     Write-Host '  Y / Enter  install vite-plus (manages Node)'
     Write-Host '  N          cancel'
     $answer = Read-Host 'Proceed'
@@ -458,11 +459,9 @@ else {
 
 Set-Location $InstallDir
 
-$initSteps = 4
-$env:USE_STEP_CHAIN = '1'
-$env:USE_STEP_CURRENT = '1'
-$env:USE_STEP_TOTAL = "$([int]$env:USE_STEP_CURRENT + $initSteps)"
-Write-Step "Step $($env:USE_STEP_CURRENT)/$($env:USE_STEP_TOTAL): Configuring package manager acceleration ..."
+# curl|bash pipes stdin; menus still talk to /dev/tty when present.
+$env:SYNC_INTERACTIVE = '1'
+Write-Step 'Configuring package manager acceleration ...'
 
 $scoopInstallArgs = @()
 if (-not [string]::IsNullOrWhiteSpace($env:USE_ACCEL)) {
@@ -482,7 +481,7 @@ if ($InstallProfile) {
 }
 Remove-Item Env:SYNC_SKIP_PM_HELPERS -ErrorAction SilentlyContinue
 
-Write-Info 'Installation complete!'
+Write-Success 'Installation complete!'
 
 } catch {
     Complete-UseFatal $_

@@ -374,7 +374,7 @@ function Invoke-ScoopServicesRestartChanged {
             Invoke-ScoopWinSw restart $name
         }
         catch {
-            Write-Host "Warning: failed to restart service '$name': $($_.Exception.Message)" -ForegroundColor Yellow
+            Write-Host "⚠ Failed to restart service '$name': $($_.Exception.Message)" -ForegroundColor Yellow
         }
     }
 }

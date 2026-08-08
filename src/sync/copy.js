@@ -2,6 +2,10 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { ensureDir } from "../core/paths.js";
+const ROBOCOPY_FLAGS = ['/COPY:DAT', '/R:1', '/W:1', '/NFL', '/NDL', '/NJH', '/NJS', '/NC', '/NS'];
+function robocopyCopy(sourceDir, targetDir, sourceName) {
+    return spawnSync('robocopy.exe', [sourceDir, targetDir, sourceName, ...ROBOCOPY_FLAGS], { encoding: 'utf8' });
+}
 export async function copyFileDataOnly(source, destination, opts = {}) {
     if (!fs.existsSync(source)) {
         throw new Error(`Source file not found: ${source}`);
@@ -20,7 +24,7 @@ export async function copyFileDataOnly(source, destination, opts = {}) {
             const destDir = path.dirname(destination);
             const destName = path.basename(destination);
             if (sourceName === destName) {
-                const result = spawnSync('robocopy.exe', [sourceDir, destDir, sourceName, '/COPY:DAT', '/R:1', '/W:1', '/NFL', '/NDL', '/NJH', '/NJS', '/NC', '/NS'], { encoding: 'utf8' });
+                const result = robocopyCopy(sourceDir, destDir, sourceName);
                 if ((result.status ?? 0) >= 8) {
                     throw new Error(`robocopy failed copying ${source} -> ${destination}`);
                 }
@@ -29,7 +33,7 @@ export async function copyFileDataOnly(source, destination, opts = {}) {
             const tempDir = path.join(destDir, `.use-copy-${process.pid}`);
             ensureDir(tempDir);
             try {
-                const result = spawnSync('robocopy.exe', [sourceDir, tempDir, sourceName, '/COPY:DAT', '/R:1', '/W:1', '/NFL', '/NDL', '/NJH', '/NJS', '/NC', '/NS'], { encoding: 'utf8' });
+                const result = robocopyCopy(sourceDir, tempDir, sourceName);
                 if ((result.status ?? 0) >= 8) {
                     throw new Error(`robocopy failed copying ${source} -> ${destination}`);
                 }

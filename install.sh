@@ -43,9 +43,37 @@ detect_os() {
 
 OS=$(detect_os)
 
-info()  { printf "\033[32m[INFO] %s\033[0m\n" "$1" >&2; }
-step()  { printf "\033[34m[INFO] %s\033[0m\n" "$1" >&2; }
-error() { printf "\033[31m[ERROR] %s\033[0m\n" "$1" >&2; exit 1; }
+info()   { printf "%s\n" "$1" >&2; }
+step()   { printf "\n\033[1;35m➤ %s\033[0m\n" "$1" >&2; }
+success(){ printf "  \033[32m✔ %s\033[0m\n" "$1" >&2; }
+warn()   { printf "\033[33m⚠ %s\033[0m\n" "$1" >&2; }
+error()  { printf "\033[31m✗ %s\033[0m\n" "$1" >&2; exit 1; }
+
+# Run a command behind an inline spinner (only when stderr is a TTY).
+# The spinner line is cleared when the command finishes, so callers can
+# follow up with step/success/warn output on a fresh line.
+spin() {
+  local msg="$1"; shift
+  if [[ ! -t 2 ]]; then
+    info "$msg"
+    "$@" >/dev/null 2>&1
+    return $?
+  fi
+  local -a frames=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+  local i=0 pid
+  "$@" >/dev/null 2>&1 &
+  pid=$!
+  printf '\033[?25l' >&2
+  while kill -0 "$pid" 2>/dev/null; do
+    printf '\r  \033[36m%s %s\033[0m' "${frames[$((i % ${#frames[@]}))]}" "$msg" >&2
+    i=$((i + 1))
+    sleep 0.1
+  done
+  wait "$pid" 2>/dev/null
+  local rc=$?
+  printf '\r\033[K\033[?25h' >&2
+  return $rc
+}
 
 usage() {
   cat <<EOF
@@ -159,7 +187,7 @@ github_url_candidates() {
 }
 
 download_zip_repo() {
-  local target="$1" url tmp zipfile parent
+  local target="$1" url tmp zipfile parent host
   parent=$(dirname "$target")
   mkdir -p "$parent"
   tmp=$(mktemp -d "${parent}/use-zip.XXXXXX") || return 1
@@ -167,21 +195,22 @@ download_zip_repo() {
 
   while IFS= read -r url; do
     [ -n "$url" ] || continue
-    info "Trying zip URL: $url"
+    host=${url#*://}
+    host=${host%%/*}
     rm -f "$zipfile"
-    if ! curl -fsSL --connect-timeout 15 --max-time 300 -o "$zipfile" "$url"; then
+    if ! spin "Downloading $host ..." curl -fsSL --connect-timeout 15 --max-time 300 -o "$zipfile" "$url"; then
       continue
     fi
-    rm -rf "${tmp}/${ZIP_EXTRACT_NAME}" "$target"
-    if ! unzip -q "$zipfile" -d "$tmp"; then
+    if ! spin "Extracting $ZIP_EXTRACT_NAME ..." unzip -q "$zipfile" -d "$tmp"; then
       continue
     fi
     if [ ! -d "${tmp}/${ZIP_EXTRACT_NAME}" ]; then
       continue
     fi
+    rm -rf "$target"
     mv "${tmp}/${ZIP_EXTRACT_NAME}" "$target"
     rm -rf "$tmp"
-    info "Extracted repository to $target"
+    success "Extracted repository to $target"
     return 0
   done < <(github_zip_candidates)
 
@@ -190,15 +219,17 @@ download_zip_repo() {
 }
 
 clone_repo() {
-  local target="$1" url
+  local target="$1" url host
   if ! command -v git >/dev/null 2>&1; then
     return 1
   fi
   while IFS= read -r url; do
     [ -n "$url" ] || continue
+    host=${url#*://}
+    host=${host%%/*}
     rm -rf "$target"
-    info "Trying clone URL: $url"
-    if git clone --depth=1 "$url" "$target"; then
+    if spin "Cloning $host ..." git clone --depth=1 "$url" "$target"; then
+      success "Cloned repository to $target"
       return 0
     fi
   done < <(github_repo_candidates)
@@ -210,7 +241,7 @@ fetch_repo() {
   if download_zip_repo "$target"; then
     return 0
   fi
-  printf "\033[33m[WARN] %s\033[0m\n" "Zip download failed; falling back to git clone..." >&2
+  warn "Zip download failed; falling back to git clone..."
   if clone_repo "$target"; then
     return 0
   fi
@@ -219,16 +250,18 @@ fetch_repo() {
 }
 
 update_repo() {
-  local target="$1" url
+  local target="$1" url host
   if ! command -v git >/dev/null 2>&1; then
     error "Git is required to update an existing repository checkout"
   fi
   while IFS= read -r url; do
     [ -n "$url" ] || continue
+    host=${url#*://}
+    host=${host%%/*}
     git -C "$target" remote set-url origin "$url" || continue
-    info "Trying sync URL: $url"
-    if git -C "$target" fetch origin main; then
+    if spin "Syncing $host ..." git -C "$target" fetch origin main; then
       git -C "$target" reset --hard origin/main || error "Failed to reset local repository"
+      success "Repository synced with origin/main"
       return 0
     fi
   done < <(github_repo_candidates)
@@ -253,7 +286,7 @@ ensure_repo() {
 
   if [ ! -e "$target" ]; then
     INSTALL_DIR="$target"
-    info "Fetching repository to $INSTALL_DIR ..."
+    step "Fetching repository to $INSTALL_DIR"
     fetch_repo "$INSTALL_DIR"
     return
   fi
@@ -267,7 +300,7 @@ ensure_repo() {
 
   target=$(next_timestamped_dir "$INSTALL_DIR")
   INSTALL_DIR="$target"
-  info "Directory is in use; fetching to $INSTALL_DIR ..."
+  step "Fetching repository to $INSTALL_DIR"
   fetch_repo "$INSTALL_DIR"
 }
 
@@ -342,16 +375,10 @@ install_macos() {
   ensure_repo
   cd "$INSTALL_DIR"
 
-  # The installer completes step 1; the total includes subsequent init steps.
-  local init_steps=4
-  export USE_STEP_CHAIN=1
-  export USE_STEP_CURRENT=1
-  export USE_STEP_TOTAL=$((USE_STEP_CURRENT + init_steps))
   # curl|bash pipes stdin; menus still talk to /dev/tty when present.
   if [[ -c /dev/tty ]]; then
     export SYNC_INTERACTIVE=1
   fi
-  step "Step ${USE_STEP_CURRENT}/${USE_STEP_TOTAL}: Installing package manager ..."
   run_cli pm
 
   # pm already deployed helpers; init sync skips pmHelper pairs.
@@ -363,7 +390,7 @@ install_macos() {
   fi
   unset SYNC_SKIP_PM_HELPERS
 
-  info "Installation complete!"
+  success "Installation complete!"
   # curl | bash runs in a subshell; start an interactive shell through /dev/tty.
   if [[ -c /dev/tty ]] && [[ -t 2 ]]; then
     exec "${SHELL:-/bin/zsh}" -l </dev/tty >/dev/tty 2>/dev/tty

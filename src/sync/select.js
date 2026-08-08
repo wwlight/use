@@ -9,11 +9,12 @@ import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { truncateWidth } from "../lib/string-width.js";
 import { frameLines, openTerminal } from "../lib/tty-term.js";
+import { formatStepTitle } from "../core/log.js";
 import { formatLocalDisplay, formatRepoDisplay } from "./pairs.js";
 export function formatSyncChoiceLine(label, { selected = false, active = false, labelMax = 30, widthOptions = {} } = {}) {
     // Active row only: ◆ checked / ◇ unchecked; idle blank. Selection mark stays in [ ].
     const pointer = active ? (selected ? '◆' : '◇') : ' ';
-    const mark = selected ? '✓' : ' ';
+    const mark = selected ? '✔' : ' ';
     return `${pointer} [${mark}] ${truncateWidth(label, labelMax, widthOptions)}`;
 }
 function parseItems(rawLines) {
@@ -63,7 +64,8 @@ function createMultiselect({ message, choices, input, output }) {
         const width = columns(output);
         const labelMax = Math.max(30, width - 8);
         const lines = [
-            message,
+            '',
+            formatStepTitle(message),
             '',
             ...choices.map((item, i) => formatSyncChoiceLine(item.label, {
                 selected: item.selected,
@@ -71,7 +73,7 @@ function createMultiselect({ message, choices, input, output }) {
                 labelMax,
             })),
             '',
-            '↑↓ Move  Space/x Toggle  Enter Confirm',
+            '↑↓ Move  Space/x Toggle  Enter Confirm  Esc/Ctrl+C Cancel',
         ];
         if (error)
             lines.push('', error);
@@ -79,7 +81,7 @@ function createMultiselect({ message, choices, input, output }) {
     }
     function renderSubmitFrame() {
         const picked = choices.filter((c) => c.selected);
-        return `${message}\n${picked.length} selected\n`;
+        return `\n${formatStepTitle(message)}\n${picked.length} selected\n`;
     }
     function render() {
         const frame = state === 'submit' ? renderSubmitFrame() : renderActiveFrame();

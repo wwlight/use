@@ -1,8 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
 import { describe, it } from 'node:test';
-import { fileURLToPath } from 'node:url';
 import { formatAlignedChoices, formatChoiceLine, parseChoice } from "./menu-select.js";
 import { alignMenuCheck, MENU_CHECK, stringWidth } from "./string-width.js";
 describe('menu-select', () => {
@@ -41,27 +38,13 @@ describe('menu-select', () => {
         assert.equal(aligned[0].label.indexOf('http'), aligned[1].label.indexOf('http'));
         assert.equal(aligned[1].label.indexOf('http'), aligned[2].label.indexOf('http'));
     });
-    it('keeps check column and cancel behavior', () => {
-        const here = dirname(fileURLToPath(import.meta.url));
-        const menuSource = readFileSync(resolve(here, 'menu-select.js'), 'utf8');
-        const widthSource = readFileSync(resolve(here, 'string-width.js'), 'utf8');
-        assert.match(menuSource, /formatChoiceLine/);
-        assert.match(menuSource, /alignMenuCheck/);
-        assert.match(widthSource, /export function alignMenuCheck/);
-        assert.equal(MENU_CHECK, '➜');
-        assert.ok(!menuSource.includes("POINTER_ACTIVE = '❯'"));
-        assert.ok(!menuSource.includes('function cursorPointer'));
-        assert.match(menuSource, /\\x1B\[J/);
-        assert.match(menuSource, /One write/);
-        assert.ok(!menuSource.includes('clearPreviousFrame'));
-        assert.equal(alignMenuCheck(true), '➜');
+    it('menu check column is stable for active and idle', () => {
+        assert.equal(MENU_CHECK, '➤');
+        assert.equal(alignMenuCheck(true), '➤');
         assert.equal(alignMenuCheck(false), ' ');
-        assert.equal(formatChoiceLine('label', true), '➜ label');
+        assert.equal(formatChoiceLine('label', true), '➤ label');
         assert.equal(formatChoiceLine('label', false), '  label');
         const narrow = { ambiguousWide: false };
         assert.equal(stringWidth(alignMenuCheck(true), narrow), stringWidth(alignMenuCheck(false), narrow));
-        assert.ok(!widthSource.includes("MENU_CHECK = '✓'"));
-        assert.match(widthSource, /Ghostty draws ➜ as 1 cell/);
-        assert.match(menuSource, /console\.error\('Canceled'\)/);
     });
 });

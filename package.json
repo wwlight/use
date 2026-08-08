@@ -17,10 +17,7 @@
     "git-setup": "node ./src/cli.js git-setup",
     "git-extras": "node ./src/cli.js git-extras",
     "clink": "node ./src/cli.js clink",
-    "generate:brew": "node ./src/generate/brew-artifacts.js",
-    "check:brew": "node ./src/generate/brew-artifacts.js --check",
-    "generate:github-accel": "node ./src/generate/github-accel.js",
-    "check:github-accel": "node ./src/generate/github-accel.js --check",
+    "generate": "node ./src/cli.js generate",
     "test": "node --test"
   },
   "author": "wwlight",

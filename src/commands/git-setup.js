@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import readline from 'node:readline';
-import { info, warn } from "../core/log.js";
+import { skip, step, warn } from "../core/log.js";
 import { loadManifest } from "../core/manifest.js";
 import { markCliInteractive } from "../core/platform.js";
 function gitAvailable() {
@@ -27,8 +27,10 @@ async function readTty(prompt) {
         rl.close();
     }
 }
-export async function runGitSetupCommand(_args = []) {
+export async function runGitSetupCommand(_args = [], options = {}) {
     markCliInteractive();
+    if (options.header !== false)
+        step('Configuring Git...');
     if (!gitAvailable()) {
         warn('Git is not installed; skipping Git configuration');
         return 0;
@@ -39,15 +41,15 @@ export async function runGitSetupCommand(_args = []) {
     spawnSync('git', ['config', '--global', '--replace-all', 'safe.directory', String(git.safeDirectory ?? '*')], { stdio: 'inherit' });
     gitConfig(['credential.helper', String(git.credentialHelper ?? 'store')]);
     if (hasGitIdentity()) {
-        info('Git username and email are already configured; skipping');
+        skip('Git username and email are already configured; skipping');
         return 0;
     }
-    const skip = await readTty('Skip Git username and email configuration? (y/n) [default: n]: ');
-    if (skip === null) {
-        info('Non-interactive environment; skipping Git username and email configuration');
+    const skipConfig = await readTty('Skip Git username and email configuration? (y/n) [default: n]: ');
+    if (skipConfig === null) {
+        skip('Non-interactive environment; skipping Git username and email configuration');
         return 0;
     }
-    if (skip.trim().toLowerCase() === 'y')
+    if (skipConfig.trim().toLowerCase() === 'y')
         return 0;
     const username = (await readTty('Enter Git username: '))?.replace(/\r/g, '').trim();
     if (!username)

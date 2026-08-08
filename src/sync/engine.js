@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { info, step, warn } from "../core/log.js";
+import { step, success, note, warn } from "../core/log.js";
 import { pathVarsForWindows } from "../core/manifest.js";
 import { expandPath, formatLocalDisplay, formatRepoDisplay, homeDir, projectRoot } from "../core/paths.js";
 import { backupFile, copyFileDataOnly } from "./copy.js";
@@ -42,19 +42,20 @@ export async function runConfigSync(opts) {
     let index = 0;
     for (const item of items) {
         index += 1;
+        const counter = `[${index}/${items.length}]`.padEnd(`[${items.length}/${items.length}]`.length);
         const localAbs = expandItemLocal(item.local, opts.platform);
         const repoAbs = path.join(root, item.repo);
         const localDisp = formatLocalDisplay(localAbs, home);
         if (opts.direction === '1') {
             await copyFileDataOnly(localAbs, repoAbs);
-            info(`[${index}/${items.length}] Backed up ${formatRepoDisplay(item.repo)}`);
+            note(`${counter} Backed up ${formatRepoDisplay(item.repo)}`);
             continue;
         }
         if (item.backup) {
             try {
                 const bakName = await backupFile(localAbs, backupRoot);
                 if (bakName) {
-                    info(`[${index}/${items.length}] Backed up ${localDisp} -> ~/.backup/${bakName}`);
+                    note(`${counter} Backed up ${localDisp} -> ~/.backup/${bakName}`);
                 }
             }
             catch (err) {
@@ -62,9 +63,9 @@ export async function runConfigSync(opts) {
             }
         }
         await copyFileDataOnly(repoAbs, localAbs, { encoding: item.encoding });
-        info(`[${index}/${items.length}] Restored ${localDisp}`);
+        success(`${counter} Restored ${localDisp}`);
     }
-    info(opts.direction === '1'
+    success(opts.direction === '1'
         ? 'Configuration backed up to the repository'
         : 'Configuration restored locally');
 }

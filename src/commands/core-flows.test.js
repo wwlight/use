@@ -3,15 +3,12 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { resolveZshPluginUpdate } from "./zsh-plugin.js";
 import { runGitSetupCommand } from "./git-setup.js";
+import { renderBrewLite } from "./backup.js";
 import { loadManifest, resolveProfileArtifact } from "../core/manifest.js";
 import { projectRoot } from "../core/paths.js";
-
-const here = dirname(fileURLToPath(import.meta.url));
 
 test('resolveZshPluginUpdate defaults and flags', () => {
     assert.equal(resolveZshPluginUpdate([]), true);
@@ -22,27 +19,26 @@ test('resolveZshPluginUpdate defaults and flags', () => {
     assert.throws(() => resolveZshPluginUpdate(['--wat']), /Unknown argument/);
 });
 
-test('setup resolves package artifacts that exist in repo', () => {
+test('setup profile artifacts exist', () => {
     const macos = loadManifest('macos');
     const windowsFull = resolveProfileArtifact('windows', 'full');
     assert.ok(macos.brewfile);
     assert.ok(fs.existsSync(path.join(projectRoot(), macos.brewfile)));
     assert.ok(fs.existsSync(path.join(projectRoot(), windowsFull)));
-
-    const setupSource = fs.readFileSync(resolve(here, 'setup.js'), 'utf8');
-    assert.match(setupSource, /Brewfile not found/);
-    assert.match(setupSource, /Scoop backup file not found/);
-    assert.match(setupSource, /resolveProfileArtifact\('windows', 'full'\)/);
-    assert.match(setupSource, /bundle', 'install'/);
-    assert.match(setupSource, /import-backup\.ps1/);
 });
 
-test('backup command wires lite generators', () => {
-    const backup = fs.readFileSync(resolve(here, 'backup.js'), 'utf8');
-    assert.match(backup, /writeBrewLiteBackup/);
-    assert.match(backup, /writeScoopLiteBackup/);
-    assert.match(backup, /bundle', 'dump'/);
-    assert.match(backup, /scoop export/);
+test('backup renders lite brewfile from manifest items', () => {
+    const root = projectRoot();
+    const manifest = loadManifest('macos');
+    const full = fs.readFileSync(path.join(root, manifest.brewfile), 'utf8');
+    const lite = renderBrewLite(full, manifest);
+    assert.deepEqual(lite.missing, []);
+    assert.equal(lite.written, manifest.brewLiteItems.length);
+    for (const { type, name } of manifest.brewLiteItems) {
+        assert.match(lite.content, new RegExp(`^${type} "${name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"`, 'm'));
+    }
+    assert.ok(!lite.content.includes('brew "mysql"'));
+    assert.ok(!lite.content.includes('cask "google-chrome"'));
 });
 
 test('git-setup skips identity when already configured', async () => {

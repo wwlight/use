@@ -1,4 +1,5 @@
 import { canOpenTerminal } from "../lib/tty-term.js";
+import { stripDashArgs } from "./args.js";
 export function detectPlatform() {
     if (process.platform === 'darwin')
         return 'macos';
@@ -14,7 +15,7 @@ export function requirePlatform() {
     return platform;
 }
 export function stripArgSeparator(args = []) {
-    return args.filter((arg) => arg !== '--');
+    return stripDashArgs(args);
 }
 export function markCliInteractive() {
     // stdin may be a pipe (curl|bash); /dev/tty still allows menus.

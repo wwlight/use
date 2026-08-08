@@ -172,7 +172,7 @@ function Write-ScoopMirrorAccelDirectNotice {
     param([string[]]$Hosts)
     if ($Hosts.Count -eq 0) { return }
     $script:ScoopMirrorAccelLastShown = 'direct'
-    Write-Host "Scoop source: direct ($($Hosts -join ', '); GitHub mirror unavailable for this host)" -ForegroundColor Yellow
+    Write-Host "⚠ Scoop source: direct ($($Hosts -join ', '); GitHub mirror unavailable for this host)" -ForegroundColor Yellow
 }
 
 function ConvertTo-ScoopMirrorUrl {

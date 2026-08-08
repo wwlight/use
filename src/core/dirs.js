@@ -1,6 +1,6 @@
 import { ensureDir, expandPath, homeDir } from "./paths.js";
 import { loadManifest, pathVarsForWindows } from "./manifest.js";
-import { info } from "./log.js";
+import { note } from "./log.js";
 export function ensureManifestDirectories(platform) {
     const home = homeDir();
     const dirs = new Set();
@@ -21,6 +21,6 @@ export function ensureManifestDirectories(platform) {
     for (const d of dirs) {
         const abs = expandPath(d, { home });
         ensureDir(abs);
-        info(`Ensured directory: ${d}`);
+        note(`Ensured directory: ${d}`);
     }
 }

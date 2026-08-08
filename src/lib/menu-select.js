@@ -9,7 +9,10 @@ import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { alignMenuCheck } from "./string-width.js";
 import { frameLines, openTerminal } from "./tty-term.js";
-/** Active/idle pointers share one fixed display column (➜ = 1 cell in Ghostty). */
+/** Active/idle pointers share one fixed display column (➤ = 1 cell in Ghostty). */
+const COLOR_TITLE = '\x1b[1;35m';
+const COLOR_SELECTED = '\x1b[36m';
+const COLOR_RESET = '\x1b[0m';
 export function formatChoiceLine(label, selected) {
     return `${alignMenuCheck(selected)} ${label}`;
 }
@@ -21,16 +24,20 @@ function createSelect({ message, choices, input, output, cursor: initialCursor =
     let rl;
     function renderActiveFrame() {
         const lines = [
-            message,
             '',
-            ...choices.map((item, i) => formatChoiceLine(item.label, i === cursor)),
+            `${COLOR_TITLE}➤ ${message}${COLOR_RESET}`,
             '',
-            '↑↓ Select  Enter Confirm',
+            ...choices.map((item, i) => {
+                const line = formatChoiceLine(item.label, i === cursor);
+                return i === cursor ? `${COLOR_SELECTED}${line}${COLOR_RESET}` : line;
+            }),
+            '',
+            '↑↓ Select  Enter Confirm  Esc/Ctrl+C Cancel',
         ];
         return `${lines.join('\n')}\n`;
     }
     function renderSubmitFrame() {
-        return `${message}\n${formatChoiceLine(choices[cursor].label, true)}\n`;
+        return `\n${COLOR_TITLE}➤ ${message}${COLOR_RESET}\n${COLOR_SELECTED}${formatChoiceLine(choices[cursor].label, true)}${COLOR_RESET}\n`;
     }
     function render() {
         const frame = state === 'submit' ? renderSubmitFrame() : renderActiveFrame();
@@ -85,6 +92,18 @@ function createSelect({ message, choices, input, output, cursor: initialCursor =
                 close({ endLine: false });
                 resolve(String(choices[cursor].value).trim());
                 return;
+            }
+            // Digit shortcut: pick the choice whose value equals the typed digit.
+            if (/^[0-9]$/.test(key.name)) {
+                const idx = choices.findIndex((item) => String(item.value).trim() === key.name);
+                if (idx >= 0) {
+                    cursor = idx;
+                    state = 'submit';
+                    render();
+                    close({ endLine: false });
+                    resolve(String(choices[cursor].value).trim());
+                    return;
+                }
             }
             if (key.name === 'up') {
                 cursor = (cursor - 1 + choices.length) % choices.length;

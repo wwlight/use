@@ -1,17 +1,18 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { error } from "../core/log.js";
+import { error, step } from "../core/log.js";
 import { markCliInteractive } from "../core/platform.js";
+import { isHelpFlag, stripDashArgs } from "../core/args.js";
 import { SYNC_DIRECTION_EXAMPLE, SYNC_DIRECTION_HINT, isSyncDirection, normalizeSyncDirection, promptSyncDirectionMenu, } from "../sync/direction.js";
 import { runConfigSync } from "../sync/engine.js";
 import { cleanupSyncTempFile, readSyncPairLines } from "../sync/pairs.js";
 import { runSyncSelectPrompt } from "../sync/select.js";
 function parseSyncDirection(args) {
-    const meaningful = args.filter((arg) => arg !== '--');
+    const meaningful = stripDashArgs(args);
     if (meaningful.length === 0)
         return null;
-    if (meaningful.some((arg) => arg === '-h' || arg === '--help' || arg === 'help')) {
+    if (isHelpFlag(meaningful)) {
         return '__HELP__';
     }
     for (const arg of meaningful) {
@@ -110,7 +111,7 @@ export async function runSyncCommand(platform, args) {
     const message = direction === '1'
         ? `Backing up ${itemCount} files to the repository...`
         : `Restoring ${itemCount} files locally...`;
-    console.log(`\x1b[34m[INFO] ${message}\x1b[0m`);
+    step(message);
     try {
         await runConfigSync({ platform, direction, fromDispatch: true });
         return 0;

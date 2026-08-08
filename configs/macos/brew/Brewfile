@@ -22,6 +22,8 @@ brew "git"
 brew "git-extras"
 # Common error values for all GnuPG components
 brew "libgpg-error"
+# Deep clean and optimize your Mac
+brew "mole"
 # Open source relational database management system
 brew "mysql"
 # Incremental parsing library
@@ -51,7 +53,7 @@ brew "valkey"
 # Shell extension to navigate your filesystem faster
 brew "zoxide"
 # The AI coding agent built for the terminal.
-brew "anomalyco/tap/opencode", trusted: true
+brew "anomalyco/tap/opencode"
 # SDKMAN! the Software Development Kit Manager
 brew "sdkman/tap/sdkman-cli"
 # Android SDK component
