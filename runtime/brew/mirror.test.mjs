@@ -3,8 +3,9 @@ import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const root = path.resolve(import.meta.dirname, '../..')
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..')
 const helper = path.join(root, 'runtime/brew/mirror-cli.zsh')
 const catalog = path.join(root, 'configs/macos/brew/mirrors.tsv')
 const source = fs.readFileSync(helper, 'utf8')

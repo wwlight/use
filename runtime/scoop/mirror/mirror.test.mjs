@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
-import { pathToFileURL } from 'node:url'
+import { dirname, resolve } from 'node:path'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
-const root = resolve(import.meta.dirname, '../../..')
+const root = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
 const read = (path) => readFileSync(resolve(root, path), 'utf8')
 
 const common = JSON.parse(read('manifests/common.json'))
