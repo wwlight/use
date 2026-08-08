@@ -7,14 +7,14 @@ import path from 'node:path';
 import fs from 'node:fs';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
+import { formatStepTitle } from "../core/log.js";
 import { alignMenuCheck } from "./string-width.js";
 import { frameLines, openTerminal } from "./tty-term.js";
-/** Active/idle pointers share one fixed display column (➤ = 1 cell in Ghostty). */
-const COLOR_TITLE = '\x1b[1;35m';
 const COLOR_SELECTED = '\x1b[36m';
 const COLOR_RESET = '\x1b[0m';
+const CHOICE_GAP = process.platform === 'win32' ? '  ' : ' ';
 export function formatChoiceLine(label, selected) {
-    return `${alignMenuCheck(selected)} ${label}`;
+    return `${alignMenuCheck(selected)}${CHOICE_GAP}${label}`;
 }
 function createSelect({ message, choices, input, output, cursor: initialCursor = 0 }) {
     let cursor = Math.min(Math.max(0, initialCursor), Math.max(0, choices.length - 1));
@@ -25,7 +25,7 @@ function createSelect({ message, choices, input, output, cursor: initialCursor =
     function renderActiveFrame() {
         const lines = [
             '',
-            `${COLOR_TITLE}➤ ${message}${COLOR_RESET}`,
+            formatStepTitle(message),
             '',
             ...choices.map((item, i) => {
                 const line = formatChoiceLine(item.label, i === cursor);
@@ -37,7 +37,7 @@ function createSelect({ message, choices, input, output, cursor: initialCursor =
         return `${lines.join('\n')}\n`;
     }
     function renderSubmitFrame() {
-        return `\n${COLOR_TITLE}➤ ${message}${COLOR_RESET}\n${COLOR_SELECTED}${formatChoiceLine(choices[cursor].label, true)}${COLOR_RESET}\n`;
+        return `\n${formatStepTitle(message)}\n${COLOR_SELECTED}${formatChoiceLine(choices[cursor].label, true)}${COLOR_RESET}\n`;
     }
     function render() {
         const frame = state === 'submit' ? renderSubmitFrame() : renderActiveFrame();
@@ -47,7 +47,8 @@ function createSelect({ message, choices, input, output, cursor: initialCursor =
         // Avoid per-line erase/redraw; that flickers on Windows ConPTY / CONOUT$.
         let payload = '';
         if (prevFrame) {
-            const up = frameLines(prevFrame);
+            const cols = output.columns && output.columns > 0 ? output.columns : 80;
+            const up = frameLines(prevFrame, cols);
             if (up > 0)
                 payload += `\x1B[${up}A\r`;
             payload += '\x1B[J';

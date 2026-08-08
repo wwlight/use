@@ -2,7 +2,7 @@
  * Inline spinner for long-running operations: rendered on stderr, cleared
  * before result lines, plain fallback when stderr is not a TTY.
  */
-import { COLOR_BLUE, COLOR_RESET, info } from "./log.js";
+import { COLOR_BLUE, COLOR_RESET, info, LOG_NEST_INDENT } from "./log.js";
 const FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
 /** @param {NodeJS.WriteStream} [stream] */
 function isTty(stream = process.stderr) {
@@ -14,7 +14,7 @@ export function startSpinner(message) {
     const paint = () => {
         const c = FRAMES[frame % FRAMES.length];
         frame += 1;
-        process.stderr.write(`\r  ${COLOR_BLUE}${c}${COLOR_RESET} ${message}`);
+        process.stderr.write(`\r${LOG_NEST_INDENT}${COLOR_BLUE}${c}${COLOR_RESET} ${message}`);
     };
     paint();
     const timer = setInterval(paint, 80);

@@ -98,12 +98,13 @@ function Write-Info {
 
 function Write-Success {
     param([string]$Message)
-    Write-Host "  ✔ $Message" -ForegroundColor Green
+    # Match install.ps1 / log.js Windows nest indent under wide ➤.
+    Write-Host "   ✓ $Message" -ForegroundColor Green
 }
 
 function Write-Note {
     param([string]$Message)
-    Write-Host "  ✔ $Message" -ForegroundColor Blue
+    Write-Host "   ✓ $Message" -ForegroundColor Blue
 }
 
 function Write-Warn {
@@ -115,6 +116,37 @@ function Write-ErrorAndExit {
     param([string]$Message)
     Write-Host "✗ $Message" -ForegroundColor Red
     exit 1
+}
+
+# Scoop CLI often Write-Hosts status lines; mac install.sh swallows child stdout via spin.
+# Temporarily hide Write-Host so one-click flows only show our Write-* helpers.
+function Invoke-QuietHost {
+    param(
+        [Parameter(Mandatory)]
+        [scriptblock]$Script
+    )
+    $previous = Get-Content -Path function:\Write-Host -ErrorAction SilentlyContinue
+    function global:Write-Host {
+        param(
+            [Parameter(Position = 0, ValueFromPipeline = $true, ValueFromRemainingArguments = $true)]
+            $Object,
+            $ForegroundColor,
+            $BackgroundColor,
+            [switch]$NoNewline,
+            $Separator
+        )
+    }
+    try {
+        & $Script | Out-Null
+    }
+    finally {
+        if ($null -ne $previous) {
+            Set-Item -Path function:\global:Write-Host -Value $previous
+        }
+        else {
+            Remove-Item -Path function:\global:Write-Host -Force -ErrorAction SilentlyContinue
+        }
+    }
 }
 
 function Get-Os {

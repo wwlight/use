@@ -23,8 +23,9 @@ $GithubAccelPrefixes = @(
 # END GENERATED GITHUB ACCEL
 
 function Write-Info     { Write-Host "$args" }
-function Write-Step     { Write-Host "`n➤ $args" -ForegroundColor Magenta }
-function Write-Success  { Write-Host "  ✔ $args" -ForegroundColor Green }
+# Extra space after ➤; nest indent matches (Windows Terminal paints U+27A4 large).
+function Write-Step     { Write-Host "`n➤  $args" -ForegroundColor Magenta }
+function Write-Success  { Write-Host "   ✓ $args" -ForegroundColor Green }
 function Write-Warn     { Write-Host "⚠ $args" -ForegroundColor Yellow }
 
 # irm|iex runs in the current host. Throw and catch at the top level to avoid closing the session.
@@ -192,6 +193,18 @@ function Get-GithubZipCandidates {
   Get-GithubUrlCandidates -Url $RepoZip
 }
 
+# Match install.sh spin labels: show host only, never the full mirror URL.
+function Get-UrlHostLabel {
+  param([string]$Url)
+  try {
+    $hostName = ([Uri]$Url).Host
+    if (-not [string]::IsNullOrWhiteSpace($hostName)) { return $hostName }
+  }
+  catch { }
+  if ($Url -match '://([^/]+)') { return $Matches[1] }
+  return 'source'
+}
+
 function Expand-UseZipRepository {
   param([string]$Target)
 
@@ -205,7 +218,8 @@ function Expand-UseZipRepository {
 
   try {
     foreach ($url in (Get-GithubZipCandidates)) {
-      Write-Info "Trying zip URL: $url"
+      $hostLabel = Get-UrlHostLabel $url
+      Write-Info "Downloading $hostLabel ..."
       try {
         Invoke-WebRequest -Uri $url -OutFile $zipFile -UseBasicParsing
         $extractRoot = Join-Path $tmp 'extract'
@@ -213,6 +227,7 @@ function Expand-UseZipRepository {
           Remove-Item -LiteralPath $extractRoot -Recurse -Force -ErrorAction SilentlyContinue
         }
         New-Item -ItemType Directory -Path $extractRoot -Force | Out-Null
+        Write-Info "Extracting $ZipExtractName ..."
         Expand-Archive -LiteralPath $zipFile -DestinationPath $extractRoot -Force
         $extracted = Join-Path $extractRoot $ZipExtractName
         if (-not (Test-Path -LiteralPath $extracted)) {
@@ -226,11 +241,11 @@ function Expand-UseZipRepository {
           throw "Could not replace existing directory: $Target"
         }
         Move-Item -LiteralPath $extracted -Destination $Target
-        Write-Info "Extracted repository to $Target"
+        Write-Success "Extracted repository to $Target"
         return $true
       }
       catch {
-        Write-Warn "Zip fetch failed ($url): $($_.Exception.Message)"
+        # Match install.sh: try the next mirror quietly; warn only after all fail.
       }
     }
     return $false
@@ -380,9 +395,13 @@ function Copy-UseRepository {
 
   foreach ($url in (Get-GithubRepoCandidates)) {
     Remove-Item $Target -Recurse -Force -ErrorAction SilentlyContinue
-    Write-Info "Trying clone URL: $url"
-    git clone --depth=1 $url $Target
-    if ($LASTEXITCODE -eq 0) { return $true }
+    $hostLabel = Get-UrlHostLabel $url
+    Write-Info "Cloning $hostLabel ..."
+    git clone --depth=1 $url $Target 1>$null 2>$null
+    if ($LASTEXITCODE -eq 0) {
+      Write-Success "Cloned repository to $Target"
+      return $true
+    }
   }
   return $false
 }
@@ -415,13 +434,15 @@ function Update-UseRepository {
   }
 
   foreach ($url in (Get-GithubRepoCandidates)) {
-    git -C $Target remote set-url origin $url
+    git -C $Target remote set-url origin $url 1>$null 2>$null
     if ($LASTEXITCODE -ne 0) { continue }
-    Write-Info "Trying sync URL: $url"
-    git -C $Target fetch origin main
+    $hostLabel = Get-UrlHostLabel $url
+    Write-Info "Syncing $hostLabel ..."
+    git -C $Target fetch origin main 1>$null 2>$null
     if ($LASTEXITCODE -eq 0) {
-      git -C $Target reset --hard origin/main
+      git -C $Target reset --hard origin/main 1>$null 2>$null
       if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Failed to reset local repository' }
+      Write-Success 'Repository synced with origin/main'
       return
     }
   }
@@ -443,7 +464,7 @@ function Get-NextTimestampedDir {
 Ensure-NodeRuntime
 
 if (-not (Test-Path $InstallDir)) {
-  Write-Info "Fetching repository to $InstallDir ..."
+  Write-Step "Fetching repository to $InstallDir"
   Fetch-UseRepository $InstallDir
 }
 elseif (Test-SameRemoteRepo $InstallDir) {
@@ -453,7 +474,7 @@ elseif (Test-SameRemoteRepo $InstallDir) {
 else {
   # Zip checkout may be the shell cwd (cannot delete). No Git → always fetch a fresh sibling dir.
   $InstallDir = Get-NextTimestampedDir $InstallDir
-  Write-Info "Fetching repository to $InstallDir ..."
+  Write-Step "Fetching repository to $InstallDir"
   Fetch-UseRepository $InstallDir
 }
 
@@ -461,7 +482,6 @@ Set-Location $InstallDir
 
 # curl|bash pipes stdin; menus still talk to /dev/tty when present.
 $env:SYNC_INTERACTIVE = '1'
-Write-Step 'Configuring package manager acceleration ...'
 
 $scoopInstallArgs = @()
 if (-not [string]::IsNullOrWhiteSpace($env:USE_ACCEL)) {

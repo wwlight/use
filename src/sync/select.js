@@ -8,13 +8,13 @@ import path from 'node:path';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { truncateWidth } from "../lib/string-width.js";
-import { frameLines, openTerminal } from "../lib/tty-term.js";
+import { openTerminal } from "../lib/tty-term.js";
 import { formatStepTitle } from "../core/log.js";
 import { formatLocalDisplay, formatRepoDisplay } from "./pairs.js";
 export function formatSyncChoiceLine(label, { selected = false, active = false, labelMax = 30, widthOptions = {} } = {}) {
     // Active row only: ◆ checked / ◇ unchecked; idle blank. Selection mark stays in [ ].
     const pointer = active ? (selected ? '◆' : '◇') : ' ';
-    const mark = selected ? '✔' : ' ';
+    const mark = selected ? '✓' : ' ';
     return `${pointer} [${mark}] ${truncateWidth(label, labelMax, widthOptions)}`;
 }
 function parseItems(rawLines) {
@@ -58,8 +58,15 @@ function createMultiselect({ message, choices, input, output }) {
     let prevFrame = '';
     let state = 'active';
     let error = '';
+    let altScreen = false;
     /** @type {import('node:readline').Interface | undefined} */
     let rl;
+    function leaveAltScreen() {
+        if (!altScreen)
+            return;
+        output.write('\x1B[?1049l');
+        altScreen = false;
+    }
     function renderActiveFrame() {
         const width = columns(output);
         const labelMax = Math.max(30, width - 8);
@@ -79,28 +86,25 @@ function createMultiselect({ message, choices, input, output }) {
             lines.push('', error);
         return `${lines.join('\n')}\n`;
     }
-    function renderSubmitFrame() {
-        const picked = choices.filter((c) => c.selected);
-        return `\n${formatStepTitle(message)}\n${picked.length} selected\n`;
-    }
     function render() {
-        const frame = state === 'submit' ? renderSubmitFrame() : renderActiveFrame();
+        const frame = state === 'submit' ? '' : renderActiveFrame();
         if (frame === prevFrame)
             return;
-        // One write: move to menu top + erase down + paint.
-        // Avoid per-write erase/redraw; that flickers on Windows ConPTY / CONOUT$.
         let payload = '';
-        if (prevFrame) {
-            const up = frameLines(prevFrame);
-            if (up > 0)
-                payload += `\x1B[${up}A\r`;
-            payload += '\x1B[J';
+        if (state === 'submit') {
+            leaveAltScreen();
+        }
+        else if (!prevFrame) {
+            payload += '\x1B[?1049h\x1B[?25l\x1B[H\x1B[J';
+            altScreen = true;
+            payload += frame;
         }
         else {
-            payload += '\x1B[?25l';
+            payload += '\x1B[H\x1B[J';
+            payload += frame;
         }
-        payload += frame;
-        output.write(payload);
+        if (payload)
+            output.write(payload);
         prevFrame = frame;
     }
     return new Promise((resolve, reject) => {
@@ -123,6 +127,7 @@ function createMultiselect({ message, choices, input, output }) {
         readline.emitKeypressEvents(input, rl);
         const close = ({ endLine = true } = {}) => {
             input.removeListener('keypress', onKeypress);
+            leaveAltScreen();
             if (endLine)
                 output.write('\n');
             output.write('\x1B[?25h');

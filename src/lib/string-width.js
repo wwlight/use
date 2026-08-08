@@ -1,6 +1,6 @@
 /**
  * Terminal display-width helpers (East Asian Width aware).
- * Ambiguous-width glyphs (e.g. ✔) are 2 columns in CJK contexts and 1 elsewhere.
+ * Ambiguous-width glyphs (e.g. ✓) are 2 columns in CJK contexts and 1 elsewhere.
  */
 /** @typedef {{ ambiguousWide?: boolean }} WidthOptions */
 /**
@@ -64,7 +64,7 @@ function isAmbiguousCodePoint(cp) {
         || (cp >= 0x2190 && cp <= 0x2199)
         // Box drawing / block elements / geometric shapes
         || (cp >= 0x2500 && cp <= 0x25ff)
-        // Misc symbols + dingbats: ✔ etc.
+        // Misc symbols + dingbats: ✓ etc.
         || (cp >= 0x2600 && cp <= 0x27bf));
 }
 /**
@@ -165,7 +165,6 @@ export const MENU_CHECK = '➤';
 export const MENU_CHECK_IDLE = ' ';
 /**
  * Align menu cursor chrome so active/idle share one display column.
- * Ghostty draws ➤ as 1 cell (unlike ✔); pad idle as narrow.
  * @param {boolean} active
  */
 export function alignMenuCheck(active) {

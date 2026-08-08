@@ -60,7 +60,7 @@ try {
     else {
         Write-Info "Importing from $(Split-Path $scoopBackup -Leaf)..."
     }
-    scoop import $importFile
+    Invoke-QuietHost { scoop import $importFile }
     if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Scoop app restore failed!' }
 }
 finally {

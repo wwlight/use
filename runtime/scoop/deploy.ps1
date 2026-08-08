@@ -47,7 +47,6 @@ function Install-ScoopMirrorAccelFiles {
         scoopRepo    = [string]$Accel.scoopRepo
     }
     Write-Utf8NoBomFile -Path $jsonPath -Content (($payload | ConvertTo-Json -Depth 5) + "`n")
-    Write-Success "Deployed $jsonPath"
 
     $mirrorSrc = Join-Path $PSScriptRoot 'mirror'
     $hookSrc = Join-Path $mirrorSrc 'hook.ps1'
@@ -55,14 +54,12 @@ function Install-ScoopMirrorAccelFiles {
         Write-ErrorAndExit "scoop/mirror/hook.ps1 not found: $hookSrc"
     }
     Copy-FileDataOnly -SourceFile $hookSrc -DestinationFile (Join-Path $mirrorDir 'hook.ps1') -Encoding 'utf8Bom'
-    Write-Success "Deployed $(Join-Path $mirrorDir 'hook.ps1')"
 
     $sharedSrc = Join-Path $mirrorSrc 'shared.ps1'
     if (-not (Test-Path -LiteralPath $sharedSrc)) {
         Write-ErrorAndExit "scoop/mirror/shared.ps1 not found: $sharedSrc"
     }
     Copy-FileDataOnly -SourceFile $sharedSrc -DestinationFile (Join-Path $mirrorDir 'shared.ps1') -Encoding 'utf8Bom'
-    Write-Success "Deployed $(Join-Path $mirrorDir 'shared.ps1')"
 
     # Drop retired PS mirror CLI (shell uses cli.js directly).
     $obsoleteManage = Join-Path $mirrorDir 'manage.ps1'
@@ -75,7 +72,6 @@ function Install-ScoopMirrorAccelFiles {
         Write-ErrorAndExit "scoop/mirror/cli.js not found: $cliSrc"
     }
     Copy-FileDataOnly -SourceFile $cliSrc -DestinationFile (Join-Path $mirrorDir 'cli.js')
-    Write-Success "Deployed $(Join-Path $mirrorDir 'cli.js')"
     foreach ($legacy in @('cli.ts', 'cli.mjs')) {
         $old = Join-Path $mirrorDir $legacy
         if (Test-Path -LiteralPath $old) {
@@ -90,7 +86,6 @@ function Install-ScoopMirrorAccelFiles {
             Write-ErrorAndExit "Shared menu helper not found: $menuSrc"
         }
         Copy-FileDataOnly -SourceFile $menuSrc -DestinationFile (Join-Path $libDir $name)
-        Write-Success "Deployed $(Join-Path $libDir $name)"
     }
     foreach ($legacy in @('menu-select.ts', 'string-width.ts', 'tty-term.ts', 'menu-select.mjs', 'string-width.mjs', 'tty-term.mjs')) {
         $old = Join-Path $libDir $legacy
@@ -99,7 +94,7 @@ function Install-ScoopMirrorAccelFiles {
         }
     }
 
-    Write-Success "Synced scoop-mirror helpers to $mirrorDir"
+    Write-Success "Synced scoop-mirror helpers"
 }
 
 function Install-ScoopServicesFiles {
@@ -122,13 +117,11 @@ function Install-ScoopServicesFiles {
         Write-ErrorAndExit "scoop/services/manage.ps1 not found: $src"
     }
     Copy-FileDataOnly -SourceFile $src -DestinationFile $dest -Encoding 'utf8Bom'
-    Write-Success "Synced scoop-services helper to $dest"
 
     $manifestSrc = Join-Path $Script:ProjectRoot 'configs\windows\scoop\services-manifest.json'
     $manifestDest = Join-Path $servicesDir 'manifest.json'
     if (Test-Path -LiteralPath $manifestSrc) {
         Copy-FileDataOnly -SourceFile $manifestSrc -DestinationFile $manifestDest
-        Write-Success "Synced scoop-services manifest to $manifestDest"
     }
 
     $shellDest = Join-Path $configDir 'scoop.ps1'
@@ -137,5 +130,5 @@ function Install-ScoopServicesFiles {
         Write-ErrorAndExit "configs/windows/scoop/scoop.ps1 not found: $shellSrc"
     }
     Copy-FileDataOnly -SourceFile $shellSrc -DestinationFile $shellDest -Encoding 'utf8Bom'
-    Write-Success "Synced scoop shell extension to $shellDest"
+    Write-Success 'Synced scoop-services helpers'
 }

@@ -3,13 +3,33 @@
  */
 import fs from 'node:fs';
 import tty from 'node:tty';
-export function frameLines(frame) {
+import { stringWidth } from "./string-width.js";
+
+function stripAnsi(text) {
+    return String(text ?? '').replace(/\x1B\[[0-9;?]*[ -/]*[@-~]/g, '');
+}
+
+/** Screen rows occupied by a painted frame (accounts for wrap when columns > 0). */
+export function frameLines(frame, columns = 0) {
     if (!frame)
         return 0;
-    return Math.max(0, frame.split('\n').length - 1);
+    const parts = frame.split('\n');
+    let count = 0;
+    for (let i = 0; i < parts.length; i++) {
+        if (i === parts.length - 1 && parts[i] === '')
+            continue;
+        if (columns > 0) {
+            const w = stringWidth(stripAnsi(parts[i]), { ambiguousWide: false });
+            count += Math.max(1, Math.ceil(Math.max(0, w) / columns) || 1);
+        }
+        else {
+            count += 1;
+        }
+    }
+    return count;
 }
 export function restoreFrame(output, frame) {
-    const up = frameLines(frame);
+    const up = frameLines(frame, output?.columns || 0);
     if (up > 0)
         output.write(`\x1B[${up}A\r`);
 }

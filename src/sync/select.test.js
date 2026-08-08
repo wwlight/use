@@ -20,7 +20,7 @@ test('sync direction helpers', () => {
     assert.ok(SYNC_DIRECTION_HINT.includes('restore'));
 });
 test('sync choice line formatting', () => {
-    assert.equal(formatSyncChoiceLine('a.txt', { selected: true, active: false }), '  [✔] a.txt');
+    assert.equal(formatSyncChoiceLine('a.txt', { selected: true, active: false }), '  [✓] a.txt');
     assert.equal(formatSyncChoiceLine('b.txt', { selected: false, active: true }), '◇ [ ] b.txt');
-    assert.equal(formatSyncChoiceLine('c.txt', { selected: true, active: true }), '◆ [✔] c.txt');
+    assert.equal(formatSyncChoiceLine('c.txt', { selected: true, active: true }), '◆ [✓] c.txt');
 });
