@@ -27,10 +27,9 @@ async function readTty(prompt) {
         rl.close();
     }
 }
-export async function runGitSetupCommand(_args = [], options = {}) {
+export async function runGitSetupCommand(_args = [], _options = {}) {
     markCliInteractive();
-    if (options.header !== false)
-        step('Configuring Git...');
+    step('Configuring Git...');
     if (!gitAvailable()) {
         warn('Git is not installed; skipping Git configuration');
         return 0;

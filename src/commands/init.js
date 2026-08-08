@@ -94,7 +94,7 @@ export async function runInitCommand(platform, args) {
     finally {
         delete process.env.SYNC_SELECT_ALL;
     }
-    await runGitSetupCommand([], { header: false });
+    await runGitSetupCommand([]);
     success('All operations complete. The system is ready.');
     return 0;
 }
