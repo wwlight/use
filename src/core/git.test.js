@@ -4,8 +4,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { githubRepoCandidates, isGitRepo, syncGitRepoPlugin } from "./git.js";
 import { loadManifest } from "./manifest.js";
+
+function normalizeEol(text) {
+    return String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
 
 function git(cwd, args, opts = {}) {
     const r = spawnSync('git', args, { cwd, encoding: 'utf8', ...opts });
@@ -28,15 +33,39 @@ function makeRemoteRepo(root, name = 'remote') {
     git(work, ['commit', '-m', 'v1']);
     git(work, ['remote', 'add', 'origin', remote]);
     git(work, ['push', '-u', 'origin', 'main']);
-    return { remote: `file://${remote}`, remotePath: remote, work };
+    return { remote: pathToFileURL(remote).href, remotePath: remote, work };
 }
 
 function readPlugin(dir) {
-    return fs.readFileSync(path.join(dir, 'plugin.txt'), 'utf8');
+    return normalizeEol(fs.readFileSync(path.join(dir, 'plugin.txt'), 'utf8'));
 }
 
 function head(dir) {
     return git(dir, ['rev-parse', 'HEAD']);
+}
+
+function cleanupTemp(root) {
+    try {
+        fs.rmSync(root, { recursive: true, force: true, maxRetries: 3, retryDelay: 50 });
+    }
+    catch {
+        // Windows sometimes holds locks on .git temps; ignore cleanup failures.
+    }
+}
+
+function isSameOrigin(dir, remotePath) {
+    const url = git(dir, ['remote', 'get-url', 'origin']);
+    const norm = (u) => {
+        try {
+            if (String(u).startsWith('file:'))
+                return path.resolve(fileURLToPath(u));
+        }
+        catch {
+            // fall through
+        }
+        return path.resolve(String(u).replace(/^file:\/\//, '').replace(/\/$/, ''));
+    };
+    return norm(url) === norm(remotePath);
 }
 
 test('githubRepoCandidates: selected → other mirrors → official', () => {
@@ -98,7 +127,7 @@ test('init path: missing installs, existing skips', async () => {
         assert.equal(readPlugin(plugin), 'v1\n');
     }
     finally {
-        fs.rmSync(root, { recursive: true, force: true });
+        cleanupTemp(root);
     }
 });
 
@@ -123,7 +152,7 @@ test('zsh-plugin path: matching git repo fetches latest', async () => {
         assert.equal(readPlugin(plugin), 'v2\n');
     }
     finally {
-        fs.rmSync(root, { recursive: true, force: true });
+        cleanupTemp(root);
     }
 });
 
@@ -141,7 +170,7 @@ test('zsh-plugin path: non-git dir reinstalls via temp replace', async () => {
         assert.equal(fs.existsSync(path.join(plugin, 'stale.txt')), false);
     }
     finally {
-        fs.rmSync(root, { recursive: true, force: true });
+        cleanupTemp(root);
     }
 });
 
@@ -165,7 +194,7 @@ test('zsh-plugin path: wrong remote reinstalls to expected repo', async () => {
         assert.equal(isSameOrigin(plugin, expected.remotePath), true);
     }
     finally {
-        fs.rmSync(root, { recursive: true, force: true });
+        cleanupTemp(root);
     }
 });
 
@@ -181,16 +210,10 @@ test('failed reinstall keeps original non-git directory', async () => {
             /Failed to install plugin/,
         );
         assert.equal(fs.existsSync(path.join(plugin, 'stale.txt')), true);
-        assert.equal(fs.readFileSync(path.join(plugin, 'stale.txt'), 'utf8'), 'original\n');
+        assert.equal(normalizeEol(fs.readFileSync(path.join(plugin, 'stale.txt'), 'utf8')), 'original\n');
         assert.equal(isGitRepo(plugin), false);
     }
     finally {
-        fs.rmSync(root, { recursive: true, force: true });
+        cleanupTemp(root);
     }
 });
-
-function isSameOrigin(dir, remotePath) {
-    const url = git(dir, ['remote', 'get-url', 'origin']);
-    const norm = (u) => u.replace(/^file:\/\//, '').replace(/\/$/, '');
-    return norm(url) === norm(remotePath);
-}

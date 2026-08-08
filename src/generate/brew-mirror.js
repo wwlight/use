@@ -8,6 +8,9 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { projectRoot } from "../core/paths.js";
 const CATALOG_HEADER = '# use-homebrew-mirrors-v1';
+function normalizeEol(text) {
+    return String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
 function atomicWrite(filePath, content) {
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     const temp = `${filePath}.${process.pid}.${Date.now()}.tmp`;
@@ -89,7 +92,7 @@ export function checkBrewMirrorGenerated(root = projectRoot()) {
     const manifest = loadMacosManifest(root);
     const expectedCatalog = renderBrewMirrorCatalog(manifest);
     const currentCatalog = fs.readFileSync(path.join(root, manifest.brewMirrorCatalog), 'utf8');
-    if (currentCatalog !== expectedCatalog) {
+    if (normalizeEol(currentCatalog) !== normalizeEol(expectedCatalog)) {
         return { ok: false, reason: 'Generated brew mirror catalog is stale; run: vpr generate brew-mirror' };
     }
     return { ok: true };

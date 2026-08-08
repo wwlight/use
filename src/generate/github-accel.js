@@ -60,6 +60,10 @@ function loadMirrors(root) {
     return [defaultMirror, ...mirrors.filter((item) => item !== defaultMirror)];
 }
 
+function normalizeEol(text) {
+    return String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
+
 function replaceBlock(content, markers, body, relativePath) {
     const startIndex = content.indexOf(markers.start);
     const endIndex = content.indexOf(markers.end);
@@ -261,9 +265,9 @@ function readmeDocs(mirrors) {
 
 function updateGeneratedFile(root, relativePath, markers, body, write) {
     const filePath = path.join(root, relativePath);
-    const current = fs.readFileSync(filePath, 'utf8');
-    const expected = replaceBlock(current, markers, body, relativePath);
-    if (current === expected)
+    const currentLf = normalizeEol(fs.readFileSync(filePath, 'utf8'));
+    const expected = replaceBlock(currentLf, markers, body, relativePath);
+    if (currentLf === expected)
         return false;
     if (write)
         fs.writeFileSync(filePath, expected);

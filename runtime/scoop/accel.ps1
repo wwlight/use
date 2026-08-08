@@ -187,7 +187,7 @@ function Repair-ScoopRepoConfig {
         Write-Warn "scoop_repo is invalid/polluted; resetting to $ExpectedUrl"
     }
     else {
-        Write-Info 'Updating scoop_repo to match active mirror'
+        Write-Detail 'Updating scoop_repo to match active mirror'
     }
     Set-ScoopRepoConfig -Url $ExpectedUrl
 }
@@ -367,6 +367,17 @@ function Format-ScoopMirrorActiveLabel {
     return $ActivePrefix
 }
 
+function Format-ScoopMirrorHostLabel {
+    param([string]$ActivePrefix)
+    if ([string]::IsNullOrWhiteSpace($ActivePrefix)) { return 'Upstream' }
+    try {
+        $hostName = ([Uri]$ActivePrefix).Host
+        if (-not [string]::IsNullOrWhiteSpace($hostName)) { return $hostName }
+    }
+    catch { }
+    return $ActivePrefix.TrimEnd('/')
+}
+
 function Get-ScoopMirrorLabelFromUrl {
     param(
         [string]$Url,
@@ -457,7 +468,7 @@ function Invoke-ScoopInstallScriptWithFallback {
     $errors = New-Object System.Collections.Generic.List[string]
     foreach ($attempt in $attempts) {
         $label = Format-ScoopMirrorActiveLabel -ActivePrefix $attempt.Prefix
-        Write-Info "Installing Scoop via $label ..."
+        Write-Detail "Installing Scoop via $label ..."
         try {
             $script = [string](Invoke-RestMethod -Uri $attempt.Url)
             if ([string]::IsNullOrWhiteSpace($script)) {
@@ -485,7 +496,7 @@ function Invoke-ScoopInstallScriptWithFallback {
             # Persist the source that actually installed Scoop (may differ from selection after fallback).
             $successPrefix = Resolve-ScoopKnownMirrorPrefix -Prefix $attempt.Prefix -Prefixes $prefixes
             $successLabel = Format-ScoopMirrorActiveLabel -ActivePrefix $successPrefix
-            Write-Success "Scoop installed ($successLabel)"
+            Write-Detail "Scoop installed ($successLabel)" -Kind success
             $OutPrefix.Value = $successPrefix
             return
         }
@@ -616,7 +627,7 @@ function Install-ScoopDownloadHook {
     }
 
     Invoke-ScoopMirrorAccelFilterInit -FailureMessage 'Could not install the Scoop download acceleration hook'
-    Write-Success 'Scoop mirror hook and clean-worktree filter are ready'
+    Write-Detail 'Scoop mirror hook and clean-worktree filter are ready' -Kind success
 }
 
 function Install-ScoopBootstrapApps {
@@ -631,11 +642,11 @@ function Install-ScoopBootstrapApps {
     foreach ($app in $Apps) {
         $commandName = if ($app -eq '7zip') { '7z' } else { $app }
         if (Get-Command $commandName -ErrorAction SilentlyContinue) {
-            Write-Note "$app is already available; skipping"
+            Write-Detail "$app is already available; skipping" -Kind note
             continue
         }
 
-        Write-Info "Installing $app via Scoop..."
+        Write-Detail "Installing $app via Scoop..."
         # --no-update-scoop: Scoop's pre-install update needs Git and aborts on a zip bootstrap.
         Assert-ScoopWorktreeClean
         Invoke-QuietHost { scoop install --no-update-scoop $app }
@@ -643,7 +654,7 @@ function Install-ScoopBootstrapApps {
             Write-ErrorAndExit "Failed to install $app via Scoop"
         }
         Update-ScoopSessionPath
-        Write-Success "$app installed via Scoop"
+        Write-Detail "$app installed via Scoop" -Kind success
     }
 
     if (-not (Get-Command git -ErrorAction SilentlyContinue)) {
@@ -683,7 +694,7 @@ function Ensure-ScoopMainBucketGit {
     $bare = Get-ScoopKnownMainBucketUrl
     $url = Join-ScoopMirrorUrl -Url $bare -Prefix $ActivePrefix -AllPrefixes $Prefixes
     $label = Format-ScoopMirrorActiveLabel -ActivePrefix $ActivePrefix
-    Write-Info "Ensuring main bucket as git repo via $label ..."
+    Write-Detail "Ensuring main bucket as git repo via $label ..."
 
     if (Test-Path -LiteralPath $mainRoot) {
         Invoke-QuietHost { scoop bucket rm main *>$null }
@@ -702,7 +713,7 @@ function Ensure-ScoopMainBucketGit {
             'Check network/mirror, then rerun: vpr pm'
         )
     }
-    Write-Success "main bucket now a git repo ($label)"
+    Write-Detail "main bucket now a git repo ($label)" -Kind success
 }
 
 function Get-ScoopCoreBranch {
@@ -737,7 +748,7 @@ function Complete-ScoopCoreGitConversion {
             Remove-Item -LiteralPath $newDir -Recurse -Force -ErrorAction SilentlyContinue
         }
         $branch = Get-ScoopCoreBranch
-        Write-Info "Cloning Scoop core ($branch) ..."
+        Write-Detail "Cloning Scoop core ($branch) ..."
         git clone -q --branch $branch --single-branch $RepoUrl $newDir 1>$null 2>$null
         if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $newScoop)) {
             if (Test-Path -LiteralPath $newDir) {
@@ -797,7 +808,7 @@ function Ensure-ScoopGitRepositories {
     $scoopGit = Join-Path $env:SCOOP 'apps\scoop\current\.git'
     $mainGit = Join-Path $env:SCOOP 'buckets\main\.git'
     if ((Test-Path -LiteralPath $scoopGit) -and (Test-Path -LiteralPath $mainGit)) {
-        Write-Info 'Scoop and main bucket are already git repositories'
+        Write-Detail 'Scoop and main bucket are already git repositories'
         return
     }
 
@@ -815,13 +826,13 @@ function Ensure-ScoopGitRepositories {
     Ensure-ScoopMainBucketGit -ActivePrefix $ActivePrefix -Prefixes $prefixes
 
     if (-not (Test-Path -LiteralPath $scoopGit)) {
-        Write-Info 'Running scoop update to convert Scoop into a git repository...'
+        Write-Detail 'Running scoop update to convert Scoop into a git repository...'
         Invoke-QuietHost { scoop update }
         Update-ScoopSessionPath
     }
 
     if (-not (Test-Path -LiteralPath $scoopGit)) {
-        Write-Info 'Completing Scoop core git conversion after folder-in-use / partial update...'
+        Write-Detail 'Completing Scoop core git conversion after folder-in-use / partial update...'
         if (-not (Complete-ScoopCoreGitConversion -RepoUrl $expectedRepo)) {
             Write-ErrorAndExit (
                 'Scoop is still missing .git after scoop update. ' +
@@ -829,7 +840,7 @@ function Ensure-ScoopGitRepositories {
             )
         }
     }
-    Write-Success 'Scoop core is now a git repository'
+    Write-Detail 'Scoop core is now a git repository' -Kind success
 
     if (-not (Test-Path -LiteralPath $mainGit)) {
         Write-ErrorAndExit 'main bucket is still missing .git after mirrored add + scoop update'
@@ -920,7 +931,7 @@ function Install-ScoopAria2Accel {
     if (-not $aria) { return }
 
     if (-not (Get-Command aria2c -ErrorAction SilentlyContinue)) {
-        Write-Info 'Installing aria2...'
+        Write-Detail 'Installing aria2...'
         Assert-ScoopWorktreeClean
         Invoke-QuietHost { scoop install aria2 }
         if ($LASTEXITCODE -ne 0) {
@@ -929,7 +940,7 @@ function Install-ScoopAria2Accel {
         }
     }
 
-    Write-Info 'Configuring aria2 multithreaded downloads...'
+    Write-Detail 'Configuring aria2 multithreaded downloads...'
     Invoke-QuietHost {
         scoop config aria2-enabled $(if ($aria.enabled) { 'true' } else { 'false' }) *>$null
         scoop config aria2-warning-enabled $(if ($aria.warningEnabled) { 'true' } else { 'false' }) *>$null
@@ -940,7 +951,7 @@ function Install-ScoopAria2Accel {
         }
         if ($null -ne $aria.minSplitSize) { scoop config aria2-min-split-size $aria.minSplitSize *>$null }
     }
-    Write-Success 'aria2 configuration complete'
+    Write-Detail 'aria2 configuration complete' -Kind success
 }
 
 # Deploy scoop-mirror files + scoop_repo. Hook / bucket remotes / aria2 are applied by the caller
@@ -969,7 +980,7 @@ function Enable-ScoopAccel {
     $ActivePrefix = Resolve-ScoopKnownMirrorPrefix -Prefix $ActivePrefix -Prefixes $prefixes
 
     $activeLabel = Format-ScoopMirrorActiveLabel -ActivePrefix $ActivePrefix
-    Write-Info "Applying Scoop acceleration ($activeLabel) ..."
+    $quiet = Test-ScoopQuietPm
 
     if (-not [string]::IsNullOrWhiteSpace($ActivePrefix)) {
         # Soft probe only: writes activePrefix either way. Downloads still try
@@ -982,10 +993,18 @@ function Enable-ScoopAccel {
         }
     }
 
-    $scoopRepo = Get-ScoopRepoTargetUrl -ActivePrefix $ActivePrefix -Accel $accel -Prefixes $prefixes
-    Set-ScoopRepoConfig -Url $scoopRepo
-
-    Install-ScoopMirrorAccelFiles -Accel $accel -ActivePrefix $ActivePrefix -Prefixes $prefixes
-    Install-ScoopServicesFiles
-    Write-Success "Scoop acceleration ready ($activeLabel)"
+    $apply = {
+        $scoopRepo = Get-ScoopRepoTargetUrl -ActivePrefix $ActivePrefix -Accel $accel -Prefixes $prefixes
+        Set-ScoopRepoConfig -Url $scoopRepo
+        Install-ScoopMirrorAccelFiles -Accel $accel -ActivePrefix $ActivePrefix -Prefixes $prefixes
+        Install-ScoopServicesFiles
+    }
+    if ($quiet) {
+        # One-click wraps the full setup in a single spinner; avoid nested spin here.
+        & $apply
+    }
+    else {
+        Invoke-Spin "Applying Scoop acceleration ($activeLabel) ..." $apply
+        Write-Success "Scoop acceleration ready ($activeLabel)"
+    }
 }

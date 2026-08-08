@@ -37,9 +37,9 @@ function loadCatalogRows(catalogPath) {
     if (!fs.existsSync(catalogPath)) {
         throw new Error(`brew mirror: catalog not found at ${catalogPath}`);
     }
-    const raw = fs.readFileSync(catalogPath, 'utf8');
+    const raw = fs.readFileSync(catalogPath, 'utf8').replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     const lines = raw.trim().split('\n');
-    const header = lines[0] || '';
+    const header = (lines[0] || '').replace(/\r$/, '');
     if (header !== '# use-homebrew-mirrors-v1') {
         throw new Error(`brew mirror: unsupported catalog header in ${catalogPath}`);
     }
@@ -47,7 +47,7 @@ function loadCatalogRows(catalogPath) {
     for (const line of lines.slice(1)) {
         if (!line || line.startsWith('#'))
             continue;
-        const [id, label, api, bottle, git] = line.split('\t');
+        const [id, label, api, bottle, git] = line.split('\t').map((part) => String(part ?? '').replace(/\r$/, ''));
         if (!id)
             continue;
         if (!label || !api || !bottle || !git) {

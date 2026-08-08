@@ -29,37 +29,52 @@ if ($Mirror -in @('-h', '--help', 'help')) {
     exit 0
 }
 
+$quiet = Test-ScoopQuietPm
 $selectedPrefix = Resolve-ScoopMirrorSelection -Choice $Mirror
-Write-Info "Selected mirror: $(Format-ScoopMirrorActiveLabel -ActivePrefix $selectedPrefix)"
 $activePrefix = $selectedPrefix
+$hostLabel = Format-ScoopMirrorHostLabel -ActivePrefix $selectedPrefix
 
-if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
-    Write-Info 'Scoop is not installed; installing automatically...'
+function Install-ScoopIfMissing {
+    param(
+        $Manifest,
+        $Accel,
+        [string]$SelectedPrefix,
+        [ref]$ActivePrefix,
+        [ref]$HostLabel
+    )
 
-    $softwareAppsDir = Get-ExpandedPath $manifest.softwareAppsDir
+    if (Get-Command scoop -ErrorAction SilentlyContinue) {
+        Write-Detail 'Scoop is already installed' -Kind note
+        if (-not $env:SCOOP) {
+            $env:SCOOP = [string]$Manifest.scoopDir
+        }
+        return
+    }
+
+    Write-Detail 'Scoop is not installed; installing automatically...'
+
+    $softwareAppsDir = Get-ExpandedPath $Manifest.softwareAppsDir
     if (-not (Test-Path $softwareAppsDir)) {
         New-Item -ItemType Directory -Path $softwareAppsDir -Force | Out-Null
     }
 
-    $env:SCOOP = $scoopDir
+    $env:SCOOP = [string]$Manifest.scoopDir
     [Environment]::SetEnvironmentVariable('SCOOP', $env:SCOOP, 'User')
 
     try {
         $ErrorActionPreference = 'Stop'
-        # Use the mirror that actually installed Scoop (preferred → fallback → official).
-        # OutPrefix avoids installer Write-Output joining into ActivePrefix/scoop_repo.
         $installedPrefix = ''
-        Invoke-ScoopInstallScriptWithFallback -Accel $accel -PreferredPrefix $selectedPrefix -OutPrefix ([ref]$installedPrefix)
-        $activePrefix = Resolve-ScoopKnownMirrorPrefix -Prefix $installedPrefix
-        # Keep binary operators at end of line — PowerShell does not continue across bare newlines.
-        $mirrorChanged = [string]$activePrefix -ne [string]$selectedPrefix -and -not (
-            [string]::IsNullOrWhiteSpace($activePrefix) -and
-            [string]::IsNullOrWhiteSpace($selectedPrefix)
+        Invoke-ScoopInstallScriptWithFallback -Accel $Accel -PreferredPrefix $SelectedPrefix -OutPrefix ([ref]$installedPrefix)
+        $ActivePrefix.Value = Resolve-ScoopKnownMirrorPrefix -Prefix $installedPrefix
+        $HostLabel.Value = Format-ScoopMirrorHostLabel -ActivePrefix $ActivePrefix.Value
+        $mirrorChanged = [string]$ActivePrefix.Value -ne [string]$SelectedPrefix -and -not (
+            [string]::IsNullOrWhiteSpace($ActivePrefix.Value) -and
+            [string]::IsNullOrWhiteSpace($SelectedPrefix)
         )
         if ($mirrorChanged) {
             Write-Warn (
-                "Selected mirror was $(Format-ScoopMirrorActiveLabel -ActivePrefix $selectedPrefix); " +
-                "active mirror is $(Format-ScoopMirrorActiveLabel -ActivePrefix $activePrefix) after install fallback"
+                "Selected mirror was $(Format-ScoopMirrorActiveLabel -ActivePrefix $SelectedPrefix); " +
+                "active mirror is $(Format-ScoopMirrorActiveLabel -ActivePrefix $ActivePrefix.Value) after install fallback"
             )
         }
     }
@@ -73,26 +88,36 @@ if (-not (Get-Command scoop -ErrorAction SilentlyContinue)) {
         Write-ErrorAndExit 'Scoop is still unavailable in this session; open a new terminal and rerun the installer'
     }
 
-    Write-Success 'Scoop installation complete'
+    Write-Detail 'Scoop installation complete' -Kind success
+}
+
+function Complete-ScoopAccelSetup {
+    param(
+        $Manifest,
+        [string]$ActivePrefix,
+        $Accel
+    )
+    Enable-ScoopAccel -Manifest $Manifest -ActivePrefix $ActivePrefix
+    $formalReady = Test-ScoopFormalRepairReady
+    Install-ScoopDownloadHook
+    Install-ScoopBootstrapApps
+    Ensure-ScoopGitRepositories -ActivePrefix $ActivePrefix -Accel $Accel
+    if (-not $formalReady) {
+        Install-ScoopDownloadHook
+    }
+    Set-ScoopBucketMirrors -ActivePrefix $ActivePrefix
+    Install-ScoopAria2Accel -Accel $Accel
+}
+
+if ($quiet) {
+    Write-Step 'Configuring Scoop acceleration'
+    Invoke-Spin "Setting up Scoop ($hostLabel) ..." {
+        Install-ScoopIfMissing -Manifest $manifest -Accel $accel -SelectedPrefix $selectedPrefix -ActivePrefix ([ref]$activePrefix) -HostLabel ([ref]$hostLabel)
+        Complete-ScoopAccelSetup -Manifest $manifest -ActivePrefix $activePrefix -Accel $accel
+    } -Done { "Scoop ready ($hostLabel)" }
 }
 else {
-    Write-Note 'Scoop is already installed'
-    if (-not $env:SCOOP) {
-        $env:SCOOP = $scoopDir
-    }
+    Write-Info "Selected mirror: $(Format-ScoopMirrorActiveLabel -ActivePrefix $selectedPrefix)"
+    Install-ScoopIfMissing -Manifest $manifest -Accel $accel -SelectedPrefix $selectedPrefix -ActivePrefix ([ref]$activePrefix) -HostLabel ([ref]$hostLabel)
+    Complete-ScoopAccelSetup -Manifest $manifest -ActivePrefix $activePrefix -Accel $accel
 }
-
-# Deploy scoop-mirror files + scoop_repo only.
-Enable-ScoopAccel -Manifest $manifest -ActivePrefix $activePrefix
-
-# Zip Scoop / no Git → temporary download hook for 7zip/git; formal repair after scoop update.
-$formalReady = Test-ScoopFormalRepairReady
-Install-ScoopDownloadHook
-Install-ScoopBootstrapApps
-Ensure-ScoopGitRepositories -ActivePrefix $activePrefix -Accel $accel
-if (-not $formalReady) {
-    Install-ScoopDownloadHook
-}
-
-Set-ScoopBucketMirrors -ActivePrefix $activePrefix
-Install-ScoopAria2Accel -Accel $accel

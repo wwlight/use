@@ -54,14 +54,30 @@ if (-not $env:SCOOP) {
 $activePrefix = Get-ScoopMirrorActivePrefix
 $importFile = New-ScoopMirroredImportFile -BackupPath $scoopBackup -ActivePrefix $activePrefix
 try {
-    if ($importFile -ne $scoopBackup) {
-        Write-Info "Importing buckets via active mirror: $(Format-ScoopMirrorActiveLabel -ActivePrefix $activePrefix)"
+    $importLabel = if (Test-ScoopQuietPm) {
+        'Importing Scoop packages...'
+    }
+    elseif ($importFile -ne $scoopBackup) {
+        "Importing buckets via active mirror: $(Format-ScoopMirrorActiveLabel -ActivePrefix $activePrefix)"
     }
     else {
-        Write-Info "Importing from $(Split-Path $scoopBackup -Leaf)..."
+        "Importing from $(Split-Path $scoopBackup -Leaf)..."
     }
-    Invoke-QuietHost { scoop import $importFile }
-    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Scoop app restore failed!' }
+    $capture = [System.Collections.Generic.List[string]]::new()
+    Invoke-Spin $importLabel {
+        Invoke-QuietHost -Capture $capture { scoop import $importFile }
+    }
+    if ($LASTEXITCODE -ne 0) {
+        $logPath = Join-Path $Script:ProjectRoot 'error.log'
+        $header = @(
+            "scoop import failed: $(Get-Date -Format 'yyyy-MM-ddTHH:mm:ssK')"
+            "backup: $scoopBackup"
+            "import: $importFile"
+            ''
+        )
+        ($header + @($capture)) | Set-Content -LiteralPath $logPath -Encoding utf8
+        Write-ErrorAndExit "Scoop app restore failed! See: $logPath"
+    }
 }
 finally {
     if ($importFile -ne $scoopBackup -and (Test-Path -LiteralPath $importFile)) {

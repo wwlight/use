@@ -94,7 +94,7 @@ function Install-ScoopMirrorAccelFiles {
         }
     }
 
-    Write-Success "Synced scoop-mirror helpers"
+    Write-Detail "Synced scoop-mirror helpers" -Kind success
 }
 
 function Install-ScoopServicesFiles {
@@ -130,5 +130,5 @@ function Install-ScoopServicesFiles {
         Write-ErrorAndExit "configs/windows/scoop/scoop.ps1 not found: $shellSrc"
     }
     Copy-FileDataOnly -SourceFile $shellSrc -DestinationFile $shellDest -Encoding 'utf8Bom'
-    Write-Success 'Synced scoop-services helpers'
+    Write-Detail 'Synced scoop-services helpers' -Kind success
 }

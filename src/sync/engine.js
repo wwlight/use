@@ -55,7 +55,7 @@ export async function runConfigSync(opts) {
             try {
                 const bakName = await backupFile(localAbs, backupRoot);
                 if (bakName) {
-                    note(`${counter} Backed up ${localDisp} -> ~/.backup/${bakName}`);
+                    note(`${counter} Backed up ~/.backup/${bakName}`);
                 }
             }
             catch (err) {

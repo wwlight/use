@@ -13,24 +13,28 @@ const STEP_GAP = IS_WIN ? '  ' : ' ';
 export const LOG_NEST_INDENT = IS_WIN ? '   ' : '  ';
 const OK_MARK = IS_WIN ? '✓' : '✔';
 
+function nestLine(body) {
+    return `${LOG_NEST_INDENT}${body}`;
+}
+
 /** Styled section title (e.g. for menus that render their own frame). */
 export function formatStepTitle(message) {
     return `${COLOR_PURPLE}➤${STEP_GAP}${message}${COLOR_RESET}`;
 }
 export function info(message) {
-    console.log(message);
+    console.log(nestLine(message));
 }
 export function step(message) {
     console.log(`\n${formatStepTitle(message)}`);
 }
 export function success(message) {
-    console.log(`${LOG_NEST_INDENT}${COLOR_GREEN}${OK_MARK} ${message}${COLOR_RESET}`);
+    console.log(nestLine(`${COLOR_GREEN}${OK_MARK} ${message}${COLOR_RESET}`));
 }
 export function note(message) {
-    console.log(`${LOG_NEST_INDENT}${COLOR_BLUE}${OK_MARK} ${message}${COLOR_RESET}`);
+    console.log(nestLine(`${COLOR_BLUE}${OK_MARK} ${message}${COLOR_RESET}`));
 }
 export function skip(message) {
-    console.log(`${LOG_NEST_INDENT}${COLOR_DIM}» ${message}${COLOR_RESET}`);
+    console.log(nestLine(`${COLOR_DIM}» ${message}${COLOR_RESET}`));
 }
 export function warn(message) {
     console.warn(`${COLOR_YELLOW}⚠ ${message}${COLOR_RESET}`);

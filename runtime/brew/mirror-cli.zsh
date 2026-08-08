@@ -81,6 +81,7 @@ _brew_mirror_ensure_catalog() {
         return 1
     fi
     IFS= read -r header < "$catalog" || true
+    header=${header%$'\r'}
     if [[ "$header" != '# use-homebrew-mirrors-v1' ]]; then
         printf 'brew mirror: unsupported catalog header in %s\n' "$catalog" >&2
         return 1

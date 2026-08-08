@@ -22,11 +22,63 @@ $GithubAccelPrefixes = @(
 )
 # END GENERATED GITHUB ACCEL
 
-function Write-Info     { Write-Host "$args" }
-# Extra space after ➤; nest indent matches (Windows Terminal paints U+27A4 large).
+function Write-Info     { Write-Host "   $args" }
 function Write-Step     { Write-Host "`n➤  $args" -ForegroundColor Magenta }
 function Write-Success  { Write-Host "   ✓ $args" -ForegroundColor Green }
 function Write-Warn     { Write-Host "⚠ $args" -ForegroundColor Yellow }
+
+# Bootstrap-only spinner (repo utils.ps1 is unavailable until fetch completes).
+function Test-CanSpin {
+  if ($env:CI -eq 'true') { return $false }
+  if (-not [Environment]::UserInteractive) { return $false }
+  try { if ([Console]::IsErrorRedirected -and [Console]::IsOutputRedirected) { return $false } } catch { }
+  return $true
+}
+
+function Invoke-Spin {
+  param(
+    [Parameter(Mandatory)][string]$Message,
+    [Parameter(Mandatory)][scriptblock]$Script,
+    [string]$Indent = '   '
+  )
+  if (-not (Test-CanSpin)) {
+    Write-Info $Message
+    & $Script
+    if ($null -eq $LASTEXITCODE) { $global:LASTEXITCODE = 0 }
+    return
+  }
+  $frames = @('⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏')
+  $state = @{ Active = $true; Index = 0 }
+  $timer = New-Object System.Timers.Timer 80
+  $timer.AutoReset = $true
+  $null = Register-ObjectEvent -InputObject $timer -EventName Elapsed -MessageData @{
+    State = $state; Frames = $frames; Indent = $Indent; Message = $Message
+  } -Action {
+    $s = $Event.MessageData.State
+    if (-not $s.Active) { return }
+    $c = $Event.MessageData.Frames[$s.Index % $Event.MessageData.Frames.Count]
+    $s.Index++
+    [Console]::Error.Write(("`r{0}{1}[36m{2} {3}{1}[0m" -f $Event.MessageData.Indent, [char]27, $c, $Event.MessageData.Message))
+  }
+  try { [Console]::CursorVisible = $false } catch { }
+  $timer.Start()
+  $exitCode = 0
+  try {
+    & $Script
+    if ($null -ne $LASTEXITCODE) { $exitCode = [int]$LASTEXITCODE }
+    elseif (-not $?) { $exitCode = 1 }
+  }
+  finally {
+    $state.Active = $false
+    $timer.Stop()
+    Get-EventSubscriber -ErrorAction SilentlyContinue |
+      Where-Object { $_.SourceObject -eq $timer } |
+      ForEach-Object { Unregister-Event -SubscriptionId $_.SubscriptionId -ErrorAction SilentlyContinue }
+    $timer.Dispose()
+    try { [Console]::Error.Write("`r`e[2K"); [Console]::CursorVisible = $true } catch { }
+  }
+  $global:LASTEXITCODE = $exitCode
+}
 
 # irm|iex runs in the current host. Throw and catch at the top level to avoid closing the session.
 function Write-ErrorAndExit {
@@ -219,16 +271,18 @@ function Expand-UseZipRepository {
   try {
     foreach ($url in (Get-GithubZipCandidates)) {
       $hostLabel = Get-UrlHostLabel $url
-      Write-Info "Downloading $hostLabel ..."
       try {
-        Invoke-WebRequest -Uri $url -OutFile $zipFile -UseBasicParsing
+        Invoke-Spin "Downloading $hostLabel ..." {
+          Invoke-WebRequest -Uri $url -OutFile $zipFile -UseBasicParsing
+        }
         $extractRoot = Join-Path $tmp 'extract'
         if (Test-Path -LiteralPath $extractRoot) {
           Remove-Item -LiteralPath $extractRoot -Recurse -Force -ErrorAction SilentlyContinue
         }
         New-Item -ItemType Directory -Path $extractRoot -Force | Out-Null
-        Write-Info "Extracting $ZipExtractName ..."
-        Expand-Archive -LiteralPath $zipFile -DestinationPath $extractRoot -Force
+        Invoke-Spin "Extracting $ZipExtractName ..." {
+          Expand-Archive -LiteralPath $zipFile -DestinationPath $extractRoot -Force
+        }
         $extracted = Join-Path $extractRoot $ZipExtractName
         if (-not (Test-Path -LiteralPath $extracted)) {
           throw "Expected folder missing: $ZipExtractName"
@@ -396,8 +450,9 @@ function Copy-UseRepository {
   foreach ($url in (Get-GithubRepoCandidates)) {
     Remove-Item $Target -Recurse -Force -ErrorAction SilentlyContinue
     $hostLabel = Get-UrlHostLabel $url
-    Write-Info "Cloning $hostLabel ..."
-    git clone --depth=1 $url $Target 1>$null 2>$null
+    Invoke-Spin "Cloning $hostLabel ..." {
+      git clone --depth=1 $url $Target 1>$null 2>$null
+    }
     if ($LASTEXITCODE -eq 0) {
       Write-Success "Cloned repository to $Target"
       return $true
@@ -437,8 +492,9 @@ function Update-UseRepository {
     git -C $Target remote set-url origin $url 1>$null 2>$null
     if ($LASTEXITCODE -ne 0) { continue }
     $hostLabel = Get-UrlHostLabel $url
-    Write-Info "Syncing $hostLabel ..."
-    git -C $Target fetch origin main 1>$null 2>$null
+    Invoke-Spin "Syncing $hostLabel ..." {
+      git -C $Target fetch origin main 1>$null 2>$null
+    }
     if ($LASTEXITCODE -eq 0) {
       git -C $Target reset --hard origin/main 1>$null 2>$null
       if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Failed to reset local repository' }
@@ -468,7 +524,7 @@ if (-not (Test-Path $InstallDir)) {
   Fetch-UseRepository $InstallDir
 }
 elseif (Test-SameRemoteRepo $InstallDir) {
-  Write-Info "Existing repository found at $InstallDir; syncing with origin/main ..."
+  Write-Step "Updating repository at $InstallDir"
   Update-UseRepository $InstallDir
 }
 else {
@@ -482,26 +538,31 @@ Set-Location $InstallDir
 
 # curl|bash pipes stdin; menus still talk to /dev/tty when present.
 $env:SYNC_INTERACTIVE = '1'
-
-$scoopInstallArgs = @()
-if (-not [string]::IsNullOrWhiteSpace($env:USE_ACCEL)) {
+$env:USE_QUIET_INSTALL = '1'
+try {
+  $scoopInstallArgs = @()
+  if (-not [string]::IsNullOrWhiteSpace($env:USE_ACCEL)) {
     $scoopInstallArgs = @("$($env:USE_ACCEL.Trim())")
-}
-$pmArgs = @('pm')
-if ($scoopInstallArgs.Count -gt 0) { $pmArgs += $scoopInstallArgs }
-Invoke-UseCli -CliArgs $pmArgs
+  }
+  $pmArgs = @('pm')
+  if ($scoopInstallArgs.Count -gt 0) { $pmArgs += $scoopInstallArgs }
+  Invoke-UseCli -CliArgs $pmArgs
 
-$env:SYNC_INTERACTIVE = '1'
-# pm already deployed helpers; init sync skips pmHelper pairs.
-$env:SYNC_SKIP_PM_HELPERS = '1'
-if ($InstallProfile) {
-  Invoke-UseCli -CliArgs @('init', $InstallProfile)
-} else {
-  Invoke-UseCli -CliArgs @('init')
-}
-Remove-Item Env:SYNC_SKIP_PM_HELPERS -ErrorAction SilentlyContinue
+  $env:SYNC_INTERACTIVE = '1'
+  # pm already deployed helpers; init sync skips pmHelper pairs.
+  $env:SYNC_SKIP_PM_HELPERS = '1'
+  if ($InstallProfile) {
+    Invoke-UseCli -CliArgs @('init', $InstallProfile)
+  } else {
+    Invoke-UseCli -CliArgs @('init')
+  }
 
-Write-Success 'Installation complete!'
+  Write-Success 'Installation complete!'
+}
+finally {
+  Remove-Item Env:SYNC_SKIP_PM_HELPERS -ErrorAction SilentlyContinue
+  Remove-Item Env:USE_QUIET_INSTALL -ErrorAction SilentlyContinue
+}
 
 } catch {
     Complete-UseFatal $_

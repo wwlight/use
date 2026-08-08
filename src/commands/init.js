@@ -70,6 +70,7 @@ async function restorePackages(platform, profile) {
         return;
     }
     restoreScoopPackages(root, profile);
+    success('Scoop packages restored');
 }
 export async function runInitCommand(platform, args) {
     markCliInteractive();

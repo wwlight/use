@@ -293,7 +293,7 @@ ensure_repo() {
 
   if is_same_remote_repo "$target"; then
     INSTALL_DIR="$target"
-    info "Existing repository found at ${INSTALL_DIR}; syncing with origin/main ..."
+    step "Updating repository at $INSTALL_DIR"
     update_repo "$INSTALL_DIR"
     return
   fi

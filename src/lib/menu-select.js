@@ -7,12 +7,17 @@ import path from 'node:path';
 import fs from 'node:fs';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
-import { formatStepTitle } from "../core/log.js";
 import { alignMenuCheck } from "./string-width.js";
 import { frameLines, openTerminal } from "./tty-term.js";
 const COLOR_SELECTED = '\x1b[36m';
+const COLOR_PURPLE = '\x1b[1;35m';
 const COLOR_RESET = '\x1b[0m';
-const CHOICE_GAP = process.platform === 'win32' ? '  ' : ' ';
+const IS_WIN = process.platform === 'win32';
+const STEP_GAP = IS_WIN ? '  ' : ' ';
+const CHOICE_GAP = IS_WIN ? '  ' : ' ';
+function formatStepTitle(message) {
+    return `${COLOR_PURPLE}➤${STEP_GAP}${message}${COLOR_RESET}`;
+}
 export function formatChoiceLine(label, selected) {
     return `${alignMenuCheck(selected)}${CHOICE_GAP}${label}`;
 }
