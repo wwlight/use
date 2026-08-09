@@ -12,6 +12,10 @@ test('expandPath expands home and placeholders', () => {
         home,
         scoopDir: 'D:/SoftwareApps/Scoop',
     }).replace(/\\/g, '/'), 'D:/SoftwareApps/Scoop/config/hook.ps1');
+    assert.equal(expandPath('{scoopConfigDir}/mirror/cli.js', {
+        home,
+        scoopConfigDir: path.join(home, '.config', 'scoop'),
+    }).replace(/\\/g, '/'), `${home.replace(/\\/g, '/')}/.config/scoop/mirror/cli.js`);
 });
 
 test('format helpers', () => {

@@ -30,8 +30,7 @@ function gc {
 function reload { . $PROFILE }
 function oc { opencode @args }
 
-# Scoop extensions (mirror + services)
-if ($env:SCOOP) {
-  $__scoopExt = "$env:SCOOP\config\scoop.ps1"
-  if (Test-Path -LiteralPath $__scoopExt) { . $__scoopExt }
-}
+# Scoop extensions (mirror + services) — ~/.config/scoop/scoop.ps1
+$__scoopCfg = if ($env:XDG_CONFIG_HOME) { Join-Path $env:XDG_CONFIG_HOME 'scoop' } else { Join-Path $env:USERPROFILE '.config\scoop' }
+$__scoopExt = Join-Path $__scoopCfg 'scoop.ps1'
+if (Test-Path -LiteralPath $__scoopExt) { . $__scoopExt }

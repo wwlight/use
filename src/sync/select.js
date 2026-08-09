@@ -7,10 +7,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
+import { menuChoicePageSize, menuWindow, terminalColumns } from "../lib/menu-viewport.js";
 import { truncateWidth } from "../lib/string-width.js";
 import { openTerminal } from "../lib/tty-term.js";
 import { canceled, formatStepTitle, writeCanceled } from "../core/log.js";
 import { formatLocalDisplay, formatRepoDisplay } from "./pairs.js";
+/** blank + title + blank + blank + hint (+ optional blank + error) */
+const MENU_CHROME_LINES = 5;
+const MENU_CHROME_WITH_ERROR = 7;
 export function formatSyncChoiceLine(label, { selected = false, active = false, labelMax = 30, widthOptions = {} } = {}) {
     // Active row only: ◆ checked / ◇ unchecked; idle blank. Selection mark stays in [ ].
     const pointer = active ? (selected ? '◆' : '◇') : ' ';
@@ -55,6 +59,7 @@ function isToggleKey(str, key) {
 }
 function createMultiselect({ message, choices, input, output }) {
     let cursor = 0;
+    let offset = 0;
     let prevFrame = '';
     let state = 'active';
     let error = '';
@@ -67,20 +72,37 @@ function createMultiselect({ message, choices, input, output }) {
         output.write('\x1B[?1049l');
         altScreen = false;
     }
+    function pageSize() {
+        const chrome = error ? MENU_CHROME_WITH_ERROR : MENU_CHROME_LINES;
+        return menuChoicePageSize(output, chrome);
+    }
+    function syncWindow() {
+        const win = menuWindow(cursor, choices.length, offset, pageSize());
+        offset = win.offset;
+        return win;
+    }
     function renderActiveFrame() {
-        const width = columns(output);
+        const width = columns(output) || terminalColumns(output);
         const labelMax = Math.max(30, width - 8);
+        const win = syncWindow();
+        const visible = [];
+        for (let i = win.offset; i < win.end; i++) {
+            visible.push(formatSyncChoiceLine(choices[i].label, {
+                selected: choices[i].selected,
+                active: i === cursor,
+                labelMax,
+            }));
+        }
+        const nav = choices.length > pageSize()
+            ? `↑↓ Move (${cursor + 1}/${choices.length})  Space/x Toggle  Enter Confirm  Esc/Ctrl+C Cancel`
+            : '↑↓ Move  Space/x Toggle  Enter Confirm  Esc/Ctrl+C Cancel';
         const lines = [
             '',
             formatStepTitle(message),
             '',
-            ...choices.map((item, i) => formatSyncChoiceLine(item.label, {
-                selected: item.selected,
-                active: i === cursor,
-                labelMax,
-            })),
+            ...visible,
             '',
-            '↑↓ Move  Space/x Toggle  Enter Confirm  Esc/Ctrl+C Cancel',
+            nav,
         ];
         if (error)
             lines.push('', error);
@@ -175,6 +197,18 @@ function createMultiselect({ message, choices, input, output }) {
             }
             else if (key.name === 'down') {
                 cursor = (cursor + 1) % choices.length;
+            }
+            else if (key.name === 'pageup') {
+                cursor = Math.max(0, cursor - pageSize());
+            }
+            else if (key.name === 'pagedown') {
+                cursor = Math.min(choices.length - 1, cursor + pageSize());
+            }
+            else if (key.name === 'home') {
+                cursor = 0;
+            }
+            else if (key.name === 'end') {
+                cursor = Math.max(0, choices.length - 1);
             }
             else if (key.ctrl && key.name === 'c') {
                 rejectCanceled();

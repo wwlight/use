@@ -55,45 +55,46 @@ function Invoke-Spin {
   param(
     [Parameter(Mandatory)][string]$Message,
     [Parameter(Mandatory)][scriptblock]$Script,
-    [string]$Indent = '  '
+    [string]$Indent = '  ',
+    [object[]]$ArgumentList = @()
   )
   if (-not (Test-CanSpin)) {
     Write-Info $Message
-    & $Script
+    $result = & $Script @ArgumentList
     if ($null -eq $LASTEXITCODE) { $global:LASTEXITCODE = 0 }
-    return
+    return $result
   }
+  # Install.sh backgrounds curl; a job does the same on Windows. A synchronous
+  # Invoke-WebRequest / native cmd blocks the Timer event pump, so the frames
+  # paint here in the poll loop instead of relying on Register-ObjectEvent.
   $frames = @('◒', '◐', '◓', '◑')
-  $state = @{ Active = $true; Index = 0 }
-  $timer = New-Object System.Timers.Timer 80
-  $timer.AutoReset = $true
-  $null = Register-ObjectEvent -InputObject $timer -EventName Elapsed -MessageData @{
-    State = $state; Frames = $frames; Indent = $Indent; Message = $Message
-  } -Action {
-    $s = $Event.MessageData.State
-    if (-not $s.Active) { return }
-    $c = $Event.MessageData.Frames[$s.Index % $Event.MessageData.Frames.Count]
-    $s.Index++
-    [Console]::Error.Write(("`r{0}{1}[34m{2}  {3}{1}[0m" -f $Event.MessageData.Indent, [char]27, $c, $Event.MessageData.Message))
-  }
-  try { [Console]::CursorVisible = $false } catch { }
-  $timer.Start()
-  $exitCode = 0
+  $job = $null
   try {
-    & $Script
-    if ($null -ne $LASTEXITCODE) { $exitCode = [int]$LASTEXITCODE }
-    elseif (-not $?) { $exitCode = 1 }
+    $job = Start-Job -ScriptBlock $Script -ArgumentList $ArgumentList
+  }
+  catch {
+    # Job host unavailable (rare); fall back to a synchronous run.
+    [Console]::Error.Write("`n")
+    $result = & $Script @ArgumentList
+    if ($null -eq $LASTEXITCODE) { $global:LASTEXITCODE = 0 }
+    return $result
+  }
+  $i = 0
+  try { [Console]::CursorVisible = $false } catch { }
+  try {
+    while ($job.State -eq 'Running') {
+      [Console]::Error.Write(("`r{0}{1}[34m{2}  {3}{1}[0m" -f $Indent, [char]27, $frames[$i % $frames.Count], $Message))
+      $i++
+      Start-Sleep -Milliseconds 100
+    }
   }
   finally {
-    $state.Active = $false
-    $timer.Stop()
-    Get-EventSubscriber -ErrorAction SilentlyContinue |
-      Where-Object { $_.SourceObject -eq $timer } |
-      ForEach-Object { Unregister-Event -SubscriptionId $_.SubscriptionId -ErrorAction SilentlyContinue }
-    $timer.Dispose()
     try { [Console]::Error.Write("`r`e[2K"); [Console]::CursorVisible = $true } catch { }
   }
-  $global:LASTEXITCODE = $exitCode
+  $output = @(Receive-Job -Job $job -ErrorAction SilentlyContinue)
+  Remove-Job -Job $job -Force
+  $global:LASTEXITCODE = 0
+  return $output[$output.Count - 1]
 }
 
 # irm|iex runs in the current host. Throw and catch at the top level to avoid closing the session.
@@ -287,36 +288,43 @@ function Expand-UseZipRepository {
   try {
     foreach ($url in (Get-GithubZipCandidates)) {
       $hostLabel = Get-UrlHostLabel $url
-      try {
-        Invoke-Spin "Downloading $hostLabel ..." {
-          Invoke-WebRequest -Uri $url -OutFile $zipFile -UseBasicParsing
+      $downloaded = Invoke-Spin "Downloading $hostLabel ..." {
+        param($Uri, $Out)
+        try {
+          Invoke-WebRequest -Uri $Uri -OutFile $Out -UseBasicParsing -ErrorAction Stop
+          return $true
         }
-        $extractRoot = Join-Path $tmp 'extract'
-        if (Test-Path -LiteralPath $extractRoot) {
-          Remove-Item -LiteralPath $extractRoot -Recurse -Force -ErrorAction SilentlyContinue
-        }
-        New-Item -ItemType Directory -Path $extractRoot -Force | Out-Null
-        Invoke-Spin "Extracting $ZipExtractName ..." {
-          Expand-Archive -LiteralPath $zipFile -DestinationPath $extractRoot -Force
-        }
-        $extracted = Join-Path $extractRoot $ZipExtractName
-        if (-not (Test-Path -LiteralPath $extracted)) {
-          throw "Expected folder missing: $ZipExtractName"
-        }
-        # Caller must not pass a cwd/locked Target; refresh without Git uses a new directory.
-        if (Test-Path -LiteralPath $Target) {
-          Remove-Item -LiteralPath $Target -Recurse -Force
-        }
-        if (Test-Path -LiteralPath $Target) {
-          throw "Could not replace existing directory: $Target"
-        }
-        Move-Item -LiteralPath $extracted -Destination $Target
-        Write-StepSuccess "Extracted repository to $(Format-DisplayPath $Target)"
-        return $true
+        catch { return $false }
+      } -ArgumentList @($url, $zipFile)
+      if ($downloaded -ne $true) { continue }
+      $extractRoot = Join-Path $tmp 'extract'
+      if (Test-Path -LiteralPath $extractRoot) {
+        Remove-Item -LiteralPath $extractRoot -Recurse -Force -ErrorAction SilentlyContinue
       }
-      catch {
-        # Match install.sh: try the next mirror quietly; warn only after all fail.
+      New-Item -ItemType Directory -Path $extractRoot -Force | Out-Null
+      $unpacked = Invoke-Spin "Extracting $ZipExtractName ..." {
+        param($Zip, $Dest)
+        try {
+          Expand-Archive -LiteralPath $Zip -DestinationPath $Dest -Force -ErrorAction Stop
+          return $true
+        }
+        catch { return $false }
+      } -ArgumentList @($zipFile, $extractRoot)
+      if ($unpacked -ne $true) { continue }
+      $extracted = Join-Path $extractRoot $ZipExtractName
+      if (-not (Test-Path -LiteralPath $extracted)) {
+        continue
       }
+      # Caller must not pass a cwd/locked Target; refresh without Git uses a new directory.
+      if (Test-Path -LiteralPath $Target) {
+        Remove-Item -LiteralPath $Target -Recurse -Force
+      }
+      if (Test-Path -LiteralPath $Target) {
+        continue
+      }
+      Move-Item -LiteralPath $extracted -Destination $Target
+      Write-StepSuccess "Extracted repository to $(Format-DisplayPath $Target)"
+      return $true
     }
     return $false
   }
@@ -466,13 +474,14 @@ function Copy-UseRepository {
   foreach ($url in (Get-GithubRepoCandidates)) {
     Remove-Item $Target -Recurse -Force -ErrorAction SilentlyContinue
     $hostLabel = Get-UrlHostLabel $url
-    Invoke-Spin "Cloning $hostLabel ..." {
-      git clone --depth=1 $url $Target 1>$null 2>$null
-    }
-    if ($LASTEXITCODE -eq 0) {
-      Write-StepSuccess "Cloned repository to $(Format-DisplayPath $Target)"
-      return $true
-    }
+    $cloned = Invoke-Spin "Cloning $hostLabel ..." {
+      param($Uri, $Dst)
+      git clone --depth=1 $Uri $Dst 1>$null 2>$null
+      return ($LASTEXITCODE -eq 0)
+    } -ArgumentList @($url, $Target)
+    if ($cloned -ne $true) { continue }
+    Write-StepSuccess "Cloned repository to $(Format-DisplayPath $Target)"
+    return $true
   }
   return $false
 }
@@ -508,15 +517,16 @@ function Update-UseRepository {
     git -C $Target remote set-url origin $url 1>$null 2>$null
     if ($LASTEXITCODE -ne 0) { continue }
     $hostLabel = Get-UrlHostLabel $url
-    Invoke-Spin "Syncing $hostLabel ..." {
-      git -C $Target fetch origin main 1>$null 2>$null
-    }
-    if ($LASTEXITCODE -eq 0) {
-      git -C $Target reset --hard origin/main 1>$null 2>$null
-      if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Failed to reset local repository' }
-      Write-StepSuccess 'Repository synced with origin/main'
-      return
-    }
+    $synced = Invoke-Spin "Syncing $hostLabel ..." {
+      param($Dst)
+      git -C $Dst fetch origin main 1>$null 2>$null
+      return ($LASTEXITCODE -eq 0)
+    } -ArgumentList @($Target)
+    if ($synced -ne $true) { continue }
+    git -C $Target reset --hard origin/main 1>$null 2>$null
+    if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Failed to reset local repository' }
+    Write-StepSuccess 'Repository synced with origin/main'
+    return
   }
   Write-ErrorAndExit 'Failed to fetch remote repository'
 }

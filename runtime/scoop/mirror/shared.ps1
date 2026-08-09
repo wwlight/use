@@ -3,7 +3,7 @@
 function Get-ScoopMirrorAccelConfig {
     if ($script:ScoopMirrorAccelConfig) { return $script:ScoopMirrorAccelConfig }
 
-    $cfgPath = Join-Path $env:SCOOP 'config\scoop-mirror\config.json'
+    $cfgPath = Join-Path $PSScriptRoot 'state.json'
     if (-not (Test-Path $cfgPath)) { return $null }
 
     $cfg = Get-Content $cfgPath -Raw -Encoding UTF8 | ConvertFrom-Json

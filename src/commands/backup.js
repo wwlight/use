@@ -4,7 +4,7 @@ import path from 'node:path';
 import { step, stepSuccess, warn, error } from "../core/log.js";
 import { loadManifest } from "../core/manifest.js";
 import { projectRoot } from "../core/paths.js";
-import { runBrew } from "../pm/brew.js";
+import { runBrew } from "../pm/brew/index.js";
 const BREW_DIRECTIVE = /^\s*(tap|brew|cask|mas|vscode|whalebrew)\s+"([^"]+)"/;
 function atomicWrite(filePath, content) {
     fs.mkdirSync(path.dirname(filePath), { recursive: true });

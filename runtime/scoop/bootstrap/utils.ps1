@@ -1,7 +1,5 @@
-$Script:ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
-
-# Shared PowerShell helpers for Scoop install / accel / deploy.
-# Sync / git-plugin / brew paths live in the Node CLI (src/).
+# Shared PowerShell helpers for Scoop install / apply / deploy.
+$Script:ProjectRoot = (Resolve-Path (Join-Path $PSScriptRoot '../../..')).Path
 
 function Test-Administrator {
     try {
@@ -13,29 +11,6 @@ function Test-Administrator {
     catch {
         return $false
     }
-}
-
-function Test-InteractivePrompt {
-    if ($env:SYNC_INTERACTIVE -eq '1') {
-        return $true
-    }
-
-    if (-not [Environment]::UserInteractive) {
-        return $false
-    }
-
-    try {
-        if (-not [Console]::IsInputRedirected) {
-            return $true
-        }
-    }
-    catch {
-        return $false
-    }
-
-    # Do not open CONIN$ here: Node dispatch or redirected stdin may block.
-    # Callers enable interaction with SYNC_INTERACTIVE=1.
-    return $false
 }
 
 function Get-GithubAccelMirrors {
@@ -78,17 +53,6 @@ function Get-GithubAccelPrefixes {
     )
     $script:GithubAccelPrefixes = $prefixes
     return $script:GithubAccelPrefixes
-}
-
-function Get-GithubAccelSelectionMap {
-    $map = [ordered]@{}
-    foreach ($item in (Get-GithubAccelMirrors)) {
-        $id = [string]$item.id
-        if ([string]::IsNullOrWhiteSpace($id)) { continue }
-        if (-not $map.Contains($id)) { $map[$id] = [string]$item.prefix }
-    }
-    $map['official'] = ''
-    return $map
 }
 
 $script:ScoopSpinActive = $false
@@ -346,69 +310,12 @@ function Get-ExpandedPath {
     return $Path -replace '/', '\'
 }
 
-function Copy-FileDataOnly {
-    param(
-        [string]$SourceFile,
-        [string]$DestinationFile,
-        [string]$Encoding = ''
-    )
-
-    $source = Get-ExpandedPath $SourceFile
-    $destination = Get-ExpandedPath $DestinationFile
-    $destinationDir = Split-Path $destination -Parent
-
-    if (-not (Test-Path $source)) {
-        throw "Source file not found: $source"
+# Scoop helpers root (XDG): ~/.config/scoop.
+function Get-ScoopConfigDir {
+    $xdg = [string]$env:XDG_CONFIG_HOME
+    if (-not [string]::IsNullOrWhiteSpace($xdg)) {
+        return (Join-Path $xdg.Trim() 'scoop')
     }
-
-    if (-not (Test-Path $destinationDir)) {
-        New-Item -ItemType Directory -Path $destinationDir -Force | Out-Null
-    }
-
-    if ($Encoding -eq 'utf8Bom') {
-        $content = [System.IO.File]::ReadAllText($source, [System.Text.Encoding]::UTF8)
-        $utf8Bom = New-Object System.Text.UTF8Encoding $true
-        [System.IO.File]::WriteAllText($destination, $content, $utf8Bom)
-        return
-    }
-
-    $robocopy = Get-Command robocopy.exe -ErrorAction SilentlyContinue
-    if ($robocopy) {
-        $sourceDir = Split-Path $source -Parent
-        $sourceName = Split-Path $source -Leaf
-        $destinationName = Split-Path $destination -Leaf
-        $robocopyPath = $robocopy.Source
-        $copyDir = $destinationDir
-        $tempDir = $null
-
-        if ($sourceName -ne $destinationName) {
-            $tempDir = Join-Path $destinationDir ".copy-data-only-$([Guid]::NewGuid().ToString('N'))"
-            New-Item -ItemType Directory -Path $tempDir -Force | Out-Null
-            $copyDir = $tempDir
-        }
-
-        try {
-            & $robocopyPath $sourceDir $copyDir $sourceName /COPY:DAT /R:1 /W:1 /NFL /NDL /NJH /NJS /NC /NS | Out-Null
-            $exitCode = $LASTEXITCODE
-            if ($exitCode -ge 8) {
-                throw "robocopy failed with exit code $exitCode"
-            }
-
-            if ($tempDir) {
-                Move-Item (Join-Path $tempDir $sourceName) $destination -Force -ErrorAction Stop
-            }
-        }
-        finally {
-            if ($tempDir -and (Test-Path $tempDir)) {
-                Remove-Item $tempDir -Recurse -Force -ErrorAction SilentlyContinue
-            }
-        }
-
-        if (-not (Test-Path $destination)) {
-            throw "Destination missing after copy: $destination"
-        }
-    }
-    else {
-        Copy-Item $source $destination -Force -ErrorAction Stop
-    }
+    $homeRoot = if ($env:USERPROFILE) { $env:USERPROFILE } else { $HOME }
+    return (Join-Path $homeRoot '.config\scoop')
 }

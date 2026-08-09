@@ -39,10 +39,10 @@ describe('menu-select', () => {
         assert.equal(aligned[1].label.indexOf('http'), aligned[2].label.indexOf('http'));
     });
     it('menu check column is stable for active and idle', () => {
-        assert.equal(MENU_CHECK, '›');
-        assert.equal(alignMenuCheck(true), '›');
+        assert.equal(MENU_CHECK, '»');
+        assert.equal(alignMenuCheck(true), '»');
         assert.equal(alignMenuCheck(false), ' ');
-        assert.equal(formatChoiceLine('label', true), '› label');
+        assert.equal(formatChoiceLine('label', true), '» label');
         assert.equal(formatChoiceLine('label', false), '  label');
         const narrow = { ambiguousWide: false };
         assert.equal(stringWidth(alignMenuCheck(true), narrow), stringWidth(alignMenuCheck(false), narrow));

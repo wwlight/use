@@ -2,6 +2,15 @@
 
 $__scoop = "$env:SCOOP\shims\scoop.ps1"
 
+function _scoop_config_dir {
+  $xdg = [string]$env:XDG_CONFIG_HOME
+  if (-not [string]::IsNullOrWhiteSpace($xdg)) {
+    return (Join-Path $xdg.Trim() 'scoop')
+  }
+  $homeRoot = if ($env:USERPROFILE) { $env:USERPROFILE } else { $HOME }
+  return (Join-Path $homeRoot '.config\scoop')
+}
+
 function winsw {
   if (-not $env:SCOOP) {
     $host.ui.WriteErrorLine('winsw: $env:SCOOP is not set')
@@ -46,7 +55,7 @@ function _scoop_invoke_helper {
 }
 
 function _scoop_mirror_cli {
-  return "$env:SCOOP\config\scoop-mirror\cli.js"
+  return (Join-Path (_scoop_config_dir) 'mirror\cli.js')
 }
 
 function _scoop_require_node {
@@ -76,7 +85,7 @@ function _scoop_run_mirror_repair {
   }
 }
 
-function _scoop_ensure_mirror_accel {
+function _scoop_ensure_mirror_hook {
   _scoop_run_mirror_repair -Presence optional
 }
 
@@ -97,13 +106,13 @@ function _scoop_manage_mirror {
 }
 
 function _scoop_services_helper {
-  return "$env:SCOOP\config\scoop-services\manage.ps1"
+  return (Join-Path (_scoop_config_dir) 'services\cli.ps1')
 }
 
 function Test-ScoopHasManagedServices {
   $persist = Join-Path $env:SCOOP 'persist'
   if (-not (Test-Path -LiteralPath $persist)) { return $false }
-  # Same depth as scoop.zsh: persist/<app>/*-winsw-service.xml (avoid full-tree recurse).
+  # persist/<app>/*-winsw-service.xml only (avoid full-tree recurse).
   return [bool](Get-ChildItem -Path (Join-Path $persist '*\*-winsw-service.xml') -File -ErrorAction SilentlyContinue | Select-Object -First 1)
 }
 
@@ -132,7 +141,7 @@ function _scoop_prepare_uninstall {
 }
 
 function _scoop_prepare_update_services {
-  # Cheap gate: avoid loading manage.ps1 when nothing is registered.
+  # Cheap gate: avoid loading services/cli.ps1 when nothing is registered.
   if (-not (Test-ScoopHasManagedServices)) { return }
   $p = _scoop_services_helper
   if (-not (Test-Path $p)) { return }
@@ -148,7 +157,7 @@ function _scoop_prepare_update_services {
 }
 
 function _scoop_restart_changed_services {
-  $snapshot = Join-Path $env:SCOOP 'config\scoop-services\.update-snapshot.json'
+  $snapshot = Join-Path (_scoop_config_dir) 'services\.update-snapshot.json'
   if (-not (Test-Path -LiteralPath $snapshot)) { return }
   $p = _scoop_services_helper
   if (-not (Test-Path $p)) { return }
@@ -214,7 +223,7 @@ function scoop {
   $ec = $LASTEXITCODE
   if ($args.Count -ge 1 -and $args[0] -eq 'update') {
     if ($ec -eq 0) { _scoop_restart_changed_services }
-    _scoop_ensure_mirror_accel
+    _scoop_ensure_mirror_hook
   }
   $global:LASTEXITCODE = $ec
   return

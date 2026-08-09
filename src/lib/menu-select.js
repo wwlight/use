@@ -7,7 +7,8 @@ import path from 'node:path';
 import fs from 'node:fs';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
-import { alignMenuCheck } from "./string-width.js";
+import { menuChoicePageSize, menuWindow, terminalColumns } from "./menu-viewport.js";
+import { alignMenuCheck, truncateWidth } from "./string-width.js";
 import { frameLines, openTerminal } from "./tty-term.js";
 const COLOR_SELECTED = '\x1b[36m';
 const COLOR_PURPLE = '\x1b[1;35m';
@@ -18,6 +19,8 @@ function writeCanceledLine(stream) {
 }
 const MARK_GAP = ' ';
 const CHOICE_GAP = ' ';
+/** blank + title + blank + blank + hint */
+const MENU_CHROME_LINES = 5;
 function formatStepTitle(message) {
     return `${COLOR_PURPLE}◇${MARK_GAP}${message}${COLOR_RESET}`;
 }
@@ -26,21 +29,39 @@ export function formatChoiceLine(label, selected) {
 }
 function createSelect({ message, choices, input, output, cursor: initialCursor = 0 }) {
     let cursor = Math.min(Math.max(0, initialCursor), Math.max(0, choices.length - 1));
+    let offset = 0;
     let prevFrame = '';
     let state = 'active';
     /** @type {import('node:readline').Interface | undefined} */
     let rl;
+    function pageSize() {
+        return menuChoicePageSize(output, MENU_CHROME_LINES);
+    }
+    function syncWindow() {
+        const win = menuWindow(cursor, choices.length, offset, pageSize());
+        offset = win.offset;
+        return win;
+    }
     function renderActiveFrame() {
+        const win = syncWindow();
+        const cols = terminalColumns(output);
+        const labelMax = Math.max(20, cols - 4);
+        const visible = [];
+        for (let i = win.offset; i < win.end; i++) {
+            const label = truncateWidth(choices[i].label, labelMax);
+            const line = formatChoiceLine(label, i === cursor);
+            visible.push(i === cursor ? `${COLOR_SELECTED}${line}${COLOR_RESET}` : line);
+        }
+        const nav = choices.length > pageSize()
+            ? `↑↓ Select (${cursor + 1}/${choices.length})  Enter Confirm  Esc/Ctrl+C Cancel`
+            : '↑↓ Select  Enter Confirm  Esc/Ctrl+C Cancel';
         const lines = [
             '',
             formatStepTitle(message),
             '',
-            ...choices.map((item, i) => {
-                const line = formatChoiceLine(item.label, i === cursor);
-                return i === cursor ? `${COLOR_SELECTED}${line}${COLOR_RESET}` : line;
-            }),
+            ...visible,
             '',
-            '↑↓ Select  Enter Confirm  Esc/Ctrl+C Cancel',
+            nav,
         ];
         return `${lines.join('\n')}\n`;
     }
@@ -128,6 +149,18 @@ function createSelect({ message, choices, input, output, cursor: initialCursor =
             }
             else if (key.name === 'down') {
                 cursor = (cursor + 1) % choices.length;
+            }
+            else if (key.name === 'pageup') {
+                cursor = Math.max(0, cursor - pageSize());
+            }
+            else if (key.name === 'pagedown') {
+                cursor = Math.min(choices.length - 1, cursor + pageSize());
+            }
+            else if (key.name === 'home') {
+                cursor = 0;
+            }
+            else if (key.name === 'end') {
+                cursor = Math.max(0, choices.length - 1);
             }
             else if (key.ctrl && key.name === 'c') {
                 rejectCanceled();

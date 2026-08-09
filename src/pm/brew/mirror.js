@@ -1,10 +1,10 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { ensureDir, expandPath, formatLocalDisplay, homeDir, projectRoot } from "../core/paths.js";
-import { step, stepSuccess, success, warn } from "../core/log.js";
-import { loadManifest } from "../core/manifest.js";
-import { copyFileDataOnly } from "../sync/copy.js";
+import { ensureDir, expandPath, formatLocalDisplay, homeDir, projectRoot } from "../../core/paths.js";
+import { step, stepSuccess, success, warn } from "../../core/log.js";
+import { loadManifest } from "../../core/manifest.js";
+import { copyFileDataOnly } from "../../sync/copy.js";
 const BEGIN = '# >>> use-homebrew';
 const END = '# <<< use-homebrew';
 export function brewConfigDir() {
@@ -171,9 +171,10 @@ export async function deployBrewRuntime() {
     const helper = path.join(root, 'runtime/brew/mirror-cli.zsh');
     const menuCli = path.join(root, 'runtime/brew/mirror-menu.js');
     const menu = path.join(root, 'src/lib/menu-select.js');
+    const viewport = path.join(root, 'src/lib/menu-viewport.js');
     const width = path.join(root, 'src/lib/string-width.js');
     const tty = path.join(root, 'src/lib/tty-term.js');
-    for (const file of [catalog, helper, menuCli, menu, width, tty]) {
+    for (const file of [catalog, helper, menuCli, menu, viewport, width, tty]) {
         if (!fs.existsSync(file))
             throw new Error(`Homebrew runtime file not found: ${file}`);
     }
@@ -184,6 +185,7 @@ export async function deployBrewRuntime() {
         [helper, path.join(target, 'mirror-cli.zsh')],
         [menuCli, path.join(target, 'lib/mirror-menu.js')],
         [menu, path.join(target, 'lib/menu-select.js')],
+        [viewport, path.join(target, 'lib/menu-viewport.js')],
         [width, path.join(target, 'lib/string-width.js')],
         [tty, path.join(target, 'lib/tty-term.js')],
     ];

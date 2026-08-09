@@ -12,6 +12,7 @@ function expandItemLocal(local, platform) {
             home: homeDir(),
             scoopDir: vars.scoopDir,
             softwareAppsDir: vars.softwareAppsDir,
+            scoopConfigDir: vars.scoopConfigDir,
         });
     }
     return expandPath(local, { home: homeDir() });
@@ -51,12 +52,10 @@ export async function runConfigSync(opts) {
             note(`${counter} Backed up ${formatRepoDisplay(item.repo)}`);
             continue;
         }
+        let bakName = null;
         if (item.backup) {
             try {
-                const bakName = await backupFile(localAbs, backupRoot);
-                if (bakName) {
-                    note(`${counter} Backed up ~/.backup/${bakName}`);
-                }
+                bakName = await backupFile(localAbs, backupRoot);
             }
             catch (err) {
                 warn(`Backup failed for ${localDisp}: ${err.message}`);
@@ -64,6 +63,9 @@ export async function runConfigSync(opts) {
         }
         await copyFileDataOnly(repoAbs, localAbs, { encoding: item.encoding });
         success(`${counter} Restored ${localDisp}`);
+        if (bakName) {
+            note(`${counter} Backed up ~/.backup/${bakName}`);
+        }
     }
     const n = items.length;
     stepSuccess(opts.direction === '1'

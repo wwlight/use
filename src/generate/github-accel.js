@@ -177,11 +177,7 @@ function scoopMirrorDocs(mirrors) {
         `${padComment('scoop mirror official', width)}# 恢复官方源`,
     ];
     return [
-        '一键同步切换 Scoop 仓库、GitHub bucket 远端及后续安装、更新使用的下载镜像（仓库侧见上方 `runtime/scoop/`）。',
-        '',
-        '运行时在 `$SCOOP/config/scoop-mirror/` 生成 `config.json`；菜单依赖同步到同目录 `lib/`。',
-        '',
-        '下载规则：已选镜像 → 其他镜像 → 官方（非 GitHub URL 直连）。`scoop mirror` 只改首选；真正下载仍按该顺序 fallback。',
+        '一键同步切换 Scoop 仓库、GitHub bucket 远端及下载镜像。',
         '',
         codeBlock('sh', lines.join('\n')),
     ].join('\n');

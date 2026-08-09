@@ -30,7 +30,7 @@ function Stop-ScoopServicesCli {
 function Get-ScoopServicesManifest {
     param([switch]$WarnIfMissing)
 
-    $path = Join-Path $env:SCOOP 'config\scoop-services\manifest.json'
+    $path = Join-Path $PSScriptRoot 'manifest.json'
     if (-not (Test-Path -LiteralPath $path)) {
         if ($WarnIfMissing) {
             Write-Host "Service manifest not found at $path"
@@ -46,7 +46,7 @@ function Get-ScoopServicesManifest {
 }
 
 function Get-ScoopServicesSnapshotPath {
-    return (Join-Path $env:SCOOP 'config\scoop-services\.update-snapshot.json')
+    return (Join-Path $PSScriptRoot '.update-snapshot.json')
 }
 
 function Get-ScoopServiceXmlPath {
@@ -198,8 +198,7 @@ function Invoke-ScoopServicesList {
         [Console]::Error.WriteLine("winsw: WinSW not found at $winswExe (run 'scoop install winsw-pre')")
         Stop-ScoopServicesCli -Code 1
     }
-    # XMLs live at persist/<app>/<app>-winsw-service.xml (same depth as scoop.ps1 / scoop.zsh).
-    # Use a literal wildcard path — Join-Path can mishandle '*' on some hosts.
+    # persist/<app>/<app>-winsw-service.xml. Literal wildcard — Join-Path can mishandle '*'.
     $xmls = @(Get-ChildItem -Path "$env:SCOOP\persist\*\*-winsw-service.xml" -File -ErrorAction SilentlyContinue)
     Write-Output ("{0} {1} Path" -f ('Name'.PadRight(15)), ('Status'.PadRight(15)))
     foreach ($xml in $xmls) {

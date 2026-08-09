@@ -43,6 +43,7 @@
       { "local": "~/.config/homebrew/mirrors.tsv", "repo": "configs/macos/brew/mirrors.tsv", "restoreOnly": true, "pmHelper": true },
       { "local": "~/.config/homebrew/lib/mirror-menu.js", "repo": "runtime/brew/mirror-menu.js", "restoreOnly": true, "pmHelper": true },
       { "local": "~/.config/homebrew/lib/menu-select.js", "repo": "src/lib/menu-select.js", "restoreOnly": true, "pmHelper": true },
+      { "local": "~/.config/homebrew/lib/menu-viewport.js", "repo": "src/lib/menu-viewport.js", "restoreOnly": true, "pmHelper": true },
       { "local": "~/.config/homebrew/lib/string-width.js", "repo": "src/lib/string-width.js", "restoreOnly": true, "pmHelper": true },
       { "local": "~/.config/homebrew/lib/tty-term.js", "repo": "src/lib/tty-term.js", "restoreOnly": true, "pmHelper": true },
       { "local": "~/.zsh/functions/utils.zsh", "repo": "configs/macos/utils.zsh" },

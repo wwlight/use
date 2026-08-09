@@ -8,8 +8,8 @@ import { runSyncCommand } from "./commands/sync.js";
 import { runClinkCommand, runGitExtrasCommand, runZshInstallCommand } from "./commands/windows-extras.js";
 import { runGenerateCommand } from "./commands/generate.js";
 import { runZshPluginCommand } from "./commands/zsh-plugin.js";
-import { runBrewPmCommand } from "./pm/brew.js";
-import { runScoopPmCommand } from "./pm/scoop.js";
+import { runBrewPmCommand } from "./pm/brew/index.js";
+import { runScoopPmCommand } from "./pm/scoop/index.js";
 const COMMANDS = {
     'pm': {
         platforms: ['macos', 'windows'],

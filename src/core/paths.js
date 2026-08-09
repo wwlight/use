@@ -20,6 +20,13 @@ export function projectRoot() {
 export function homeDir() {
     return process.env.USERPROFILE || process.env.HOME || os.homedir();
 }
+/** use Scoop helpers root (XDG): ~/.config/scoop — not $SCOOP install tree. */
+export function scoopConfigDir(home = homeDir()) {
+    const xdg = process.env.XDG_CONFIG_HOME?.trim();
+    if (xdg)
+        return path.resolve(xdg, 'scoop');
+    return path.join(home, '.config', 'scoop');
+}
 export function resolveScoopDir(manifestScoopDir) {
     const fromEnv = process.env.USE_SCOOP_DIR || process.env.SCOOP;
     if (fromEnv && fromEnv.trim())
@@ -38,7 +45,7 @@ export function resolveSoftwareAppsDir(manifestDir, scoopDir) {
         return path.dirname(scoopDir);
     return path.resolve('D:/SoftwareApps');
 }
-/** Expand ~ and {scoopDir}/{softwareAppsDir} placeholders. */
+/** Expand ~ and {scoopDir}/{softwareAppsDir}/{scoopConfigDir} placeholders. */
 export function expandPath(input, vars = {}) {
     const home = vars.home ?? homeDir();
     let p = input.replace(/\\/g, '/');
@@ -49,6 +56,10 @@ export function expandPath(input, vars = {}) {
     if (vars.softwareAppsDir) {
         const apps = vars.softwareAppsDir.replace(/\\/g, '/');
         p = p.replaceAll('{softwareAppsDir}', apps);
+    }
+    if (vars.scoopConfigDir) {
+        const cfg = vars.scoopConfigDir.replace(/\\/g, '/');
+        p = p.replaceAll('{scoopConfigDir}', cfg);
     }
     if (p === '~')
         return home;

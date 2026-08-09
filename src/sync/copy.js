@@ -2,9 +2,14 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { ensureDir } from "../core/paths.js";
-const ROBOCOPY_FLAGS = ['/COPY:DAT', '/R:1', '/W:1', '/NFL', '/NDL', '/NJH', '/NJS', '/NC', '/NS'];
+// /NP: hide robocopy progress (\r) so it does not clobber sync log lines.
+const ROBOCOPY_FLAGS = ['/COPY:DAT', '/R:1', '/W:1', '/NFL', '/NDL', '/NJH', '/NJS', '/NC', '/NS', '/NP'];
 function robocopyCopy(sourceDir, targetDir, sourceName) {
-    return spawnSync('robocopy.exe', [sourceDir, targetDir, sourceName, ...ROBOCOPY_FLAGS], { encoding: 'utf8' });
+    return spawnSync('robocopy.exe', [sourceDir, targetDir, sourceName, ...ROBOCOPY_FLAGS], {
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+        windowsHide: true,
+    });
 }
 export async function copyFileDataOnly(source, destination, opts = {}) {
     if (!fs.existsSync(source)) {

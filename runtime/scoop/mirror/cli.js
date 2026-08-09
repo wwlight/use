@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Scoop mirror Node CLI (deployed to $SCOOP/config/scoop-mirror/cli.js).
+ * Scoop mirror CLI (~/.config/scoop/mirror/cli.js).
  *
  * Usage:
  *   node cli.js <clean|smudge>              # git filter (stdin/stdout)
@@ -14,7 +14,6 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 const here = path.dirname(fileURLToPath(import.meta.url));
-const HOOK_REL = path.join('config', 'scoop-mirror', 'hook.ps1');
 const MARKERS = [
     // Longer legacy marker must be stripped before the shorter current marker.
     {
@@ -26,7 +25,15 @@ const MARKERS = [
         end: Buffer.from('# <<< scoop-mirror'),
     },
 ];
-const hookSnippet = Buffer.from(`\n# >>> scoop-mirror\n. "$env:SCOOP\\config\\scoop-mirror\\hook.ps1"\n# <<< scoop-mirror\n`);
+// Resolve ~/.config/scoop/mirror/hook.ps1 at runtime (XDG-aware).
+const hookSnippet = Buffer.from([
+    '',
+    '# >>> scoop-mirror',
+    '$__scoopCfg = if ($env:XDG_CONFIG_HOME) { Join-Path $env:XDG_CONFIG_HOME \'scoop\' } else { Join-Path $env:USERPROFILE \'.config\\scoop\' }',
+    '. (Join-Path $__scoopCfg \'mirror\\hook.ps1\')',
+    '# <<< scoop-mirror',
+    '',
+].join('\n'));
 function findByteSequence(bytes, sequence, start = 0) {
     if (sequence.length === 0)
         return start;
@@ -130,7 +137,7 @@ export function hasCurrentHookMarkers(bytes) {
         if (beginAt < 0)
             return false;
         const afterBegin = beginAt + begin.length;
-        // Reject legacy `# >>> scoop-mirror-accel` (current begin is a prefix).
+        // Reject `# >>> scoop-mirror-accel` (current begin is a prefix of that marker).
         if (afterBegin < bytes.length && bytes[afterBegin] !== 10 && bytes[afterBegin] !== 13) {
             searchFrom = afterBegin;
             continue;
@@ -144,7 +151,10 @@ export function hasCurrentHookMarkers(bytes) {
             continue;
         }
         const slice = bytes.subarray(beginAt, endAt + end.length).toString('utf8');
-        return slice.includes('scoop-mirror\\hook.ps1') || slice.includes('scoop-mirror/hook.ps1');
+        return (
+            (slice.includes('mirror\\hook.ps1') || slice.includes('mirror/hook.ps1'))
+            && (slice.includes('XDG_CONFIG_HOME') || slice.includes('.config\\scoop') || slice.includes('.config/scoop'))
+        );
     }
 }
 function attributesReady(attributesPath) {
@@ -176,7 +186,7 @@ function repairHook() {
     if (!scoop || !scoop.trim())
         throw new Error('SCOOP environment variable is not set');
     const selfPath = fileURLToPath(import.meta.url);
-    const helper = path.join(scoop, HOOK_REL);
+    const helper = path.join(here, 'hook.ps1');
     const scoopRepo = path.join(scoop, 'apps', 'scoop', 'current');
     const download = path.join(scoopRepo, 'lib', 'download.ps1');
     if (!fs.existsSync(helper))
@@ -257,7 +267,7 @@ async function loadMenuModule() {
             return import(pathToFileURL(candidate).href);
         }
     }
-    throw new Error('menu-select.js not found next to scoop-mirror/cli.js (re-run vpr pm / sync)');
+    throw new Error('menu-select.js not found next to mirror/cli.js (re-run vpr pm / sync)');
 }
 async function runMenuCli(args) {
     const message = args[0];
@@ -414,7 +424,7 @@ function setBucketRemotes(activePrefix, config) {
 }
 function writeActivePrefix(config, activePrefix) {
     const next = { ...config.raw, activePrefix };
-    fs.writeFileSync(config.configPath, `${JSON.stringify(next, null, 2)}\n`, 'utf8');
+    fs.writeFileSync(path.join(here, 'state.json'), `${JSON.stringify(next, null, 2)}\n`, 'utf8');
 }
 function printMirrorStatus(config) {
     const activeId = mirrorId(config.activePrefix, config);
@@ -453,7 +463,7 @@ async function selectMirrorInteractively(config) {
         {
             value: 'official',
             name: 'official',
-            detail: 'https://github.com/ScoopInstaller/Scoop',
+            detail: getUpstreamRepo(config),
         },
     ];
     return runMenuSelect({
@@ -463,12 +473,9 @@ async function selectMirrorInteractively(config) {
     });
 }
 async function runSwitchCli(choiceArg) {
-    const scoop = process.env.SCOOP;
-    if (!scoop?.trim())
-        throw new Error('SCOOP environment variable is not set');
-    const configPath = path.join(scoop, 'config', 'scoop-mirror', 'config.json');
+    const configPath = path.join(here, 'state.json');
     if (!fs.existsSync(configPath)) {
-        throw new Error(`Scoop mirror config not found at ${configPath}`);
+        throw new Error(`Scoop mirror state not found at ${configPath}`);
     }
     const config = loadMirrorConfig(configPath);
     let choice = String(choiceArg || '').trim();
@@ -485,16 +492,7 @@ async function runSwitchCli(choiceArg) {
         return;
     }
     if (!choice) {
-        try {
-            choice = await selectMirrorInteractively(config);
-        }
-        catch (err) {
-            if (err?.code === 'CANCELLED') {
-                console.error('\x1b[2mCanceled\x1b[0m');
-                throw err;
-            }
-            throw err;
-        }
+        choice = await selectMirrorInteractively(config);
         // Already active: exit without switching.
         if (choice === mirrorId(config.activePrefix, config))
             return;

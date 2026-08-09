@@ -71,7 +71,7 @@ async function restorePackages(platform, profile) {
         return;
     }
     info('Restoring dependencies from the Scoop backup...');
-    restoreScoopPackages(root, profile);
+    await restoreScoopPackages(root, profile);
     stepSuccess('Scoop packages restored');
 }
 export async function runInitCommand(platform, args) {

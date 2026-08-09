@@ -63,8 +63,16 @@ winsw() {
   winsw.exe "$@"
 }
 
+_scoop_config_dir() {
+  if [[ -n "${XDG_CONFIG_HOME:-}" ]]; then
+    print -r -- "${XDG_CONFIG_HOME}/scoop"
+  else
+    print -r -- "${HOME}/.config/scoop"
+  fi
+}
+
 _scoop_mirror_cli() {
-  print -r -- "${SCOOP}/config/scoop-mirror/cli.js"
+  print -r -- "$(_scoop_config_dir)/mirror/cli.js"
 }
 
 _scoop_require_node() {
@@ -87,7 +95,7 @@ _scoop_run_mirror_repair() {
   node "$cli" repair
 }
 
-_scoop_ensure_mirror_accel() {
+_scoop_ensure_mirror_hook() {
   _scoop_run_mirror_repair optional
 }
 
@@ -107,7 +115,7 @@ _scoop_manage_mirror() {
 }
 
 _scoop_services_helper() {
-  print -r -- "${SCOOP}/config/scoop-services/manage.ps1"
+  print -r -- "$(_scoop_config_dir)/services/cli.ps1"
 }
 
 # Cheap gate before spawning pwsh for update-time service hooks.
@@ -150,7 +158,7 @@ _scoop_prepare_update_services() {
 }
 
 _scoop_restart_changed_services() {
-  local snapshot="${SCOOP}/config/scoop-services/.update-snapshot.json"
+  local snapshot="$(_scoop_config_dir)/services/.update-snapshot.json"
   [[ -f "$snapshot" ]] || return 0
   local p
   p="$(_scoop_services_helper)"
@@ -203,7 +211,7 @@ scoop() {
     if (( ec == 0 )); then
       _scoop_restart_changed_services
     fi
-    _scoop_ensure_mirror_accel
+    _scoop_ensure_mirror_hook
     return $ec
   else
     command scoop "$@"

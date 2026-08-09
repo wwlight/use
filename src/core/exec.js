@@ -11,9 +11,6 @@ export function runCommand(command, args, opts = {}) {
         env: opts.env ?? process.env,
     });
 }
-export function runBash(scriptPath, args = [], cwd) {
-    return exitStatus(runCommand('bash', [scriptPath, ...stripArgSeparator(args)], { cwd, shell: true }));
-}
 export function runPwsh(scriptPath, args = [], cwd) {
     const cleanArgs = stripArgSeparator(args);
     const pwshArgs = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, ...cleanArgs];
@@ -22,7 +19,4 @@ export function runPwsh(scriptPath, args = [], cwd) {
         result = runCommand('powershell.exe', pwshArgs, { cwd });
     }
     return exitStatus(result);
-}
-export function runNode(scriptPath, args = [], cwd) {
-    return exitStatus(runCommand(process.execPath, [scriptPath, ...stripArgSeparator(args)], { cwd }));
 }

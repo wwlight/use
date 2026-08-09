@@ -17,7 +17,7 @@ export async function runSetupCommand(platform, _args = []) {
         return 0;
     }
     info('Restoring dependencies from the Scoop backup...');
-    restoreScoopPackages(root, 'full');
+    await restoreScoopPackages(root, 'full');
     stepSuccess('Dependencies installed');
     return 0;
 }

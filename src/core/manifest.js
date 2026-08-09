@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { projectRoot, resolveScoopDir, resolveSoftwareAppsDir } from "./paths.js";
+import { projectRoot, resolveScoopDir, resolveSoftwareAppsDir, scoopConfigDir } from "./paths.js";
 const cache = new Map();
 export function manifestsDir() {
     return path.join(projectRoot(), 'manifests');
@@ -23,7 +23,7 @@ export function syncScopes(platform) {
 export function pathVarsForWindows(win = loadManifest('windows')) {
     const scoopDir = resolveScoopDir(win.scoopDir);
     const softwareAppsDir = resolveSoftwareAppsDir(win.softwareAppsDir, scoopDir);
-    return { scoopDir, softwareAppsDir };
+    return { scoopDir, softwareAppsDir, scoopConfigDir: scoopConfigDir() };
 }
 export function hasProfile(name, common = loadManifest('common')) {
     return Boolean(common.profiles?.[name]);

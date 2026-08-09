@@ -180,29 +180,27 @@ Get-ChildItem runtime,configs -Recurse -Include *.ps1,*.psm1 | Unblock-File
 │   ├── common/                   # 跨平台公共配置
 │   ├── macos/                    # macOS + brew 备份 / mirrors.tsv
 │   └── windows/                  # Windows + scoop 备份 / shell 扩展
-├── runtime/                      # 本机部署 / 原生壳运行时（非可移植业务）
+├── runtime/                      # 原生壳 / 本机载荷（非可移植业务）
 │   ├── brew/
 │   │   ├── mirror-cli.zsh        # → ~/.config/homebrew/mirror-cli.zsh
-│   │   └── mirror-menu.js        # → ~/.config/homebrew/lib/mirror-menu.js
-│   └── scoop/
-│       ├── install.ps1           # vpr pm（Windows；由 src/pm/scoop.js 调用）
-│       ├── accel.ps1             # 镜像安装 / 加速编排
-│       ├── deploy.ps1            # 部署 scoop-mirror / scoop-services 文件
-│       ├── import-backup.ps1     # scoop import（init/setup）
-│       ├── utils.ps1             # 共享 PS 助手
-│       ├── mirror/               # → $SCOOP/config/scoop-mirror/
-│       │   ├── cli.js
-│       │   ├── hook.ps1
-│       │   └── shared.ps1
-│       └── services/
-│           └── manage.ps1        # → $SCOOP/config/scoop-services/manage.ps1
-├── src/                          # Node CLI（可移植业务逻辑）
+│   │   ├── mirror-menu.js        # → ~/.config/homebrew/lib/mirror-menu.js
+│   │   └── mirror.test.mjs
+│   └── scoop/                    # → ~/.config/scoop/（本机载荷；bootstrap/ 仅仓库内）
+│       ├── scoop.ps1             # 与 scoop.zsh 成对：mirror / services / winsw
+│       ├── contract.test.mjs     # scoop.ps1 ↔ bootstrap 契约测试
+│       ├── mirror/               # cli / hook / shared
+│       ├── services/             # cli.ps1 + manifest
+│       └── bootstrap/            # 安装阶段（不进 src、不部署）
+├── src/                          # Node CLI（可移植业务逻辑，仅 JS）
 │   ├── cli.js
-│   ├── commands/                 # init / backup / setup / sync / generate / …
-│   ├── core/                     # manifest / paths / platform / args / usage / log / git / spinner
+│   ├── commands/                 # init / backup / setup / sync / generate / git-setup / zsh-plugin / windows-extras
+│   ├── core/                     # manifest / paths / platform / args / usage / log / git / spinner / dirs / exec
 │   ├── generate/                 # brew-mirror / github-accel
 │   ├── lib/                      # ↑↓ 菜单（部署到 brew/scoop lib）
-│   ├── pm/                       # brew / brew-mirror / restore（macOS）；scoop（Windows 薄封装）
+│   ├── pm/
+│   │   ├── brew/                 # macOS：编排（JS）
+│   │   ├── scoop/                # Windows：编排（JS；调用 runtime/scoop/bootstrap）
+│   │   └── restore.js
 │   └── sync/                     # 配置同步引擎
 └── assets/                       # README 流程图
 ```
@@ -294,22 +292,15 @@ configs/windows/
 ├── scoop/
 │   ├── backup.json               # Scoop 应用备份
 │   ├── backup.lite.json          # 尝鲜版最小依赖
-│   ├── scoop.ps1                 # PowerShell：scoop mirror / services
-│   ├── scoop.zsh                 # zsh：scoop mirror / services
-│   └── services-manifest.json    # → $SCOOP/config/scoop-services/manifest.json
+│   └── scoop.zsh                 # zsh：scoop mirror / services
 ├── starship.lua                  # cmd 下 clink + starship
 └── utils.zsh                     # 自定义函数
 ```
 
-
 ### scoop mirror
 
 <!-- BEGIN GENERATED GITHUB ACCEL SCOOP MIRROR -->
-一键同步切换 Scoop 仓库、GitHub bucket 远端及后续安装、更新使用的下载镜像（仓库侧见上方 `runtime/scoop/`）。
-
-运行时在 `$SCOOP/config/scoop-mirror/` 生成 `config.json`；菜单依赖同步到同目录 `lib/`。
-
-下载规则：已选镜像 → 其他镜像 → 官方（非 GitHub URL 直连）。`scoop mirror` 只改首选；真正下载仍按该顺序 fallback。
+一键同步切换 Scoop 仓库、GitHub bucket 远端及下载镜像。
 
 ```sh
 scoop mirror                      # 交互选择（↑↓ / Enter；Esc/Ctrl+C 取消；回车选中当前 * 则直接退出）
@@ -322,7 +313,7 @@ scoop mirror official             # 恢复官方源
 
 ### scoop services
 
-需先 `scoop install winsw-pre`，并配置 `configs/windows/scoop/services-manifest.json`。
+需先 `scoop install winsw-pre`，并配置 `runtime/scoop/services/manifest.json`。
 
 ```sh
 scoop services help

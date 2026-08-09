@@ -1,18 +1,17 @@
 /**
  * macOS Homebrew pm: install brew, select/deploy mirror, ensure shell hook.
- * Mirror catalog/runtime helpers: brew-mirror.js. Scoop pm: scoop.js → runtime/scoop.
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { runCommand, exitStatus } from "../core/exec.js";
-import { canceled, info, skip, step, stepSuccess, success } from "../core/log.js";
-import { formatPmUsage } from "../core/usage.js";
-import { hasMirror, loadManifest, mirrorInstallMode, } from "../core/manifest.js";
-import { projectRoot } from "../core/paths.js";
-import { formatAlignedChoices, runMenuSelect } from "../lib/menu-select.js";
-import { canOpenTerminal } from "../lib/tty-term.js";
-import { brewMirrorConfigFile, brewMirrorEnv, deployBrewRuntime, ensureBrewZprofile, findBrewBinary, } from "./brew-mirror.js";
-import { firstValueArg, isHelpFlag } from "../core/args.js";
+import { runCommand, exitStatus } from "../../core/exec.js";
+import { canceled, info, skip, step, stepSuccess, success } from "../../core/log.js";
+import { formatPmUsage } from "../../core/usage.js";
+import { hasMirror, loadManifest, mirrorInstallMode, } from "../../core/manifest.js";
+import { projectRoot } from "../../core/paths.js";
+import { formatAlignedChoices, runMenuSelect } from "../../lib/menu-select.js";
+import { canOpenTerminal } from "../../lib/tty-term.js";
+import { brewMirrorConfigFile, brewMirrorEnv, deployBrewRuntime, ensureBrewZprofile, findBrewBinary, } from "./mirror.js";
+import { firstValueArg, isHelpFlag } from "../../core/args.js";
 function parseMirrorArg(args) {
     if (isHelpFlag(args))
         return '__HELP__';
