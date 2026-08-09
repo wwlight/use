@@ -33,11 +33,12 @@ function Write-Warn     { Write-Host "  ▲ $args" -ForegroundColor Yellow }
 # Display paths under the user profile as ~/… (hide username); filesystem ops still use absolutes.
 function Format-DisplayPath {
   param([Parameter(Mandatory)][string]$Path)
-  $home = (($env:USERPROFILE) -replace '\\', '/').TrimEnd('/')
+  # Do not use $home — PowerShell's automatic $HOME is read-only (case-insensitive).
+  $homeRoot = (($env:USERPROFILE) -replace '\\', '/').TrimEnd('/')
   $normalized = $Path -replace '\\', '/'
-  if ($normalized -eq $home) { return '~' }
-  if ($normalized.StartsWith("$home/")) {
-    return "~/$($normalized.Substring($home.Length + 1))"
+  if ($normalized -eq $homeRoot) { return '~' }
+  if ($normalized.StartsWith("$homeRoot/")) {
+    return "~/$($normalized.Substring($homeRoot.Length + 1))"
   }
   return $normalized
 }
