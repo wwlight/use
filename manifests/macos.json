@@ -38,7 +38,7 @@
   "sync": {
     "toRepo": [
       { "local": "~/.zshrc", "repo": "configs/macos/.zshrc", "backup": true },
-      { "local": "~/.bashrc", "repo": "configs/macos/.bashrc" },
+      { "local": "~/.bashrc", "repo": "configs/macos/.bashrc", "backup": true },
       { "local": "~/.config/homebrew/mirror-cli.zsh", "repo": "runtime/brew/mirror-cli.zsh", "restoreOnly": true, "pmHelper": true },
       { "local": "~/.config/homebrew/mirrors.tsv", "repo": "configs/macos/brew/mirrors.tsv", "restoreOnly": true, "pmHelper": true },
       { "local": "~/.config/homebrew/lib/mirror-menu.js", "repo": "runtime/brew/mirror-menu.js", "restoreOnly": true, "pmHelper": true },

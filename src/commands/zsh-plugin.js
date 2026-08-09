@@ -1,4 +1,4 @@
-import { step } from "../core/log.js";
+import { step, stepSuccess } from "../core/log.js";
 import { loadManifest, zshPluginsDir } from "../core/manifest.js";
 import { expandPath, ensureDir, homeDir } from "../core/paths.js";
 import { syncGitRepoPlugin } from "../core/git.js";
@@ -30,5 +30,7 @@ export async function runZshPluginCommand(args = [], options = {}) {
     for (const plugin of plugins) {
         await syncGitRepoPlugin(plugin.repo, `${dir}/${plugin.name}`, plugin.name, update);
     }
+    const n = plugins.length;
+    stepSuccess(update ? `Updated ${n} Zsh plugins` : `Installed ${n} Zsh plugins`);
     return 0;
 }

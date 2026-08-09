@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import readline from 'node:readline';
-import { skip, step, warn } from "../core/log.js";
+import { skip, step, stepSuccess, warn } from "../core/log.js";
 import { loadManifest } from "../core/manifest.js";
 import { markCliInteractive } from "../core/platform.js";
 function gitAvailable() {
@@ -58,5 +58,6 @@ export async function runGitSetupCommand(_args = [], _options = {}) {
     if (!email)
         throw new Error('Git email was not provided');
     gitConfig(['user.email', email]);
+    stepSuccess('Git configuration complete');
     return 0;
 }

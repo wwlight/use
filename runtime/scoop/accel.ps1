@@ -627,7 +627,7 @@ function Install-ScoopDownloadHook {
     }
 
     Invoke-ScoopMirrorAccelFilterInit -FailureMessage 'Could not install the Scoop download acceleration hook'
-    Write-Detail 'Scoop mirror hook and clean-worktree filter are ready' -Kind success
+    Write-Detail 'Scoop mirror hook and clean-worktree filter are ready' -Kind done
 }
 
 function Install-ScoopBootstrapApps {
@@ -642,7 +642,7 @@ function Install-ScoopBootstrapApps {
     foreach ($app in $Apps) {
         $commandName = if ($app -eq '7zip') { '7z' } else { $app }
         if (Get-Command $commandName -ErrorAction SilentlyContinue) {
-            Write-Detail "$app is already available; skipping" -Kind note
+            Write-Detail "$app is already available; skipping" -Kind skip
             continue
         }
 
@@ -951,7 +951,7 @@ function Install-ScoopAria2Accel {
         }
         if ($null -ne $aria.minSplitSize) { scoop config aria2-min-split-size $aria.minSplitSize *>$null }
     }
-    Write-Detail 'aria2 configuration complete' -Kind success
+    Write-Detail 'aria2 configuration complete' -Kind done
 }
 
 # Deploy scoop-mirror files + scoop_repo. Hook / bucket remotes / aria2 are applied by the caller
@@ -1005,6 +1005,6 @@ function Enable-ScoopAccel {
     }
     else {
         Invoke-Spin "Applying Scoop acceleration ($activeLabel) ..." $apply
-        Write-Success "Scoop acceleration ready ($activeLabel)"
+        Write-StepSuccess "Scoop acceleration ready ($activeLabel)"
     }
 }

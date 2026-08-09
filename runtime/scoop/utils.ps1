@@ -100,49 +100,62 @@ function Test-ScoopQuietPm {
 function Write-Info {
     param([string]$Message)
     if ($script:ScoopSpinActive) { return }
-    Write-Host "   $Message"
+    Write-Host "  $Message"
 }
 
 function Write-Step {
     param([string]$Message)
-    Write-Host "`n➤  $Message" -ForegroundColor Magenta
+    Write-Host "`n◇ $Message" -ForegroundColor Magenta
 }
 
 function Write-Success {
     param([string]$Message)
     if ($script:ScoopSpinActive) { return }
-    Write-Host "   ✓ $Message" -ForegroundColor Green
+    Write-Host "  ◆ $Message" -ForegroundColor Green
+}
+
+function Write-StepSuccess {
+    param([string]$Message)
+    Write-Host "◆ $Message" -ForegroundColor Green
 }
 
 function Write-Note {
     param([string]$Message)
     if ($script:ScoopSpinActive) { return }
-    Write-Host "   ✓ $Message" -ForegroundColor Blue
+    Write-Host "  ● $Message" -ForegroundColor Blue
+}
+
+function Write-Skip {
+    param([string]$Message)
+    if ($script:ScoopSpinActive) { return }
+    Write-Host "  ○ $Message" -ForegroundColor DarkGray
 }
 
 function Write-Warn {
     param([string]$Message)
-    Write-Host "⚠ $Message" -ForegroundColor Yellow
+    Write-Host "  ▲ $Message" -ForegroundColor Yellow
 }
 
 function Write-ErrorAndExit {
     param([string]$Message)
-    Write-Host "✗ $Message" -ForegroundColor Red
+    Write-Host "■ $Message" -ForegroundColor Red
     exit 1
 }
 
-# Non-quiet status only; spinner ownership is enforced by Write-Info/Success/Note.
+# Non-quiet status only; spinner ownership is enforced by Write-Info/Success/Note/Skip.
 function Write-Detail {
     param(
         [Parameter(Mandatory)]
         [string]$Message,
-        [ValidateSet('info', 'success', 'note')]
+        [ValidateSet('info', 'success', 'note', 'skip', 'done')]
         [string]$Kind = 'info'
     )
     if (Test-ScoopQuietPm) { return }
     switch ($Kind) {
         'success' { Write-Success $Message }
         'note' { Write-Note $Message }
+        'skip' { Write-Skip $Message }
+        'done' { Write-StepSuccess $Message }
         default { Write-Info $Message }
     }
 }
@@ -166,7 +179,7 @@ function Write-SpinDone {
     Remove-Item -Path function:\Write-Host -Force -ErrorAction SilentlyContinue
     $doneText = [string](& $Done)
     if ([string]::IsNullOrWhiteSpace($doneText)) { return }
-    Write-Host "   ✓ $doneText" -ForegroundColor Green
+    Write-StepSuccess $doneText
 }
 
 function Invoke-Spin {
@@ -175,7 +188,7 @@ function Invoke-Spin {
         [string]$Message,
         [Parameter(Mandatory)]
         [scriptblock]$Script,
-        [string]$Indent = '   ',
+        [string]$Indent = '  ',
         [scriptblock]$Done = $null
     )
 
@@ -187,7 +200,7 @@ function Invoke-Spin {
         return
     }
 
-    $frames = @('⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏')
+    $frames = @('◒', '◐', '◓', '◑')
     $state = @{ Active = $true; Index = 0 }
     $timer = New-Object System.Timers.Timer 80
     $timer.AutoReset = $true
@@ -201,7 +214,7 @@ function Invoke-Spin {
         if (-not $s.Active) { return }
         $c = $Event.MessageData.Frames[$s.Index % $Event.MessageData.Frames.Count]
         $s.Index++
-        [Console]::Error.Write(("`r{0}{1}[36m{2} {3}{1}[0m" -f $Event.MessageData.Indent, [char]27, $c, $Event.MessageData.Message))
+        [Console]::Error.Write(("`r{0}{1}[34m{2}  {3}{1}[0m" -f $Event.MessageData.Indent, [char]27, $c, $Event.MessageData.Message))
     }
     try { [Console]::CursorVisible = $false } catch { }
     $timer.Start()

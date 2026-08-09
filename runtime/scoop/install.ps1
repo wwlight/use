@@ -88,7 +88,7 @@ function Install-ScoopIfMissing {
         Write-ErrorAndExit 'Scoop is still unavailable in this session; open a new terminal and rerun the installer'
     }
 
-    Write-Detail 'Scoop installation complete' -Kind success
+    Write-Detail 'Scoop installation complete' -Kind done
 }
 
 function Complete-ScoopAccelSetup {

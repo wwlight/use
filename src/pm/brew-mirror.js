@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { ensureDir, expandPath, formatLocalDisplay, homeDir, projectRoot } from "../core/paths.js";
-import { step, success, warn } from "../core/log.js";
+import { step, stepSuccess, success, warn } from "../core/log.js";
 import { loadManifest } from "../core/manifest.js";
 import { copyFileDataOnly } from "../sync/copy.js";
 const BEGIN = '# >>> use-homebrew';
@@ -202,5 +202,5 @@ export async function deployBrewRuntime() {
         }
     }
     removeBrewMirrorLegacy();
-    success(`Deployed Homebrew mirror runtime to ${target}`);
+    stepSuccess(`Deployed Homebrew mirror runtime to ${target}`);
 }

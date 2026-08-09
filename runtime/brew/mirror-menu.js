@@ -87,7 +87,7 @@ try {
 }
 catch (err) {
     if (err?.code === 'CANCELLED') {
-        console.error('Canceled');
+        console.error('\x1b[2mCanceled\x1b[0m');
         process.exit(130);
     }
     console.error(err?.message || String(err));

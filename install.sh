@@ -43,11 +43,25 @@ detect_os() {
 
 OS=$(detect_os)
 
-info()   { printf "%s\n" "$1" >&2; }
-step()   { printf "\n\033[1;35m➤ %s\033[0m\n" "$1" >&2; }
-success(){ printf "  \033[32m✔ %s\033[0m\n" "$1" >&2; }
-warn()   { printf "\033[33m⚠ %s\033[0m\n" "$1" >&2; }
-error()  { printf "\033[31m✗ %s\033[0m\n" "$1" >&2; exit 1; }
+info()   { printf "  %s\n" "$1" >&2; }
+note()   { printf "  \033[34m● %s\033[0m\n" "$1" >&2; }
+skip()   { printf "  \033[2m○ %s\033[0m\n" "$1" >&2; }
+step()   { printf "\n\033[1;35m◇ %s\033[0m\n" "$1" >&2; }
+success(){ printf "  \033[32m◆ %s\033[0m\n" "$1" >&2; }
+step_success(){ printf "\033[32m◆ %s\033[0m\n" "$1" >&2; }
+warn()   { printf "  \033[33m▲ %s\033[0m\n" "$1" >&2; }
+error()  { printf "\033[31m■ %s\033[0m\n" "$1" >&2; exit 1; }
+
+# Display paths under $HOME as ~/… (hide username); filesystem ops still use absolutes.
+format_display_path() {
+  local p="$1"
+  local home="${HOME%/}"
+  case "$p" in
+    "$home") printf '~' ;;
+    "$home"/*) printf '~/%s' "${p#"$home"/}" ;;
+    *) printf '%s' "$p" ;;
+  esac
+}
 
 # Run a command behind an inline spinner (only when stderr is a TTY).
 # The spinner line is cleared when the command finishes, so callers can
@@ -59,13 +73,13 @@ spin() {
     "$@" >/dev/null 2>&1
     return $?
   fi
-  local -a frames=("⠋" "⠙" "⠹" "⠸" "⠼" "⠴" "⠦" "⠧" "⠇" "⠏")
+  local -a frames=("◒" "◐" "◓" "◑")
   local i=0 pid
   "$@" >/dev/null 2>&1 &
   pid=$!
   printf '\033[?25l' >&2
   while kill -0 "$pid" 2>/dev/null; do
-    printf '\r  \033[36m%s %s\033[0m' "${frames[$((i % ${#frames[@]}))]}" "$msg" >&2
+    printf '\r  \033[34m%s  %s\033[0m' "${frames[$((i % ${#frames[@]}))]}" "$msg" >&2
     i=$((i + 1))
     sleep 0.1
   done
@@ -210,7 +224,7 @@ download_zip_repo() {
     rm -rf "$target"
     mv "${tmp}/${ZIP_EXTRACT_NAME}" "$target"
     rm -rf "$tmp"
-    success "Extracted repository to $target"
+    step_success "Extracted repository to $(format_display_path "$target")"
     return 0
   done < <(github_zip_candidates)
 
@@ -229,7 +243,7 @@ clone_repo() {
     host=${host%%/*}
     rm -rf "$target"
     if spin "Cloning $host ..." git clone --depth=1 "$url" "$target"; then
-      success "Cloned repository to $target"
+      step_success "Cloned repository to $(format_display_path "$target")"
       return 0
     fi
   done < <(github_repo_candidates)
@@ -261,7 +275,7 @@ update_repo() {
     git -C "$target" remote set-url origin "$url" || continue
     if spin "Syncing $host ..." git -C "$target" fetch origin main; then
       git -C "$target" reset --hard origin/main || error "Failed to reset local repository"
-      success "Repository synced with origin/main"
+      step_success "Repository synced with origin/main"
       return 0
     fi
   done < <(github_repo_candidates)
@@ -286,21 +300,21 @@ ensure_repo() {
 
   if [ ! -e "$target" ]; then
     INSTALL_DIR="$target"
-    step "Fetching repository to $INSTALL_DIR"
+    step "Fetching repository to $(format_display_path "$INSTALL_DIR")"
     fetch_repo "$INSTALL_DIR"
     return
   fi
 
   if is_same_remote_repo "$target"; then
     INSTALL_DIR="$target"
-    step "Updating repository at $INSTALL_DIR"
+    step "Updating repository at $(format_display_path "$INSTALL_DIR")"
     update_repo "$INSTALL_DIR"
     return
   fi
 
   target=$(next_timestamped_dir "$INSTALL_DIR")
   INSTALL_DIR="$target"
-  step "Fetching repository to $INSTALL_DIR"
+  step "Fetching repository to $(format_display_path "$INSTALL_DIR")"
   fetch_repo "$INSTALL_DIR"
 }
 
@@ -336,12 +350,12 @@ ensure_node() {
       [ -n "$url" ] || continue
       info "Trying vite-plus installer: $url"
       if ! script=$(curl -fsSL "$url"); then
-        info "vite-plus installer fetch failed: $url"
+        warn "vite-plus installer fetch failed: $url"
         continue
       fi
       case "$script" in
         *setup_node_manager*) ;;
-        *) info "Response does not look like the vite-plus installer"; continue ;;
+        *) warn "Response does not look like the vite-plus installer"; continue ;;
       esac
       if printf '%s\n' "$script" | bash; then
         [ -d "${HOME}/.vite-plus/bin" ] && export PATH="${HOME}/.vite-plus/bin:${PATH}"
@@ -350,7 +364,7 @@ ensure_node() {
         fi
         error "vite-plus finished but node is unavailable in this session; open a new terminal and rerun"
       fi
-      info "vite-plus installer failed: $url"
+      warn "vite-plus installer failed: $url"
     done < <(github_url_candidates "https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.sh")
   fi
 
@@ -383,14 +397,17 @@ install_macos() {
 
   # pm already deployed helpers; init sync skips pmHelper pairs.
   export SYNC_SKIP_PM_HELPERS=1
+  export USE_INSTALLER=1
   if [ -n "$profile" ]; then
     run_cli init -- "$profile"
   else
     run_cli init
   fi
   unset SYNC_SKIP_PM_HELPERS
+  unset USE_INSTALLER
 
-  success "Installation complete!"
+  printf '\n' >&2
+  step_success "Installation complete. The system is ready."
   # curl | bash runs in a subshell; start an interactive shell through /dev/tty.
   if [[ -c /dev/tty ]] && [[ -t 2 ]]; then
     exec "${SHELL:-/bin/zsh}" -l </dev/tty >/dev/tty 2>/dev/tty

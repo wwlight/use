@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { info, step, success } from "../core/log.js";
+import { info, step, stepSuccess } from "../core/log.js";
 import { loadManifest } from "../core/manifest.js";
 import { projectRoot } from "../core/paths.js";
 import { restoreBrewPackages, restoreScoopPackages } from "../pm/restore.js";
@@ -13,11 +13,11 @@ export async function runSetupCommand(platform, _args = []) {
             throw new Error('macos manifest is missing brewfile');
         info(`Installing dependencies from ${path.basename(brewfile)}...`);
         restoreBrewPackages(root, 'full');
-        success('Dependencies installed');
+        stepSuccess('Dependencies installed');
         return 0;
     }
     info('Restoring dependencies from the Scoop backup...');
     restoreScoopPackages(root, 'full');
-    success('Dependencies installed');
+    stepSuccess('Dependencies installed');
     return 0;
 }

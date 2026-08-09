@@ -11,12 +11,15 @@ import { alignMenuCheck } from "./string-width.js";
 import { frameLines, openTerminal } from "./tty-term.js";
 const COLOR_SELECTED = '\x1b[36m';
 const COLOR_PURPLE = '\x1b[1;35m';
+const COLOR_DIM = '\x1b[2m';
 const COLOR_RESET = '\x1b[0m';
-const IS_WIN = process.platform === 'win32';
-const STEP_GAP = IS_WIN ? '  ' : ' ';
-const CHOICE_GAP = IS_WIN ? '  ' : ' ';
+function writeCanceledLine(stream) {
+    stream.write(`${COLOR_DIM}Canceled${COLOR_RESET}\n`);
+}
+const MARK_GAP = ' ';
+const CHOICE_GAP = ' ';
 function formatStepTitle(message) {
-    return `${COLOR_PURPLE}➤${STEP_GAP}${message}${COLOR_RESET}`;
+    return `${COLOR_PURPLE}◇${MARK_GAP}${message}${COLOR_RESET}`;
 }
 export function formatChoiceLine(label, selected) {
     return `${alignMenuCheck(selected)}${CHOICE_GAP}${label}`;
@@ -75,8 +78,8 @@ function createSelect({ message, choices, input, output, cursor: initialCursor =
             reject(new Error(`Could not enter interactive mode: ${err.message}`));
             return;
         }
-        // Do not bind output / terminal:true; readline adds a newline and offsets restoreFrame.
-        rl = readline.createInterface({ input });
+        // terminal:false — default output is stdout TTY and can inject an extra \n on close.
+        rl = readline.createInterface({ input, terminal: false });
         readline.emitKeypressEvents(input, rl);
         const close = ({ endLine = true } = {}) => {
             input.removeListener('keypress', onKeypress);
@@ -88,6 +91,15 @@ function createSelect({ message, choices, input, output, cursor: initialCursor =
             }
             rl?.close();
             rl = undefined;
+        };
+        const rejectCanceled = () => {
+            // Same stream as the menu so Canceled is not reordered after a leftover stdout \n.
+            close({ endLine: false });
+            writeCanceledLine(output);
+            const err = new Error('Canceled');
+            err.code = 'CANCELLED';
+            err.printed = true;
+            reject(err);
         };
         const onKeypress = (_str, key) => {
             if (state === 'submit' || !key)
@@ -118,17 +130,11 @@ function createSelect({ message, choices, input, output, cursor: initialCursor =
                 cursor = (cursor + 1) % choices.length;
             }
             else if (key.ctrl && key.name === 'c') {
-                close();
-                const err = new Error('Canceled');
-                err.code = 'CANCELLED';
-                reject(err);
+                rejectCanceled();
                 return;
             }
             else if (key.name === 'escape') {
-                close();
-                const err = new Error('Canceled');
-                err.code = 'CANCELLED';
-                reject(err);
+                rejectCanceled();
                 return;
             }
             else {
@@ -227,7 +233,8 @@ if (isCli) {
     }
     catch (err) {
         if (err.code === 'CANCELLED') {
-            console.error('Canceled');
+            if (!err.printed)
+                writeCanceledLine(process.stderr);
             process.exit(130);
         }
         console.error(err?.message || String(err));

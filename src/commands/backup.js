@@ -1,7 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
-import { step, success, warn, error } from "../core/log.js";
+import { step, stepSuccess, warn, error } from "../core/log.js";
 import { loadManifest } from "../core/manifest.js";
 import { projectRoot } from "../core/paths.js";
 import { runBrew } from "../pm/brew.js";
@@ -166,7 +166,7 @@ export async function runBackupCommand(platform) {
             return dumpStatus;
         try {
             const { missing, written } = writeBrewLiteBackup(root, manifest);
-            success(`Generated lite Brewfile (${written} items): ${manifest.brewfileLite}`);
+            stepSuccess(`Generated lite Brewfile (${written} items): ${manifest.brewfileLite}`);
             if (missing.length > 0) {
                 warn(`Not installed from the lite manifest; skipped: ${missing.join(', ')}`);
             }
@@ -188,7 +188,7 @@ export async function runBackupCommand(platform) {
         return exportStatus;
     try {
         const { missing, written } = writeScoopLiteBackup(root, manifest);
-        success(`Generated lite backup (${written} apps): ${manifest.scoopBackupLite}`);
+        stepSuccess(`Generated lite backup (${written} apps): ${manifest.scoopBackupLite}`);
         if (missing.length > 0) {
             warn(`Not installed from the lite manifest; skipped: ${missing.join(', ')}`);
         }

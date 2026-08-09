@@ -9,7 +9,7 @@ import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { truncateWidth } from "../lib/string-width.js";
 import { openTerminal } from "../lib/tty-term.js";
-import { formatStepTitle } from "../core/log.js";
+import { canceled, formatStepTitle, writeCanceled } from "../core/log.js";
 import { formatLocalDisplay, formatRepoDisplay } from "./pairs.js";
 export function formatSyncChoiceLine(label, { selected = false, active = false, labelMax = 30, widthOptions = {} } = {}) {
     // Active row only: ◆ checked / ◇ unchecked; idle blank. Selection mark stays in [ ].
@@ -122,8 +122,8 @@ function createMultiselect({ message, choices, input, output }) {
             reject(new Error(`Could not enter interactive mode: ${err.message}`));
             return;
         }
-        // Do not bind output / terminal:true; readline adds a newline and offsets restoreFrame.
-        rl = readline.createInterface({ input });
+        // terminal:false — default output is stdout TTY and can inject an extra \n on close.
+        rl = readline.createInterface({ input, terminal: false });
         readline.emitKeypressEvents(input, rl);
         const close = ({ endLine = true } = {}) => {
             input.removeListener('keypress', onKeypress);
@@ -136,6 +136,14 @@ function createMultiselect({ message, choices, input, output }) {
             }
             rl?.close();
             rl = undefined;
+        };
+        const rejectCanceled = () => {
+            close({ endLine: false });
+            writeCanceled(output);
+            const err = new Error('Canceled');
+            err.code = 'CANCELLED';
+            err.printed = true;
+            reject(err);
         };
         const onKeypress = (str, key) => {
             if (state === 'submit')
@@ -169,17 +177,11 @@ function createMultiselect({ message, choices, input, output }) {
                 cursor = (cursor + 1) % choices.length;
             }
             else if (key.ctrl && key.name === 'c') {
-                close();
-                const err = new Error('Canceled');
-                err.code = 'CANCELLED';
-                reject(err);
+                rejectCanceled();
                 return;
             }
             else if (key.name === 'escape') {
-                close();
-                const err = new Error('Canceled');
-                err.code = 'CANCELLED';
-                reject(err);
+                rejectCanceled();
                 return;
             }
             else {
@@ -248,7 +250,8 @@ if (isCli) {
     }
     catch (err) {
         if (err.code === 'CANCELLED') {
-            console.error('Canceled');
+            if (!err.printed)
+                canceled();
             process.exit(130);
         }
         console.error(err?.message || String(err));

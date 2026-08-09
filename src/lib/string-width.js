@@ -160,8 +160,8 @@ export function alignGlyph(glyph, variants, options = {}) {
     const width = Math.max(0, ...variants.map((item) => stringWidth(item, options)));
     return padEndWidth(glyph, width, options);
 }
-/** Cursor used by ↑↓ menus (U+27A4 ➤). */
-export const MENU_CHECK = '➤';
+/** Cursor used by ↑↓ menus (U+203A ›). */
+export const MENU_CHECK = '›';
 export const MENU_CHECK_IDLE = ' ';
 /**
  * Align menu cursor chrome so active/idle share one display column.

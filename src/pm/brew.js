@@ -5,7 +5,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { runCommand, exitStatus } from "../core/exec.js";
-import { skip, step, success } from "../core/log.js";
+import { canceled, info, skip, step, stepSuccess, success } from "../core/log.js";
 import { formatPmUsage } from "../core/usage.js";
 import { hasMirror, loadManifest, mirrorInstallMode, } from "../core/manifest.js";
 import { projectRoot } from "../core/paths.js";
@@ -56,7 +56,8 @@ async function resolveBrewMirror(args) {
     }
     catch (err) {
         if (err?.code === 'CANCELLED') {
-            console.error('Canceled');
+            if (!err.printed)
+                canceled();
             process.exit(130);
         }
         throw err;
@@ -96,24 +97,23 @@ function runInstallScript(mirror, env) {
 }
 async function installBrew(mirror) {
     await deployBrewRuntime();
+    step('Ensuring Homebrew...');
+    const env = applySelectedMirror(mirror);
     if (findBrewBinary()) {
         skip('Homebrew is already installed; skipping');
-        applySelectedMirror(mirror);
         return;
     }
-    step(mirror === 'official'
+    info(mirror === 'official'
         ? 'Installing Homebrew from upstream...'
         : `Installing Homebrew from the ${mirror} mirror...`);
-    const env = brewMirrorEnv(mirror);
     runInstallScript(mirror, env);
-    applySelectedMirror(mirror);
     const brew = findBrewBinary();
     if (!brew)
         throw new Error('Homebrew binary not found after install');
-    const update = runCommand(brew, ['update'], { env: brewMirrorEnv(mirror) });
+    const update = runCommand(brew, ['update'], { env });
     if (exitStatus(update) !== 0)
         throw new Error('Homebrew update failed!');
-    success('Homebrew installation complete');
+    stepSuccess('Homebrew installation complete');
 }
 function activeBrewMirrorId() {
     if (process.env.USE_HOMEBREW_MIRROR)

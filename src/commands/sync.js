@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { error, step } from "../core/log.js";
+import { canceled, error, step } from "../core/log.js";
 import { markCliInteractive } from "../core/platform.js";
 import { isHelpFlag, stripDashArgs } from "../core/args.js";
 import { SYNC_DIRECTION_EXAMPLE, SYNC_DIRECTION_HINT, isSyncDirection, normalizeSyncDirection, promptSyncDirectionMenu, } from "../sync/direction.js";
@@ -58,7 +58,8 @@ async function promptSyncDirection(args) {
     catch (err) {
         const code = err?.code;
         if (code === 'CANCELLED') {
-            console.error('Canceled');
+            if (!err?.printed)
+                canceled();
             process.exit(130);
         }
         error(`Pass a direction in non-interactive environments: ${SYNC_DIRECTION_HINT}`);
@@ -101,7 +102,8 @@ export async function runSyncCommand(platform, args) {
         catch (err) {
             cleanupSyncTempFile(filteredFile);
             if (err?.code === 'CANCELLED') {
-                console.error('Canceled');
+                if (!err.printed)
+                    canceled();
                 return 130;
             }
             error(err?.message || 'File selection failed');

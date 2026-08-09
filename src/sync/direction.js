@@ -6,7 +6,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runMenuSelect } from "../lib/menu-select.js";
-import { error } from "../core/log.js";
+import { canceled, error } from "../core/log.js";
 
 /** Canonical directions used throughout the sync pipeline. */
 export const SYNC_DIRECTION_BACKUP = '1';
@@ -70,7 +70,8 @@ if (isCli) {
     }
     catch (err) {
         if (err?.code === 'CANCELLED') {
-            console.error('Canceled');
+            if (!err.printed)
+                canceled();
             process.exit(130);
         }
         error(err?.message || 'Could not select sync direction');

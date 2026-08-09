@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { exitStatus, runCommand } from "../core/exec.js";
 import { cloneGitRepo, syncGitRepoPlugin } from "../core/git.js";
-import { info, skip, step, success, warn } from "../core/log.js";
+import { info, skip, step, stepSuccess, success, warn } from "../core/log.js";
 import { loadManifest } from "../core/manifest.js";
 import { ensureDir, expandPath, homeDir, projectRoot } from "../core/paths.js";
 import { copyFileDataOnly } from "../sync/copy.js";
@@ -98,7 +98,7 @@ export async function runZshInstallCommand(_args = [], options = {}) {
     removePathSafe(zipFile);
     removePathSafe(tarFile);
     removePathSafe(tempExtractDir);
-    success('Zsh installation complete!');
+    stepSuccess('Zsh installation complete!');
     return 0;
 }
 export async function runGitExtrasCommand(_args = []) {
@@ -148,7 +148,7 @@ export async function runGitExtrasCommand(_args = []) {
     }
     info('Cleaning temporary files...');
     removePathSafe(workDir);
-    success('git-extras installation complete!');
+    stepSuccess('git-extras installation complete!');
     return 0;
 }
 export async function runClinkCommand(_args = []) {
@@ -198,6 +198,6 @@ export async function runClinkCommand(_args = []) {
     else {
         success('Clink autorun enabled');
     }
-    success('Configuration complete!');
+    stepSuccess('Configuration complete!');
     return 0;
 }

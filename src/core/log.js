@@ -6,12 +6,17 @@ export const COLOR_RED = '\x1b[31m';
 export const COLOR_DIM = '\x1b[2m';
 export const COLOR_RESET = '\x1b[0m';
 
-const IS_WIN = process.platform === 'win32';
-// macOS: "➤ text" + nested "  ✔ …". Windows: wider gap after large ➤; nest indent matches.
-const STEP_GAP = IS_WIN ? '  ' : ' ';
-/** Leading spaces before success/note/skip (and spinners). */
-export const LOG_NEST_INDENT = IS_WIN ? '   ' : '  ';
-const OK_MARK = IS_WIN ? '✓' : '✔';
+/** Gap after marks: "{mark} {text}". */
+const MARK_GAP = ' ';
+/** Nest icons start at the same column as step title text (mark width 1 + MARK_GAP). */
+export const LOG_NEST_INDENT = '  ';
+
+const MARK_STEP = '◇';
+const MARK_OK = '◆';
+const MARK_INFO = '●';
+const MARK_SKIP = '○';
+const MARK_WARN = '▲';
+const MARK_ERROR = '■';
 
 function nestLine(body) {
     return `${LOG_NEST_INDENT}${body}`;
@@ -19,7 +24,11 @@ function nestLine(body) {
 
 /** Styled section title (e.g. for menus that render their own frame). */
 export function formatStepTitle(message) {
-    return `${COLOR_PURPLE}➤${STEP_GAP}${message}${COLOR_RESET}`;
+    return `${COLOR_PURPLE}${MARK_STEP}${MARK_GAP}${message}${COLOR_RESET}`;
+}
+/** Top-level success title (same column as step, solid mark). */
+export function formatStepSuccessTitle(message) {
+    return `${COLOR_GREEN}${MARK_OK}${MARK_GAP}${message}${COLOR_RESET}`;
 }
 export function info(message) {
     console.log(nestLine(message));
@@ -27,18 +36,29 @@ export function info(message) {
 export function step(message) {
     console.log(`\n${formatStepTitle(message)}`);
 }
+/** Phase complete: top-level ◆ on stderr (same stream as install.sh / install.ps1). */
+export function stepSuccess(message) {
+    process.stderr.write(`${formatStepSuccessTitle(message)}\n`);
+}
 export function success(message) {
-    console.log(nestLine(`${COLOR_GREEN}${OK_MARK} ${message}${COLOR_RESET}`));
+    console.log(nestLine(`${COLOR_GREEN}${MARK_OK}${MARK_GAP}${message}${COLOR_RESET}`));
 }
 export function note(message) {
-    console.log(nestLine(`${COLOR_BLUE}${OK_MARK} ${message}${COLOR_RESET}`));
+    console.log(nestLine(`${COLOR_BLUE}${MARK_INFO}${MARK_GAP}${message}${COLOR_RESET}`));
 }
 export function skip(message) {
-    console.log(nestLine(`${COLOR_DIM}» ${message}${COLOR_RESET}`));
+    console.log(nestLine(`${COLOR_DIM}${MARK_SKIP}${MARK_GAP}${message}${COLOR_RESET}`));
+}
+/** Write cancel line to a stream (menu TTY should use the same stream as the frame). */
+export function writeCanceled(stream = process.stderr, message = 'Canceled') {
+    stream.write(`${COLOR_DIM}${message}${COLOR_RESET}\n`);
+}
+export function canceled(message = 'Canceled') {
+    writeCanceled(process.stderr, message);
 }
 export function warn(message) {
-    console.warn(`${COLOR_YELLOW}⚠ ${message}${COLOR_RESET}`);
+    console.warn(nestLine(`${COLOR_YELLOW}${MARK_WARN}${MARK_GAP}${message}${COLOR_RESET}`));
 }
 export function error(message) {
-    console.error(`${COLOR_RED}✗ ${message}${COLOR_RESET}`);
+    console.error(`${COLOR_RED}${MARK_ERROR}${MARK_GAP}${message}${COLOR_RESET}`);
 }

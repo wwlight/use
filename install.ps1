@@ -22,10 +22,25 @@ $GithubAccelPrefixes = @(
 )
 # END GENERATED GITHUB ACCEL
 
-function Write-Info     { Write-Host "   $args" }
-function Write-Step     { Write-Host "`n➤  $args" -ForegroundColor Magenta }
-function Write-Success  { Write-Host "   ✓ $args" -ForegroundColor Green }
-function Write-Warn     { Write-Host "⚠ $args" -ForegroundColor Yellow }
+function Write-Info     { Write-Host "  $args" }
+function Write-Note     { Write-Host "  ● $args" -ForegroundColor Blue }
+function Write-Skip     { Write-Host "  ○ $args" -ForegroundColor DarkGray }
+function Write-Step     { Write-Host "`n◇ $args" -ForegroundColor Magenta }
+function Write-Success  { Write-Host "  ◆ $args" -ForegroundColor Green }
+function Write-StepSuccess { Write-Host "◆ $args" -ForegroundColor Green }
+function Write-Warn     { Write-Host "  ▲ $args" -ForegroundColor Yellow }
+
+# Display paths under the user profile as ~/… (hide username); filesystem ops still use absolutes.
+function Format-DisplayPath {
+  param([Parameter(Mandatory)][string]$Path)
+  $home = (($env:USERPROFILE) -replace '\\', '/').TrimEnd('/')
+  $normalized = $Path -replace '\\', '/'
+  if ($normalized -eq $home) { return '~' }
+  if ($normalized.StartsWith("$home/")) {
+    return "~/$($normalized.Substring($home.Length + 1))"
+  }
+  return $normalized
+}
 
 # Bootstrap-only spinner (repo utils.ps1 is unavailable until fetch completes).
 function Test-CanSpin {
@@ -39,7 +54,7 @@ function Invoke-Spin {
   param(
     [Parameter(Mandatory)][string]$Message,
     [Parameter(Mandatory)][scriptblock]$Script,
-    [string]$Indent = '   '
+    [string]$Indent = '  '
   )
   if (-not (Test-CanSpin)) {
     Write-Info $Message
@@ -47,7 +62,7 @@ function Invoke-Spin {
     if ($null -eq $LASTEXITCODE) { $global:LASTEXITCODE = 0 }
     return
   }
-  $frames = @('⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏')
+  $frames = @('◒', '◐', '◓', '◑')
   $state = @{ Active = $true; Index = 0 }
   $timer = New-Object System.Timers.Timer 80
   $timer.AutoReset = $true
@@ -58,7 +73,7 @@ function Invoke-Spin {
     if (-not $s.Active) { return }
     $c = $Event.MessageData.Frames[$s.Index % $Event.MessageData.Frames.Count]
     $s.Index++
-    [Console]::Error.Write(("`r{0}{1}[36m{2} {3}{1}[0m" -f $Event.MessageData.Indent, [char]27, $c, $Event.MessageData.Message))
+    [Console]::Error.Write(("`r{0}{1}[34m{2}  {3}{1}[0m" -f $Event.MessageData.Indent, [char]27, $c, $Event.MessageData.Message))
   }
   try { [Console]::CursorVisible = $false } catch { }
   $timer.Start()
@@ -82,14 +97,14 @@ function Invoke-Spin {
 
 # irm|iex runs in the current host. Throw and catch at the top level to avoid closing the session.
 function Write-ErrorAndExit {
-    Write-Host "✗ $args" -ForegroundColor Red
+    Write-Host "■ $args" -ForegroundColor Red
     throw 'USE_FATAL'
 }
 
 function Complete-UseFatal {
     param($ErrorRecord)
     if ("$($ErrorRecord.Exception.Message)" -ne 'USE_FATAL') {
-        Write-Host "✗ $($ErrorRecord.Exception.Message)" -ForegroundColor Red
+        Write-Host "■ $($ErrorRecord.Exception.Message)" -ForegroundColor Red
     }
     $global:LASTEXITCODE = 1
     # Exit the process for -File; under iex, stop only the script and retain the exit code.
@@ -295,7 +310,7 @@ function Expand-UseZipRepository {
           throw "Could not replace existing directory: $Target"
         }
         Move-Item -LiteralPath $extracted -Destination $Target
-        Write-Success "Extracted repository to $Target"
+        Write-StepSuccess "Extracted repository to $(Format-DisplayPath $Target)"
         return $true
       }
       catch {
@@ -368,7 +383,7 @@ function Install-NodeViaVitePlus {
 function Ensure-NodeRuntime {
   Update-NodeShimPath
   if (-not (Test-NodeAvailable)) {
-    Write-Warn 'Node.js was not found.'
+    Write-Info 'Node.js was not found.'
     if (-not (Test-UseInstallInteractive)) {
       Write-ErrorAndExit @'
 Node.js is required. Install vite-plus (includes Node) or Node itself, then rerun:
@@ -378,7 +393,7 @@ Node.js is required. Install vite-plus (includes Node) or Node itself, then reru
     }
 
     Write-Host ''
-    Write-Warn 'Install Node.js via vite-plus? (https://vite.plus)'
+    Write-Info 'Install Node.js via vite-plus? (https://vite.plus)'
     Write-Host '  Y / Enter  install vite-plus (manages Node)'
     Write-Host '  N          cancel'
     $answer = Read-Host 'Proceed'
@@ -454,7 +469,7 @@ function Copy-UseRepository {
       git clone --depth=1 $url $Target 1>$null 2>$null
     }
     if ($LASTEXITCODE -eq 0) {
-      Write-Success "Cloned repository to $Target"
+      Write-StepSuccess "Cloned repository to $(Format-DisplayPath $Target)"
       return $true
     }
   }
@@ -498,7 +513,7 @@ function Update-UseRepository {
     if ($LASTEXITCODE -eq 0) {
       git -C $Target reset --hard origin/main 1>$null 2>$null
       if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Failed to reset local repository' }
-      Write-Success 'Repository synced with origin/main'
+      Write-StepSuccess 'Repository synced with origin/main'
       return
     }
   }
@@ -520,17 +535,17 @@ function Get-NextTimestampedDir {
 Ensure-NodeRuntime
 
 if (-not (Test-Path $InstallDir)) {
-  Write-Step "Fetching repository to $InstallDir"
+  Write-Step "Fetching repository to $(Format-DisplayPath $InstallDir)"
   Fetch-UseRepository $InstallDir
 }
 elseif (Test-SameRemoteRepo $InstallDir) {
-  Write-Step "Updating repository at $InstallDir"
+  Write-Step "Updating repository at $(Format-DisplayPath $InstallDir)"
   Update-UseRepository $InstallDir
 }
 else {
   # Zip checkout may be the shell cwd (cannot delete). No Git → always fetch a fresh sibling dir.
   $InstallDir = Get-NextTimestampedDir $InstallDir
-  Write-Step "Fetching repository to $InstallDir"
+  Write-Step "Fetching repository to $(Format-DisplayPath $InstallDir)"
   Fetch-UseRepository $InstallDir
 }
 
@@ -551,16 +566,19 @@ try {
   $env:SYNC_INTERACTIVE = '1'
   # pm already deployed helpers; init sync skips pmHelper pairs.
   $env:SYNC_SKIP_PM_HELPERS = '1'
+  $env:USE_INSTALLER = '1'
   if ($InstallProfile) {
     Invoke-UseCli -CliArgs @('init', $InstallProfile)
   } else {
     Invoke-UseCli -CliArgs @('init')
   }
 
-  Write-Success 'Installation complete!'
+  Write-Host ''
+  Write-StepSuccess 'Installation complete. The system is ready.'
 }
 finally {
   Remove-Item Env:SYNC_SKIP_PM_HELPERS -ErrorAction SilentlyContinue
+  Remove-Item Env:USE_INSTALLER -ErrorAction SilentlyContinue
   Remove-Item Env:USE_QUIET_INSTALL -ErrorAction SilentlyContinue
 }
 

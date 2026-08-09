@@ -490,7 +490,7 @@ async function runSwitchCli(choiceArg) {
         }
         catch (err) {
             if (err?.code === 'CANCELLED') {
-                console.error('Canceled');
+                console.error('\x1b[2mCanceled\x1b[0m');
                 throw err;
             }
             throw err;

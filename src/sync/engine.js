@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { step, success, note, warn } from "../core/log.js";
+import { step, stepSuccess, success, note, warn } from "../core/log.js";
 import { pathVarsForWindows } from "../core/manifest.js";
 import { expandPath, formatLocalDisplay, formatRepoDisplay, homeDir, projectRoot } from "../core/paths.js";
 import { backupFile, copyFileDataOnly } from "./copy.js";
@@ -65,7 +65,8 @@ export async function runConfigSync(opts) {
         await copyFileDataOnly(repoAbs, localAbs, { encoding: item.encoding });
         success(`${counter} Restored ${localDisp}`);
     }
-    success(opts.direction === '1'
-        ? 'Configuration backed up to the repository'
-        : 'Configuration restored locally');
+    const n = items.length;
+    stepSuccess(opts.direction === '1'
+        ? `Backed up ${n} files to the repository`
+        : `Restored ${n} files locally`);
 }

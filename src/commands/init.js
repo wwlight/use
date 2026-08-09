@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { info, step, success } from "../core/log.js";
+import { canceled, info, step, stepSuccess } from "../core/log.js";
 import { hasProfile, loadManifest, profileLabel, resolveProfileArtifact, } from "../core/manifest.js";
 import { formatInitUsage } from "../core/usage.js";
 import { ensureManifestDirectories } from "../core/dirs.js";
@@ -54,7 +54,8 @@ async function resolveProfile(args, platform) {
     }
     catch (err) {
         if (err?.code === 'CANCELLED') {
-            console.error('Canceled');
+            if (!err.printed)
+                canceled();
             process.exit(130);
         }
         throw err;
@@ -66,11 +67,12 @@ async function restorePackages(platform, profile) {
         const brewfile = resolveProfileArtifact('macos', profile);
         info(`Installing dependencies from ${path.basename(brewfile)}...`);
         restoreBrewPackages(root, profile);
-        success('Brewfile dependencies installed');
+        stepSuccess('Brewfile dependencies installed');
         return;
     }
+    info('Restoring dependencies from the Scoop backup...');
     restoreScoopPackages(root, profile);
-    success('Scoop packages restored');
+    stepSuccess('Scoop packages restored');
 }
 export async function runInitCommand(platform, args) {
     markCliInteractive();
@@ -78,6 +80,7 @@ export async function runInitCommand(platform, args) {
     const root = projectRoot();
     step('Creating directory structure...');
     ensureManifestDirectories(platform);
+    stepSuccess('Directory structure ready');
     step(`Restoring packages (${profileLabel(profile)})...`);
     await restorePackages(platform, profile);
     step(platform === 'windows' ? 'Installing Zsh and plugins...' : 'Installing Zsh plugins...');
@@ -95,6 +98,10 @@ export async function runInitCommand(platform, args) {
         delete process.env.SYNC_SELECT_ALL;
     }
     await runGitSetupCommand([]);
-    success('All operations complete. The system is ready.');
+    // One-click install prints its own finale; standalone init keeps this line.
+    if (process.env.USE_INSTALLER !== '1') {
+        process.stderr.write('\n');
+        stepSuccess('All operations complete. The system is ready.');
+    }
     return 0;
 }
