@@ -11,6 +11,20 @@ param(
 
 $CommandArgs = @($args | ForEach-Object { [string]$_ })
 
+# Array splatting never binds switches—the mode token lands in $args, so a bare
+# `scoop update` would show services usage. Promote the marker to its switch.
+if (-not $PrepareUninstall -and -not $PrepareUpdate -and -not $RestartChanged -and $CommandArgs.Count -ge 1) {
+    switch ($CommandArgs[0]) {
+        '-PrepareUninstall' { $PrepareUninstall = $true }
+        '-PrepareUpdate'    { $PrepareUpdate = $true }
+        '-RestartChanged'   { $RestartChanged = $true }
+        default             { }
+    }
+    if ($PrepareUninstall -or $PrepareUpdate -or $RestartChanged) {
+        $CommandArgs = @($CommandArgs | Select-Object -Skip 1)
+    }
+}
+
 if (-not $env:SCOOP) {
     [Console]::Error.WriteLine('scoop services: $env:SCOOP is not set')
     $global:LASTEXITCODE = 1

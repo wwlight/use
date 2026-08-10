@@ -194,6 +194,8 @@ export function parseChoice(raw) {
  * Build menu choices as "* name ---- detail" (active) or "  name ---- detail".
  * Shorter names get extra dashes so mark / dashes / detail form fixed columns.
  * Cursor glyph is rendered separately via formatChoiceLine; * marks activeValue.
+ * Without activeValue no mark column is reserved, so rows start at the name
+ * (matches the title icon's single-space gap).
  * @param {{ value: string, name?: string, detail?: string }[]} items
  * @param {{ activeValue?: string, dashWidth?: number }} [options]
  */
@@ -206,12 +208,15 @@ export function formatAlignedChoices(items, { activeValue = '', dashWidth = 10 }
     if (rows.length === 0)
         return [];
     const nameWidth = Math.max(...rows.map((row) => row.name.length));
+    const noMark = !String(activeValue);
     return rows.map((row) => {
         const mark = row.value === String(activeValue) ? '*' : ' ';
         const dashes = '-'.repeat(dashWidth + (nameWidth - row.name.length));
         return {
             value: row.value,
-            label: `${mark} ${row.name} ${dashes} ${row.detail}`,
+            label: noMark
+                ? `${row.name} ${dashes} ${row.detail}`
+                : `${mark} ${row.name} ${dashes} ${row.detail}`,
         };
     });
 }

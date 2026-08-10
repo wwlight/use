@@ -40,7 +40,7 @@ export async function runGitSetupCommand(_args = [], _options = {}) {
     spawnSync('git', ['config', '--global', '--replace-all', 'safe.directory', String(git.safeDirectory ?? '*')], { stdio: 'inherit' });
     gitConfig(['credential.helper', String(git.credentialHelper ?? 'store')]);
     if (hasGitIdentity()) {
-        skip('Git username and email are already configured; skipping');
+        stepSuccess('Git username and email are already configured');
         return 0;
     }
     const skipConfig = await readTty('Skip Git username and email configuration? (y/n) [default: n]: ');

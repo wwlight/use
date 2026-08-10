@@ -56,6 +56,9 @@ export async function runConfigSync(opts) {
         if (item.backup) {
             try {
                 bakName = await backupFile(localAbs, backupRoot);
+                if (bakName) {
+                    note(`${counter} Backed up ~/.backup/${bakName}`);
+                }
             }
             catch (err) {
                 warn(`Backup failed for ${localDisp}: ${err.message}`);
@@ -63,9 +66,6 @@ export async function runConfigSync(opts) {
         }
         await copyFileDataOnly(repoAbs, localAbs, { encoding: item.encoding });
         success(`${counter} Restored ${localDisp}`);
-        if (bakName) {
-            note(`${counter} Backed up ~/.backup/${bakName}`);
-        }
     }
     const n = items.length;
     stepSuccess(opts.direction === '1'

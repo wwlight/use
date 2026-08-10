@@ -38,6 +38,14 @@ describe('menu-select', () => {
         assert.equal(aligned[0].label.indexOf('http'), aligned[1].label.indexOf('http'));
         assert.equal(aligned[1].label.indexOf('http'), aligned[2].label.indexOf('http'));
     });
+    it('no active value means no star column', () => {
+        const plain = formatAlignedChoices([
+            { value: 'lite', name: 'lite', detail: '尝鲜版' },
+            { value: 'full', name: 'full', detail: '完整版' },
+        ]);
+        assert.equal(plain[0].label, 'lite ---------- 尝鲜版');
+        assert.equal(plain[1].label, 'full ---------- 完整版');
+    });
     it('menu check column is stable for active and idle', () => {
         assert.equal(MENU_CHECK, '»');
         assert.equal(alignMenuCheck(true), '»');

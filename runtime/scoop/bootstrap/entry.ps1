@@ -103,7 +103,7 @@ if ($Phase -in @('install', 'all')) {
     # Phase=all: finish still needs ~/.config/scoop from a prior deploy (install → deploy → finish).
     if ($quiet -and $Phase -eq 'all') {
         Write-Step 'Configuring Scoop mirror'
-        Write-Success "Setting up Scoop ($hostLabel) ..."
+        Write-StepSuccess "Setting up Scoop ($hostLabel) ..."
         # Keep inner Write-* helpers suppressed while the phase runs (was Invoke-Spin's job).
         $script:ScoopSpinActive = $true
         try {

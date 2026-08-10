@@ -67,7 +67,7 @@ function Invoke-ScoopInstallScriptWithFallback {
         $label = Format-ScoopMirrorActiveLabel -ActivePrefix $attempt.Prefix
         Write-Detail "Installing Scoop via $label ..."
         try {
-            $script = [string](Invoke-RestMethod -Uri $attempt.Url -TimeoutSec 30)
+            $script = [string](Invoke-RestMethod -Uri $attempt.Url -TimeoutSec 15)
             if ([string]::IsNullOrWhiteSpace($script)) {
                 throw 'Empty installer response'
             }

@@ -23,17 +23,17 @@ $GithubAccelPrefixes = @(
 # END GENERATED GITHUB ACCEL
 
 function Write-Info     { Write-Host "  $args" }
-function Write-Note     { Write-Host "  ● $args" -ForegroundColor Blue }
-function Write-Skip     { Write-Host "  ○ $args" -ForegroundColor DarkGray }
-function Write-Step     { Write-Host "`n◇ $args" -ForegroundColor Magenta }
-function Write-Success  { Write-Host "  ◆ $args" -ForegroundColor Green }
-function Write-StepSuccess { Write-Host "◆ $args" -ForegroundColor Green }
-function Write-Warn     { Write-Host "  ▲ $args" -ForegroundColor Yellow }
+function Write-Note     { Write-Host "  $([char]0x25CF) $args" -ForegroundColor Blue }
+function Write-Skip     { Write-Host "  $([char]0x25CB) $args" -ForegroundColor DarkGray }
+function Write-Step     { Write-Host "`n$([char]0x25C7) $args" -ForegroundColor Magenta }
+function Write-Success  { Write-Host "  $([char]0x25C6) $args" -ForegroundColor Green }
+function Write-StepSuccess { Write-Host "$([char]0x25C6) $args" -ForegroundColor Green }
+function Write-Warn     { Write-Host "  $([char]0x25B2) $args" -ForegroundColor Yellow }
 
-# Display paths under the user profile as ~/… (hide username); filesystem ops still use absolutes.
+# Display paths under the user profile as ~/... (hide username); filesystem ops still use absolutes.
 function Format-DisplayPath {
   param([Parameter(Mandatory)][string]$Path)
-  # Do not use $home — PowerShell's automatic $HOME is read-only (case-insensitive).
+  # Do not use $home - PowerShell's automatic $HOME is read-only (case-insensitive).
   $homeRoot = (($env:USERPROFILE) -replace '\\', '/').TrimEnd('/')
   $normalized = $Path -replace '\\', '/'
   if ($normalized -eq $homeRoot) { return '~' }
@@ -46,6 +46,9 @@ function Format-DisplayPath {
 # Bootstrap-only spinner (repo utils.ps1 is unavailable until fetch completes).
 function Test-CanSpin {
   if ($env:CI -eq 'true') { return $false }
+  # Windows PowerShell (5.x) consoles can't render the spinner glyphs (-> '?') or process
+  # the ANSI erase sequences (-> literal ESC[2K). Keep it a plain static line there.
+  if ($PSVersionTable.PSEdition -eq 'Desktop') { return $false }
   if (-not [Environment]::UserInteractive) { return $false }
   try { if ([Console]::IsErrorRedirected -and [Console]::IsOutputRedirected) { return $false } } catch { }
   return $true
@@ -67,7 +70,7 @@ function Invoke-Spin {
   # Install.sh backgrounds curl; a job does the same on Windows. A synchronous
   # Invoke-WebRequest / native cmd blocks the Timer event pump, so the frames
   # paint here in the poll loop instead of relying on Register-ObjectEvent.
-  $frames = @('◒', '◐', '◓', '◑')
+  $frames = @([char]0x25D2, [char]0x25D0, [char]0x25D3, [char]0x25D1)
   $job = $null
   try {
     $job = Start-Job -ScriptBlock $Script -ArgumentList $ArgumentList
@@ -99,14 +102,23 @@ function Invoke-Spin {
 
 # irm|iex runs in the current host. Throw and catch at the top level to avoid closing the session.
 function Write-ErrorAndExit {
-    Write-Host "■ $args" -ForegroundColor Red
+    Write-Host "$([char]0x25A0) $args" -ForegroundColor Red
     throw 'USE_FATAL'
 }
 
 function Complete-UseFatal {
     param($ErrorRecord)
-    if ("$($ErrorRecord.Exception.Message)" -ne 'USE_FATAL') {
-        Write-Host "■ $($ErrorRecord.Exception.Message)" -ForegroundColor Red
+    $fatalMessage = "$($ErrorRecord.Exception.Message)"
+    if ($fatalMessage -eq 'USE_CANCELED') {
+        $global:LASTEXITCODE = 0
+        # Exit the process for -File; under iex, stop only the script and retain the exit code.
+        if (-not [string]::IsNullOrEmpty($PSCommandPath)) {
+            exit 0
+        }
+        return
+    }
+    if ($fatalMessage -ne 'USE_FATAL') {
+        Write-Host "$([char]0x25A0) $fatalMessage" -ForegroundColor Red
     }
     $global:LASTEXITCODE = 1
     # Exit the process for -File; under iex, stop only the script and retain the exit code.
@@ -169,6 +181,11 @@ if ($os -ne 'windows') {
 
 # Switch the console to UTF-8.
 & chcp 65001 > $null
+
+# PS 5.1 renders Invoke-WebRequest progress per chunk; silent it keeps downloads from stalling.
+$ProgressPreference = 'SilentlyContinue'
+# Per-request timeout so a dead mirror fails fast instead of hanging ~100s.
+$WebTimeoutSec = 15
 
 switch -Regex ($InstallProfile) {
     '^(--)?lite$' { $InstallProfile = 'lite' }
@@ -289,13 +306,13 @@ function Expand-UseZipRepository {
     foreach ($url in (Get-GithubZipCandidates)) {
       $hostLabel = Get-UrlHostLabel $url
       $downloaded = Invoke-Spin "Downloading $hostLabel ..." {
-        param($Uri, $Out)
+        param($Uri, $Out, $TimeoutSec)
         try {
-          Invoke-WebRequest -Uri $Uri -OutFile $Out -UseBasicParsing -ErrorAction Stop
+          Invoke-WebRequest -Uri $Uri -OutFile $Out -UseBasicParsing -TimeoutSec $TimeoutSec -ErrorAction Stop
           return $true
         }
         catch { return $false }
-      } -ArgumentList @($url, $zipFile)
+      } -ArgumentList @($url, $zipFile, $WebTimeoutSec)
       if ($downloaded -ne $true) { continue }
       $extractRoot = Join-Path $tmp 'extract'
       if (Test-Path -LiteralPath $extractRoot) {
@@ -305,7 +322,9 @@ function Expand-UseZipRepository {
       $unpacked = Invoke-Spin "Extracting $ZipExtractName ..." {
         param($Zip, $Dest)
         try {
-          Expand-Archive -LiteralPath $Zip -DestinationPath $Dest -Force -ErrorAction Stop
+          # PS 5.1 Expand-Archive garbles UTF-8 filenames; ZipFile+UTF8 works on both editions.
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          [System.IO.Compression.ZipFile]::ExtractToDirectory($Zip, $Dest, [System.Text.Encoding]::UTF8)
           return $true
         }
         catch { return $false }
@@ -365,7 +384,7 @@ function Install-NodeViaVitePlus {
   foreach ($url in (Get-GithubUrlCandidates -Url $scriptUrl)) {
     Write-Info "Trying vite-plus installer: $url"
     try {
-      $script = [string](Invoke-RestMethod -Uri $url)
+      $script = [string](Invoke-RestMethod -Uri $url -TimeoutSec $WebTimeoutSec)
       if ($script -notmatch 'function\s+Setup-NodeManager') {
         throw 'Response does not look like the vite-plus installer'
       }
@@ -459,6 +478,7 @@ function Invoke-UseCli {
   $argLine = ConvertTo-ProcessArgumentString (@($cliJs) + $argv)
   # Start-Process + explicit exe avoids PS 5.1 call-operator / .ps1 shim mangling.
   $proc = Start-Process -FilePath $node -ArgumentList $argLine -WorkingDirectory $InstallDir -NoNewWindow -Wait -PassThru
+  if ($proc.ExitCode -eq 130) { throw 'USE_CANCELED' }
   if ($proc.ExitCode -ne 0) {
     Write-ErrorAndExit "CLI failed: node src/cli.js $($argv -join ' ')"
   }
@@ -486,11 +506,27 @@ function Copy-UseRepository {
   return $false
 }
 
+# Zip checkouts carry no .git, so the next install would skip the git-update branch
+# and re-download into a new timestamped directory forever. Give the checkout a git
+# origin when git exists: subsequent installs then update in place. Returns whether
+# the directory is now a recognized git checkout of this repository.
+function ConvertTo-UseGitRepository {
+  param([string]$Target)
+  if (-not (Test-GitAvailable)) { return $false }
+  if (Test-Path -LiteralPath (Join-Path $Target '.git')) { return (Test-SameRemoteRepo -Dir $Target) }
+  git -C $Target init 1>$null 2>$null
+  if ($LASTEXITCODE -ne 0) { return $false }
+  git -C $Target remote add origin $Repo 1>$null 2>$null
+  if ($LASTEXITCODE -ne 0) { return $false }
+  return (Test-SameRemoteRepo -Dir $Target)
+}
+
 function Fetch-UseRepository {
   param([string]$Target)
 
   if (Expand-UseZipRepository -Target $Target) {
     Unblock-UseScripts -Root $Target
+    ConvertTo-UseGitRepository -Target $Target
     return
   }
 
@@ -513,16 +549,32 @@ function Update-UseRepository {
     Write-ErrorAndExit 'Git is required to update the repository'
   }
 
-  foreach ($url in (Get-GithubRepoCandidates)) {
+  $spin = Test-CanSpin
+  $candidates = @(Get-GithubRepoCandidates)
+  for ($idx = 0; $idx -lt $candidates.Count; $idx++) {
+    $url = $candidates[$idx]
     git -C $Target remote set-url origin $url 1>$null 2>$null
     if ($LASTEXITCODE -ne 0) { continue }
     $hostLabel = Get-UrlHostLabel $url
-    $synced = Invoke-Spin "Syncing $hostLabel ..." {
-      param($Dst)
-      git -C $Dst fetch origin main 1>$null 2>$null
-      return ($LASTEXITCODE -eq 0)
-    } -ArgumentList @($Target)
-    if ($synced -ne $true) { continue }
+    if ($spin) {
+      $synced = Invoke-Spin "Syncing $hostLabel ..." {
+        param($Dst)
+        git -C $Dst fetch origin main 1>$null 2>$null
+        return ($LASTEXITCODE -eq 0)
+      } -ArgumentList @($Target)
+    }
+    else {
+      # Static console: mark each attempt and memo git's own error spam away.
+      Write-Note "Syncing $hostLabel ..."
+      git -C $Target fetch origin main 1>$null 2>$null
+      $synced = ($LASTEXITCODE -eq 0)
+    }
+    if ($synced -ne $true) {
+      if ($idx -lt $candidates.Count - 1) {
+        Write-Skip "$hostLabel unavailable; trying the next mirror..."
+      }
+      continue
+    }
     git -C $Target reset --hard origin/main 1>$null 2>$null
     if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Failed to reset local repository' }
     Write-StepSuccess 'Repository synced with origin/main'
@@ -545,6 +597,11 @@ function Get-NextTimestampedDir {
 
 Ensure-NodeRuntime
 
+# Bound mirror stalls for every git op below: abort a transfer that stays under
+# 1 B/s for 20s (git clone/fetch/reset) instead of hanging silently.
+$env:GIT_HTTP_LOW_SPEED_LIMIT = '1'
+$env:GIT_HTTP_LOW_SPEED_TIME = '20'
+
 if (-not (Test-Path $InstallDir)) {
   Write-Step "Fetching repository to $(Format-DisplayPath $InstallDir)"
   Fetch-UseRepository $InstallDir
@@ -554,10 +611,27 @@ elseif (Test-SameRemoteRepo $InstallDir) {
   Update-UseRepository $InstallDir
 }
 else {
-  # Zip checkout may be the shell cwd (cannot delete). No Git → always fetch a fresh sibling dir.
-  $InstallDir = Get-NextTimestampedDir $InstallDir
-  Write-Step "Fetching repository to $(Format-DisplayPath $InstallDir)"
-  Fetch-UseRepository $InstallDir
+  # Existing zip checkout without git: heal it into a git repo and update in place
+  # instead of downloading a fresh sibling directory every run.
+  if (ConvertTo-UseGitRepository -Target $InstallDir) {
+    Write-Step "Updating repository at $(Format-DisplayPath $InstallDir)"
+    try {
+      Update-UseRepository $InstallDir
+      Set-Location $InstallDir
+    }
+    catch {
+      Write-Warn 'In-place git update failed; fetching a fresh copy...'
+      $InstallDir = Get-NextTimestampedDir $InstallDir
+      Write-Step "Fetching repository to $(Format-DisplayPath $InstallDir)"
+      Fetch-UseRepository $InstallDir
+    }
+  }
+  else {
+    # Zip checkout may be the shell cwd (cannot delete). No Git -> always fetch a fresh sibling dir.
+    $InstallDir = Get-NextTimestampedDir $InstallDir
+    Write-Step "Fetching repository to $(Format-DisplayPath $InstallDir)"
+    Fetch-UseRepository $InstallDir
+  }
 }
 
 Set-Location $InstallDir
@@ -588,6 +662,8 @@ try {
   Write-StepSuccess 'Installation complete. The system is ready.'
 }
 finally {
+  Remove-Item Env:GIT_HTTP_LOW_SPEED_LIMIT -ErrorAction SilentlyContinue
+  Remove-Item Env:GIT_HTTP_LOW_SPEED_TIME -ErrorAction SilentlyContinue
   Remove-Item Env:SYNC_SKIP_PM_HELPERS -ErrorAction SilentlyContinue
   Remove-Item Env:USE_INSTALLER -ErrorAction SilentlyContinue
   Remove-Item Env:USE_QUIET_INSTALL -ErrorAction SilentlyContinue

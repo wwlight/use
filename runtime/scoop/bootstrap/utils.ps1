@@ -126,6 +126,9 @@ function Write-Detail {
 
 function Test-CanSpin {
     if ($env:CI -eq 'true') { return $false }
+    # Windows PowerShell (5.x) consoles can't render the spinner glyphs (→ '?') or process
+    # the ANSI erase sequences (→ literal ESC[2K). Keep it a plain static line there.
+    if ($PSVersionTable.PSEdition -eq 'Desktop') { return $false }
     if (-not [Environment]::UserInteractive) { return $false }
     try {
         if ([Console]::IsErrorRedirected -and [Console]::IsOutputRedirected) { return $false }
