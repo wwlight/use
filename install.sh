@@ -8,10 +8,12 @@ ZIP_EXTRACT_NAME="use-main"
 # BEGIN GENERATED GITHUB ACCEL
 GITHUB_ACCEL_IDS=(
   "ghproxy"
+  "ghproxy-net"
   "ghfast"
 )
 GITHUB_ACCEL_PREFIXES=(
   "https://gh-proxy.com/"
+  "https://ghproxy.net/"
   "https://ghfast.top/"
 )
 # END GENERATED GITHUB ACCEL

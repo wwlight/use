@@ -2,6 +2,7 @@
 # BEGIN GENERATED GITHUB ACCEL
 typeset -ga GITHUB_ACCEL_MIRRORS=(
   'https://gh-proxy.com/'
+  'https://ghproxy.net/'
   'https://ghfast.top/'
 )
 # END GENERATED GITHUB ACCEL

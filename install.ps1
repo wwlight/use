@@ -14,10 +14,12 @@ $InstallDir = "$env:USERPROFILE\Desktop\use"
 # BEGIN GENERATED GITHUB ACCEL
 $GithubAccelIds = @(
     'ghproxy',
+    'ghproxy-net',
     'ghfast'
 )
 $GithubAccelPrefixes = @(
     'https://gh-proxy.com/',
+    'https://ghproxy.net/',
     'https://ghfast.top/'
 )
 # END GENERATED GITHUB ACCEL

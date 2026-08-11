@@ -1,7 +1,7 @@
 /**
  * Scoop backup import with active-mirror bucket Source rewrite.
  */
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -57,6 +57,23 @@ function scoopAvailable() {
     return (found.status ?? 1) === 0;
 }
 
+/** Async Scoop import (spinner-friendly; cpSync spawnSync blocks the event loop). */
+function runScoopImport(importFile, cwd) {
+    const command = buildShellCommandLine('scoop', ['import', importFile]);
+    const [bin, args] = process.platform === 'win32'
+        ? [process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', command]]
+        : ['/bin/sh', ['-c', command]];
+    return new Promise((resolve) => {
+        const child = spawn(bin, args, { cwd, env: process.env, windowsHide: true });
+        let stdout = '';
+        let stderr = '';
+        child.stdout.on('data', (chunk) => { stdout += String(chunk); });
+        child.stderr.on('data', (chunk) => { stderr += String(chunk); });
+        child.on('error', (err) => resolve({ status: 127, stdout, stderr: String(err.message) }));
+        child.on('close', (code) => resolve({ status: code ?? 127, stdout, stderr }));
+    });
+}
+
 export async function restoreScoopPackages(root = projectRoot(), profile = '') {
     const win = loadManifest('windows');
     const { scoopDir } = pathVarsForWindows(win);
@@ -77,12 +94,7 @@ export async function restoreScoopPackages(root = projectRoot(), profile = '') {
             ? 'Importing Scoop packages via active mirror...'
             : 'Importing Scoop packages...';
         await runWithSpinner(label, async () => {
-            const result = spawnSync(buildShellCommandLine('scoop', ['import', importFile]), {
-                cwd: root,
-                encoding: 'utf8',
-                shell: true,
-                env: process.env,
-            });
+            const result = await runScoopImport(importFile, root);
             if ((result.status ?? 1) !== 0) {
                 const logPath = path.join(root, 'error.log');
                 const body = [

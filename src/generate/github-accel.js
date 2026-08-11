@@ -147,15 +147,19 @@ function hostLabel(prefix) {
     }
 }
 
+/** README advertises at most this many accel mirrors; code configs carry them all. */
+const README_MAX_MIRRORS = 2;
+
 function padComment(command, width) {
     return command.padEnd(width);
 }
 
 function windowsPmDocs(mirrors) {
+    const shown = mirrors.slice(0, README_MAX_MIRRORS);
     const width = 34;
     const lines = [
         `${padComment('vpr pm', width)}# 安装 scoop，交互选加速镜像`,
-        ...mirrors.map(({ id, prefix }) => (
+        ...shown.map(({ id, prefix }) => (
             `${padComment(`vpr pm -- ${id}`, width)}# ${hostLabel(prefix)} 加速镜像`
         )),
         `${padComment('vpr pm -- official', width)}# 官方源`,
@@ -167,11 +171,12 @@ function windowsPmDocs(mirrors) {
 }
 
 function scoopMirrorDocs(mirrors) {
+    const shown = mirrors.slice(0, README_MAX_MIRRORS);
     const width = 34;
     const lines = [
         `${padComment('scoop mirror', width)}# 交互选择（↑↓ / Enter；Esc/Ctrl+C 取消；回车选中当前 * 则直接退出）`,
         `${padComment('scoop mirror status', width)}# 显示当前镜像与下载规则`,
-        ...mirrors.map(({ id, prefix }) => (
+        ...shown.map(({ id, prefix }) => (
             `${padComment(`scoop mirror ${id}`, width)}# 直接切换到 ${hostLabel(prefix)}`
         )),
         `${padComment('scoop mirror official', width)}# 恢复官方源`,
@@ -186,6 +191,7 @@ function scoopMirrorDocs(mirrors) {
 function readmeDocs(mirrors) {
     const useBase = 'https://raw.githubusercontent.com/wwlight/use/main';
     const viteBase = 'https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli';
+    const shown = mirrors.slice(0, README_MAX_MIRRORS);
     const sections = [
         '使用需要 Node.js 环境。',
         '',
@@ -195,7 +201,7 @@ function readmeDocs(mirrors) {
         '',
         codeBlock('sh', 'curl -fsSL https://vite.plus | bash'),
         '',
-        mirrors
+        shown
             .map(({ prefix }) => codeBlock('sh', `curl -fsSL ${prefix}${viteBase}/install.sh | bash`))
             .join('\n\n'),
         '',
@@ -203,7 +209,7 @@ function readmeDocs(mirrors) {
         '',
         codeBlock('powershell', 'irm https://vite.plus/ps1 | iex'),
         '',
-        mirrors
+        shown
             .map(({ prefix }) => codeBlock('powershell', `irm ${prefix}${viteBase}/install.ps1 | iex`))
             .join('\n\n'),
         '',
@@ -212,21 +218,21 @@ function readmeDocs(mirrors) {
         '',
         '### macos · 交互选择',
         '',
-        commandVariants(`${useBase}/install.sh`, mirrors, {
+        commandVariants(`${useBase}/install.sh`, shown, {
             language: 'sh',
             command: (url, accel) => shInstallCommand(url, accel, null),
         }),
         '',
         '### macos · 尝鲜版',
         '',
-        commandVariants(`${useBase}/install.sh`, mirrors, {
+        commandVariants(`${useBase}/install.sh`, shown, {
             language: 'sh',
             command: (url, accel) => shInstallCommand(url, accel, 'lite'),
         }),
         '',
         '### macos · 完整版',
         '',
-        commandVariants(`${useBase}/install.sh`, mirrors, {
+        commandVariants(`${useBase}/install.sh`, shown, {
             language: 'sh',
             command: (url, accel) => shInstallCommand(url, accel, 'full'),
         }),
@@ -237,21 +243,21 @@ function readmeDocs(mirrors) {
         '',
         '### windows · 交互选择',
         '',
-        commandVariants(`${useBase}/install.ps1`, mirrors, {
+        commandVariants(`${useBase}/install.ps1`, shown, {
             language: 'powershell',
             command: (url, accel) => psInstallCommand(url, accel, null),
         }),
         '',
         '### windows · 尝鲜版',
         '',
-        commandVariants(`${useBase}/install.ps1`, mirrors, {
+        commandVariants(`${useBase}/install.ps1`, shown, {
             language: 'powershell',
             command: (url, accel) => psInstallCommand(url, accel, 'lite'),
         }),
         '',
         '### windows · 完整版',
         '',
-        commandVariants(`${useBase}/install.ps1`, mirrors, {
+        commandVariants(`${useBase}/install.ps1`, shown, {
             language: 'powershell',
             command: (url, accel) => psInstallCommand(url, accel, 'full'),
         }),

@@ -37,6 +37,7 @@
     "default": "ghproxy",
     "mirrors": [
       { "id": "ghproxy", "prefix": "https://gh-proxy.com/" },
+      { "id": "ghproxy-net", "prefix": "https://ghproxy.net/" },
       { "id": "ghfast", "prefix": "https://ghfast.top/" }
     ]
   }

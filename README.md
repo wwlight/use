@@ -16,7 +16,7 @@ curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/voidzero-dev/v
 ```
 
 ```sh
-curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.sh | bash
+curl -fsSL https://ghproxy.net/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.sh | bash
 ```
 
 ### windows
@@ -30,7 +30,7 @@ irm https://gh-proxy.com/https://raw.githubusercontent.com/voidzero-dev/vite-plu
 ```
 
 ```powershell
-irm https://ghfast.top/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.ps1 | iex
+irm https://ghproxy.net/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.ps1 | iex
 ```
 
 
@@ -47,7 +47,7 @@ curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/ma
 ```
 
 ```sh
-curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.sh | USE_ACCEL=ghfast bash
+curl -fsSL https://ghproxy.net/https://raw.githubusercontent.com/wwlight/use/main/install.sh | USE_ACCEL=ghproxy-net bash
 ```
 
 ### macos · 尝鲜版
@@ -61,7 +61,7 @@ curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/ma
 ```
 
 ```sh
-curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.sh | USE_ACCEL=ghfast bash -s -- lite
+curl -fsSL https://ghproxy.net/https://raw.githubusercontent.com/wwlight/use/main/install.sh | USE_ACCEL=ghproxy-net bash -s -- lite
 ```
 
 ### macos · 完整版
@@ -75,7 +75,7 @@ curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/wwlight/use/ma
 ```
 
 ```sh
-curl -fsSL https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.sh | USE_ACCEL=ghfast bash -s -- full
+curl -fsSL https://ghproxy.net/https://raw.githubusercontent.com/wwlight/use/main/install.sh | USE_ACCEL=ghproxy-net bash -s -- full
 ```
 
 ### windows · 执行策略
@@ -95,7 +95,7 @@ $env:USE_ACCEL='ghproxy'; irm https://gh-proxy.com/https://raw.githubusercontent
 ```
 
 ```powershell
-$env:USE_ACCEL='ghfast'; irm https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
+$env:USE_ACCEL='ghproxy-net'; irm https://ghproxy.net/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
 ```
 
 ### windows · 尝鲜版
@@ -109,7 +109,7 @@ $env:USE_PROFILE='lite'; $env:USE_ACCEL='ghproxy'; irm https://gh-proxy.com/http
 ```
 
 ```powershell
-$env:USE_PROFILE='lite'; $env:USE_ACCEL='ghfast'; irm https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
+$env:USE_PROFILE='lite'; $env:USE_ACCEL='ghproxy-net'; irm https://ghproxy.net/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
 ```
 
 ### windows · 完整版
@@ -123,7 +123,7 @@ $env:USE_PROFILE='full'; $env:USE_ACCEL='ghproxy'; irm https://gh-proxy.com/http
 ```
 
 ```powershell
-$env:USE_PROFILE='full'; $env:USE_ACCEL='ghfast'; irm https://ghfast.top/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
+$env:USE_PROFILE='full'; $env:USE_ACCEL='ghproxy-net'; irm https://ghproxy.net/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
 ```
 <!-- END GENERATED GITHUB ACCEL DOCS -->
 
@@ -263,7 +263,7 @@ configs/macos/
 ```sh
 vpr pm                            # 安装 scoop，交互选加速镜像
 vpr pm -- ghproxy                 # gh-proxy.com 加速镜像
-vpr pm -- ghfast                  # ghfast.top 加速镜像
+vpr pm -- ghproxy-net             # ghproxy.net 加速镜像
 vpr pm -- official                # 官方源
 vpr init                          # 初始化（会启用已选加速）
 vpr init -- lite                  # 尝鲜版
@@ -306,7 +306,7 @@ configs/windows/
 scoop mirror                      # 交互选择（↑↓ / Enter；Esc/Ctrl+C 取消；回车选中当前 * 则直接退出）
 scoop mirror status               # 显示当前镜像与下载规则
 scoop mirror ghproxy              # 直接切换到 gh-proxy.com
-scoop mirror ghfast               # 直接切换到 ghfast.top
+scoop mirror ghproxy-net          # 直接切换到 ghproxy.net
 scoop mirror official             # 恢复官方源
 ```
 <!-- END GENERATED GITHUB ACCEL SCOOP MIRROR -->
