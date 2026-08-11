@@ -376,10 +376,19 @@ function resolveMirrorChoice(choice, config) {
     }
     throw new Error(`Unknown Scoop mirror '${choice}'. Run 'scoop mirror' to see available mirrors.`);
 }
+function buildShellCommandLine(command, args) {
+    if (process.platform === 'win32') {
+        const quoted = [command, ...args].map((a) => /[\s"]/.test(a) ? `"${a.replace(/"/g, '\\"')}"` : a);
+        return quoted.join(' ');
+    }
+    return [command, ...args].map((a) => (a.includes(' ') ? `'${a.replace(/'/g, "'\\''")}'` : a)).join(' ');
+}
 function runScoop(args) {
-    const result = spawnSync('scoop', args, {
+    const result = spawnSync(process.platform === 'win32' ? process.env.ComSpec || 'cmd.exe' : '/bin/sh', [
+        ...(process.platform === 'win32' ? ['/d', '/s', '/c'] : ['-c']),
+        buildShellCommandLine('scoop', args),
+    ], {
         encoding: 'utf8',
-        shell: true,
         stdio: ['ignore', 'pipe', 'pipe'],
     });
     if (result.error)
@@ -493,7 +502,6 @@ async function runSwitchCli(choiceArg) {
     }
     if (!choice) {
         choice = await selectMirrorInteractively(config);
-        // Already active: exit without switching.
         if (choice === mirrorId(config.activePrefix, config))
             return;
     }

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { skip, success, warn } from "./log.js";
 import { runWithSpinner } from "./spinner.js";
 import { loadManifest } from "./manifest.js";
-export function normalizeRepoUrl(url) {
+function normalizeRepoUrl(url) {
     let u = url.trim();
     const common = loadManifest('common');
     for (const mirror of common.githubAccel?.mirrors ?? []) {
@@ -25,11 +25,6 @@ export function normalizeRepoUrl(url) {
 function needsGithubAccel(repo) {
     return /^https?:\/\/github\.com\//i.test(repo)
         || /^https?:\/\/raw\.githubusercontent\.com\//i.test(repo);
-}
-/** Preferred single accel URL (selected → default → first mirror). */
-export function githubAccelUrl(repo) {
-    const candidates = githubRepoCandidates(repo);
-    return candidates[0] ?? repo;
 }
 /**
  * Fetch/clone order: selected (USE_ACCEL) → other mirrors → official.
@@ -63,11 +58,21 @@ export function githubRepoCandidates(repo) {
     return out;
 }
 /** Async git exec (spinner-friendly; does not block the event loop). */
-function runGitAsync(cwd, args) {
+function runGitAsync(cwd, args, timeoutMs = 15000) {
     return new Promise((resolve) => {
         const child = spawn('git', args, { cwd, stdio: 'ignore' });
-        child.on('close', (code) => resolve(code === 0));
-        child.on('error', () => resolve(false));
+        const timer = setTimeout(() => {
+            child.kill();
+            resolve(false);
+        }, timeoutMs);
+        child.on('close', (code) => {
+            clearTimeout(timer);
+            resolve(code === 0);
+        });
+        child.on('error', () => {
+            clearTimeout(timer);
+            resolve(false);
+        });
     });
 }
 export function isGitRepo(dir) {

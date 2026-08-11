@@ -37,6 +37,14 @@ function Install-ScoopAria2 {
             scoop config aria2-max-connection-per-server $aria.maxConnectionPerServer *>$null
         }
         if ($null -ne $aria.minSplitSize) { scoop config aria2-min-split-size $aria.minSplitSize *>$null }
+        if ($null -ne $aria.options) {
+            if ([string]::IsNullOrWhiteSpace([string]$aria.options)) {
+                scoop config rm aria2-options *>$null
+            }
+            else {
+                scoop config aria2-options $aria.options *>$null
+            }
+        }
     }
     Write-Detail 'aria2 configuration complete' -Kind done
 }

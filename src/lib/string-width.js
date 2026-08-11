@@ -7,7 +7,7 @@
  * @param {NodeJS.ProcessEnv} [env]
  * @param {string} [intlLocale]
  */
-export function resolveAmbiguousWide(env = process.env, intlLocale) {
+function resolveAmbiguousWide(env = process.env, intlLocale) {
     const locales = [
         env.LC_ALL,
         env.LC_CTYPE,
@@ -71,7 +71,7 @@ function isAmbiguousCodePoint(cp) {
  * @param {number} codePoint
  * @param {boolean} ambiguousWide
  */
-export function codePointWidth(codePoint, ambiguousWide = false) {
+function codePointWidth(codePoint, ambiguousWide = false) {
     if (isControl(codePoint))
         return 0;
     if (codePoint <= 0x7e)
@@ -99,7 +99,7 @@ export function stringWidth(text, options = {}) {
  * @param {number} target
  * @param {WidthOptions} [options]
  */
-export function padEndWidth(text, target, options = {}) {
+function padEndWidth(text, target, options = {}) {
     const value = String(text ?? '');
     const width = stringWidth(value, options);
     if (width >= target)
@@ -156,13 +156,13 @@ export function truncateWidth(text, max, options = {}) {
  * @param {string[]} variants
  * @param {WidthOptions} [options]
  */
-export function alignGlyph(glyph, variants, options = {}) {
+function alignGlyph(glyph, variants, options = {}) {
     const width = Math.max(0, ...variants.map((item) => stringWidth(item, options)));
     return padEndWidth(glyph, width, options);
 }
 /** Cursor used by ↑↓ menus (U+00BB »). */
 export const MENU_CHECK = '»';
-export const MENU_CHECK_IDLE = ' ';
+const MENU_CHECK_IDLE = ' ';
 /**
  * Align menu cursor chrome so active/idle share one display column.
  * @param {boolean} active

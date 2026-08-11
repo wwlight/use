@@ -1,9 +1,9 @@
-export const COLOR_PURPLE = '\x1b[1;35m';
+const COLOR_PURPLE = '\x1b[1;35m';
 export const COLOR_BLUE = '\x1b[34m';
-export const COLOR_GREEN = '\x1b[32m';
-export const COLOR_YELLOW = '\x1b[33m';
-export const COLOR_RED = '\x1b[31m';
-export const COLOR_DIM = '\x1b[2m';
+const COLOR_GREEN = '\x1b[32m';
+const COLOR_YELLOW = '\x1b[33m';
+const COLOR_RED = '\x1b[31m';
+const COLOR_DIM = '\x1b[2m';
 export const COLOR_RESET = '\x1b[0m';
 
 /** Gap after marks: "{mark} {text}". */
@@ -27,7 +27,7 @@ export function formatStepTitle(message) {
     return `${COLOR_PURPLE}${MARK_STEP}${MARK_GAP}${message}${COLOR_RESET}`;
 }
 /** Top-level success title (same column as step, solid mark). */
-export function formatStepSuccessTitle(message) {
+function formatStepSuccessTitle(message) {
     return `${COLOR_GREEN}${MARK_OK}${MARK_GAP}${message}${COLOR_RESET}`;
 }
 export function info(message) {

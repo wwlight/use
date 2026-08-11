@@ -13,7 +13,7 @@ function writeUtf8NoBom(filePath, content) {
     fs.writeFileSync(filePath, content, 'utf8');
 }
 
-export function scoopRuntimeRoot(root = projectRoot()) {
+function scoopRuntimeRoot(root = projectRoot()) {
     return path.join(root, 'runtime', 'scoop');
 }
 
@@ -49,40 +49,43 @@ export async function deployScoopRuntime(activePrefix = '') {
     writeUtf8NoBom(path.join(mirrorDir, 'state.json'), `${JSON.stringify(payload, null, 2)}\n`);
 
     const mirrorSrc = path.join(runtimeRoot, 'mirror');
+    const plan = [];
+
     for (const name of ['hook.ps1', 'shared.ps1']) {
         const src = path.join(mirrorSrc, name);
         if (!fs.existsSync(src))
             throw new Error(`runtime/scoop/mirror/${name} not found: ${src}`);
-        await copyFileDataOnly(src, path.join(mirrorDir, name), { encoding: 'utf8Bom' });
-        success(`Deployed mirror/${name}`);
+        plan.push({ src, dest: path.join(mirrorDir, name), encoding: 'utf8Bom' });
     }
+
     const cliSrc = path.join(mirrorSrc, 'cli.js');
     if (!fs.existsSync(cliSrc))
         throw new Error(`runtime/scoop/mirror/cli.js not found: ${cliSrc}`);
-    await copyFileDataOnly(cliSrc, path.join(mirrorDir, 'cli.js'));
-    success('Deployed mirror/cli.js');
+    plan.push({ src: cliSrc, dest: path.join(mirrorDir, 'cli.js') });
 
     for (const name of ['menu-select.js', 'menu-viewport.js', 'string-width.js', 'tty-term.js']) {
         const src = path.join(root, 'src', 'lib', name);
         if (!fs.existsSync(src))
             throw new Error(`Shared menu helper not found: ${src}`);
-        await copyFileDataOnly(src, path.join(libDir, name));
+        plan.push({ src, dest: path.join(libDir, name) });
     }
-    success('Deployed mirror/lib menu helpers');
 
     const servicesCliSrc = path.join(runtimeRoot, 'services', 'cli.ps1');
-    const manifestSrc = path.join(runtimeRoot, 'services', 'manifest.json');
-    const scoopPsSrc = path.join(runtimeRoot, 'scoop.ps1');
     if (!fs.existsSync(servicesCliSrc))
         throw new Error(`runtime/scoop/services/cli.ps1 not found: ${servicesCliSrc}`);
+    plan.push({ src: servicesCliSrc, dest: path.join(servicesDir, 'cli.ps1'), encoding: 'utf8Bom' });
+    const manifestSrc = path.join(runtimeRoot, 'services', 'manifest.json');
+    if (fs.existsSync(manifestSrc))
+        plan.push({ src: manifestSrc, dest: path.join(servicesDir, 'manifest.json') });
+    const scoopPsSrc = path.join(runtimeRoot, 'scoop.ps1');
     if (!fs.existsSync(scoopPsSrc))
         throw new Error(`runtime/scoop/scoop.ps1 not found: ${scoopPsSrc}`);
-    await copyFileDataOnly(servicesCliSrc, path.join(servicesDir, 'cli.ps1'), { encoding: 'utf8Bom' });
-    if (fs.existsSync(manifestSrc)) {
-        await copyFileDataOnly(manifestSrc, path.join(servicesDir, 'manifest.json'));
+    plan.push({ src: scoopPsSrc, dest: path.join(configRoot, 'scoop.ps1'), encoding: 'utf8Bom' });
+
+    for (const item of plan) {
+        await copyFileDataOnly(item.src, item.dest, item.encoding ? { encoding: item.encoding } : undefined);
+        success(`Deployed ${formatLocalDisplay(item.dest, homeDir())}`);
     }
-    await copyFileDataOnly(scoopPsSrc, path.join(configRoot, 'scoop.ps1'), { encoding: 'utf8Bom' });
-    success('Deployed services/ + scoop.ps1');
     stepSuccess(`Deployed Scoop helpers to ${formatLocalDisplay(configRoot, homeDir())}`);
     return { scoopDir, configRoot, prefixes, accel };
 }

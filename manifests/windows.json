@@ -39,10 +39,11 @@
     "aria2": {
       "enabled": true,
       "warningEnabled": false,
-      "retryWait": 2,
-      "split": 16,
-      "maxConnectionPerServer": 16,
-      "minSplitSize": "1M"
+      "retryWait": 10,
+      "split": 3,
+      "maxConnectionPerServer": 3,
+      "minSplitSize": "1M",
+      "options": "--max-tries=15 --timeout=60 --connect-timeout=30 --auto-save-interval=5"
     }
   },
   "scoopDir": "D:\\SoftwareApps\\Scoop",

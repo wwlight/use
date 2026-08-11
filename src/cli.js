@@ -40,6 +40,15 @@ async function runTask(task, args) {
     return cmd.run(platform, args);
 }
 async function main() {
+    // Guard against spinner/menu residue leaking into the shell after an abrupt
+    // exit (Ctrl+C while a \r spinner is mid-frame would leave its text on the
+    // prompt line, where the shell can re-execute it as a command).
+    for (const [signal, code] of [['SIGINT', 130], ['SIGTERM', 143]]) {
+        process.on(signal, () => {
+            process.stderr.write('\n');
+            process.exit(code);
+        });
+    }
     // Strip every "--" first. Windows PowerShell 5.1 may insert/shift a bare "--"
     // (especially via node.ps1 shims) so argv[2] is not the real task.
     const tokens = stripArgSeparator(process.argv.slice(2));

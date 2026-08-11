@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { projectRoot, resolveScoopDir, resolveSoftwareAppsDir, scoopConfigDir } from "./paths.js";
 const cache = new Map();
-export function manifestsDir() {
+function manifestsDir() {
     return path.join(projectRoot(), 'manifests');
 }
 export function loadManifest(scope) {

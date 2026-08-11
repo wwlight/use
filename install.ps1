@@ -44,13 +44,36 @@ function Format-DisplayPath {
 }
 
 # Bootstrap-only spinner (repo utils.ps1 is unavailable until fetch completes).
+function Enable-VtProcessing {
+  # Conhost / Windows Terminal need VT enabled explicitly on Windows PowerShell 5.x;
+  # PowerShell Core enables it itself. No-op when calls are redirected (GetConsoleMode fails).
+  if (-not ('UseSpin.Native' -as [type])) {
+    Add-Type -Namespace UseSpin -Name Native -MemberDefinition @'
+[DllImport("kernel32.dll", SetLastError = true)]
+public static extern IntPtr GetStdHandle(int nStdHandle);
+[DllImport("kernel32.dll", SetLastError = true)]
+public static extern bool GetConsoleMode(IntPtr hConsoleHandle, out uint lpMode);
+[DllImport("kernel32.dll", SetLastError = true)]
+public static extern bool SetConsoleMode(IntPtr hConsoleHandle, uint dwMode);
+'@
+  }
+  try {
+    $handle = [UseSpin.Native]::GetStdHandle(-11)
+    $mode = [uint32]0
+    if (-not [UseSpin.Native]::GetConsoleMode($handle, [ref]$mode)) { return $false }
+    if ($mode -band 0x4) { return $true }
+    return [UseSpin.Native]::SetConsoleMode($handle, ($mode -bor 0x4))
+  }
+  catch { return $false }
+}
+
 function Test-CanSpin {
   if ($env:CI -eq 'true') { return $false }
-  # Windows PowerShell (5.x) consoles can't render the spinner glyphs (-> '?') or process
-  # the ANSI erase sequences (-> literal ESC[2K). Keep it a plain static line there.
-  if ($PSVersionTable.PSEdition -eq 'Desktop') { return $false }
   if (-not [Environment]::UserInteractive) { return $false }
   try { if ([Console]::IsErrorRedirected -and [Console]::IsOutputRedirected) { return $false } } catch { }
+  # Windows PowerShell 5.x renders 5.1's Unicode frames as '?' in legacy conhost, so it gets ASCII frames.
+  # VT must still be on for the \r overwrite + ESC[2K erase to work there.
+  if ($PSVersionTable.PSEdition -eq 'Desktop') { return (Enable-VtProcessing) }
   return $true
 }
 
@@ -70,7 +93,9 @@ function Invoke-Spin {
   # Install.sh backgrounds curl; a job does the same on Windows. A synchronous
   # Invoke-WebRequest / native cmd blocks the Timer event pump, so the frames
   # paint here in the poll loop instead of relying on Register-ObjectEvent.
-  $frames = @([char]0x25D2, [char]0x25D0, [char]0x25D3, [char]0x25D1)
+  # Distinct frames (|/-\) so rotation is obvious; the Unicode quarter-circles
+  # (◒◐◓◑) look static at console font sizes and '?' on 5.x conhost without VT.
+  $frames = @('|', '/', '-', '\')
   $job = $null
   try {
     $job = Start-Job -ScriptBlock $Script -ArgumentList $ArgumentList
@@ -86,7 +111,7 @@ function Invoke-Spin {
   try { [Console]::CursorVisible = $false } catch { }
   try {
     while ($job.State -eq 'Running') {
-      [Console]::Error.Write(("`r{0}{1}[34m{2}  {3}{1}[0m" -f $Indent, [char]27, $frames[$i % $frames.Count], $Message))
+      [Console]::Error.Write(("`r{0}{1}[34m{2} {3}{1}[0m" -f $Indent, [char]27, $frames[$i % $frames.Count], $Message))
       $i++
       Start-Sleep -Milliseconds 100
     }
@@ -461,25 +486,18 @@ function Resolve-NodeExe {
   return 'node'
 }
 
-function ConvertTo-ProcessArgumentString {
-  param([string[]]$Parts)
-  return (($Parts | ForEach-Object {
-    $s = "$_"
-    if ($s -notmatch '[\s"]') { $s }
-    else { '"' + ($s -replace '"', '\"') + '"' }
-  }) -join ' ')
-}
-
 function Invoke-UseCli {
   param([Parameter(Mandatory = $true)][string[]]$CliArgs)
   $cliJs = Join-Path $InstallDir 'src/cli.js'
   $argv = @($CliArgs | Where-Object { $_ -ne $null -and "$_" -ne '' -and "$_" -ne '--' })
   $node = Resolve-NodeExe
-  $argLine = ConvertTo-ProcessArgumentString (@($cliJs) + $argv)
-  # Start-Process + explicit exe avoids PS 5.1 call-operator / .ps1 shim mangling.
-  $proc = Start-Process -FilePath $node -ArgumentList $argLine -WorkingDirectory $InstallDir -NoNewWindow -Wait -PassThru
-  if ($proc.ExitCode -eq 130) { throw 'USE_CANCELED' }
-  if ($proc.ExitCode -ne 0) {
+  # Direct invocation keeps node's stdout/stderr on the real console so its spinner
+  # and menus still see a TTY; Start-Process turns the handles into pipes (isTTY=undefined).
+  # Enable VT first so 5.x consoles render the CLI's ANSI erases cleanly.
+  [void](Enable-VtProcessing)
+  & $node $cliJs @argv
+  if ($LASTEXITCODE -eq 130) { throw 'USE_CANCELED' }
+  if ($LASTEXITCODE -ne 0) {
     Write-ErrorAndExit "CLI failed: node src/cli.js $($argv -join ' ')"
   }
 }
@@ -600,7 +618,7 @@ Ensure-NodeRuntime
 # Bound mirror stalls for every git op below: abort a transfer that stays under
 # 1 B/s for 20s (git clone/fetch/reset) instead of hanging silently.
 $env:GIT_HTTP_LOW_SPEED_LIMIT = '1'
-$env:GIT_HTTP_LOW_SPEED_TIME = '20'
+$env:GIT_HTTP_LOW_SPEED_TIME = '15'
 
 if (-not (Test-Path $InstallDir)) {
   Write-Step "Fetching repository to $(Format-DisplayPath $InstallDir)"

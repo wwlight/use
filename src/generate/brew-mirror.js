@@ -76,7 +76,7 @@ export function renderBrewMirrorCatalog(manifest) {
     ].join('\t'));
     return `${CATALOG_HEADER}\n${rows.join('\n')}\n`;
 }
-export function writeBrewMirrorCatalog(projectRoot, manifest) {
+function writeBrewMirrorCatalog(projectRoot, manifest) {
     const relative = manifest.brewMirrorCatalog;
     if (!relative)
         throw new Error('macos manifest is missing brewMirrorCatalog');

@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { buildShellCommandLine } from "../../core/exec.js";
 import { loadManifest, pathVarsForWindows, resolveProfileArtifact } from "../../core/manifest.js";
 import { projectRoot } from "../../core/paths.js";
 import { runWithSpinner } from "../../core/spinner.js";
@@ -76,7 +77,7 @@ export async function restoreScoopPackages(root = projectRoot(), profile = '') {
             ? 'Importing Scoop packages via active mirror...'
             : 'Importing Scoop packages...';
         await runWithSpinner(label, async () => {
-            const result = spawnSync('scoop', ['import', importFile], {
+            const result = spawnSync(buildShellCommandLine('scoop', ['import', importFile]), {
                 cwd: root,
                 encoding: 'utf8',
                 shell: true,

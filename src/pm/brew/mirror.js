@@ -7,14 +7,14 @@ import { loadManifest } from "../../core/manifest.js";
 import { copyFileDataOnly } from "../../sync/copy.js";
 const BEGIN = '# >>> use-homebrew';
 const END = '# <<< use-homebrew';
-export function brewConfigDir() {
+function brewConfigDir() {
     const xdg = process.env.XDG_CONFIG_HOME;
     return xdg ? path.join(xdg, 'homebrew') : path.join(homeDir(), '.config', 'homebrew');
 }
 export function brewMirrorConfigFile() {
     return path.join(brewConfigDir(), 'mirror.zsh');
 }
-export function readBrewMirrorCatalog(catalogPath) {
+function readBrewMirrorCatalog(catalogPath) {
     const file = catalogPath
         || path.join(projectRoot(), loadManifest('macos').brewMirrorCatalog || 'configs/macos/brew/mirrors.tsv');
     const text = fs.readFileSync(file, 'utf8');
@@ -54,7 +54,7 @@ export function findBrewBinary() {
     }
     return null;
 }
-export function removeBrewMirrorLegacy() {
+function removeBrewMirrorLegacy() {
     for (const p of [
         path.join(homeDir(), '.zsh/functions/brew-mirror.zsh'),
         path.join(brewConfigDir(), 'manage.zsh'),
@@ -71,7 +71,7 @@ export function removeBrewMirrorLegacy() {
         }
     }
 }
-export function writeBrewMirrorConfig(mirrorId) {
+function writeBrewMirrorConfig(mirrorId) {
     const rows = readBrewMirrorCatalog();
     const row = rows.find((r) => r.id === mirrorId);
     if (!row)

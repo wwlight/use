@@ -28,11 +28,6 @@ export function frameLines(frame, columns = 0) {
     }
     return count;
 }
-export function restoreFrame(output, frame) {
-    const up = frameLines(frame, output?.columns || 0);
-    if (up > 0)
-        output.write(`\x1B[${up}A\r`);
-}
 function openWindowsConsole() {
     try {
         const fdIn = fs.openSync('CONIN$', 'r');

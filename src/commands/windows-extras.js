@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { exitStatus, runCommand } from "../core/exec.js";
+import { buildShellCommandLine, exitStatus, runCommand } from "../core/exec.js";
 import { cloneGitRepo, syncGitRepoPlugin } from "../core/git.js";
 import { info, skip, step, stepSuccess, success, warn } from "../core/log.js";
 import { loadManifest } from "../core/manifest.js";
@@ -16,7 +16,7 @@ function commandExists(name) {
     return result.status === 0 && Boolean((result.stdout || '').trim());
 }
 function scoopPrefix(app) {
-    const result = spawnSync('scoop', ['prefix', app], { encoding: 'utf8', shell: true });
+    const result = spawnSync(buildShellCommandLine('scoop', ['prefix', app]), { encoding: 'utf8', shell: true });
     if (result.status !== 0)
         throw new Error(`Could not locate ${app}`);
     const prefix = (result.stdout || '').trim();

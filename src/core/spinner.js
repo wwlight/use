@@ -3,21 +3,21 @@
  * before result lines, plain fallback when stderr is not a TTY.
  */
 import { COLOR_BLUE, COLOR_RESET, info, LOG_NEST_INDENT } from "./log.js";
-const FRAMES = ['◒', '◐', '◓', '◑'];
+const FRAMES = ['|', '/', '-', '\\'];
 /** @param {NodeJS.WriteStream} [stream] */
 function isTty(stream = process.stderr) {
     return Boolean(stream?.isTTY);
 }
 /** Start a spinner on stderr; returns a stop() that clears the current line. */
-export function startSpinner(message) {
+function startSpinner(message) {
     let frame = 0;
     const paint = () => {
         const c = FRAMES[frame % FRAMES.length];
         frame += 1;
-        process.stderr.write(`\r${LOG_NEST_INDENT}${COLOR_BLUE}${c}${COLOR_RESET}  ${message}`);
+        process.stderr.write(`\r${LOG_NEST_INDENT}${COLOR_BLUE}${c}${COLOR_RESET} ${message}`);
     };
     paint();
-    const timer = setInterval(paint, 80);
+    const timer = setInterval(paint, 100);
     return {
         stop() {
             clearInterval(timer);
