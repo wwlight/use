@@ -57,23 +57,84 @@ export function githubRepoCandidates(repo) {
     push(repo);
     return out;
 }
-/** Async git exec (spinner-friendly; does not block the event loop). */
-function runGitAsync(cwd, args, timeoutMs = 15000) {
+// Abort a transfer that stalls under 1 B/s for 15s instead of killing a
+// slow-but-working mirror on a fixed wall-clock timer (matches install.sh /
+// install.ps1). A 30s hard cap still guards against dead connections.
+const GIT_HTTP_LOW_SPEED_LIMIT = '1';
+const GIT_HTTP_LOW_SPEED_TIME = '15';
+const GIT_HARD_CAP_MS = 30000;
+
+/** Last non-empty stderr line (git's own diagnosis, e.g. "fatal: ..."). */
+function lastStderrLine(text) {
+    const trimmed = String(text || '').trim();
+    if (!trimmed)
+        return '';
+    const lines = trimmed.split(/\r?\n/);
+    return lines[lines.length - 1].trim();
+}
+
+/** Async git exec (spinner-friendly; does not block the event loop). Resolves {ok, message, stdout}. */
+export function runGitAsync(cwd, args, timeoutMs = GIT_HARD_CAP_MS) {
     return new Promise((resolve) => {
-        const child = spawn('git', args, { cwd, stdio: 'ignore' });
+        const child = spawn('git', args, {
+            cwd,
+            stdio: ['ignore', 'pipe', 'pipe'],
+            env: {
+                ...process.env,
+                GIT_HTTP_LOW_SPEED_LIMIT,
+                GIT_HTTP_LOW_SPEED_TIME,
+            },
+        });
+        let stdout = '';
+        let stderr = '';
+        child.stdout?.on('data', (d) => {
+            stdout += d.toString();
+        });
+        child.stderr?.on('data', (d) => {
+            stderr += d.toString();
+        });
         const timer = setTimeout(() => {
             child.kill();
-            resolve(false);
+            resolve({ ok: false, message: 'timed out', stdout: '' });
         }, timeoutMs);
         child.on('close', (code) => {
             clearTimeout(timer);
-            resolve(code === 0);
+            resolve({ ok: code === 0, message: lastStderrLine(stderr), stdout });
         });
         child.on('error', () => {
             clearTimeout(timer);
-            resolve(false);
+            resolve({ ok: false, message: 'failed to start git', stdout: '' });
         });
     });
+}
+
+function repoHostLabel(url) {
+    try {
+        const host = new URL(url).host;
+        return host || 'remote';
+    }
+    catch {
+        return 'remote';
+    }
+}
+
+/**
+ * Clone into targetDir trying accel mirrors then official, each behind its own
+ * spinner. The dir is removed before every attempt: a killed/partial clone must
+ * never poison the next candidate (git refuses non-empty destinations).
+ */
+async function cloneGitRepoWithFallback(repo, targetDir, failPrefix) {
+    let lastMessage = '';
+    for (const url of githubRepoCandidates(repo)) {
+        fs.rmSync(targetDir, { recursive: true, force: true });
+        const result = await runWithSpinner(`Cloning ${repoHostLabel(url)} ...`, async () => {
+            return runGitAsync(path.dirname(targetDir), ['clone', '--depth=1', url, targetDir]);
+        });
+        if (result.ok)
+            return;
+        lastMessage = result.message;
+    }
+    throw new Error(`${failPrefix}${lastMessage ? ` (${lastMessage})` : ''}`);
 }
 export function isGitRepo(dir) {
     return fs.existsSync(`${dir}/.git`);
@@ -89,26 +150,11 @@ export function isSameRemoteRepo(dir, expected) {
 /** Clone into targetDir, trying accel mirrors then official, under a spinner. */
 export async function cloneGitRepo(repo, targetDir, name) {
     fs.mkdirSync(path.dirname(targetDir), { recursive: true });
-    fs.rmSync(targetDir, { recursive: true, force: true });
-    await runWithSpinner(`Cloning ${name}...`, async () => {
-        for (const url of githubRepoCandidates(repo)) {
-            const ok = await runGitAsync(process.cwd(), ['clone', '--depth=1', url, targetDir]);
-            if (ok)
-                return;
-        }
-        throw new Error(`Failed to clone ${name}`);
-    });
+    await cloneGitRepoWithFallback(repo, targetDir, `Failed to clone ${name}`);
     success(`Cloned ${name}`);
 }
 async function cloneGitRepoPlugin(repo, targetDir, pluginName) {
-    await runWithSpinner(`Downloading plugin: ${pluginName}...`, async () => {
-        for (const url of githubRepoCandidates(repo)) {
-            const ok = await runGitAsync(process.cwd(), ['clone', '--depth=1', url, targetDir]);
-            if (ok)
-                return;
-        }
-        throw new Error(`Failed to install plugin: ${pluginName}`);
-    });
+    await cloneGitRepoWithFallback(repo, targetDir, `Failed to install plugin: ${pluginName}`);
     success(`Installed plugin: ${pluginName}`);
 }
 function moveDir(src, dest) {
@@ -168,22 +214,25 @@ export async function syncGitRepoPlugin(repo, targetDir, pluginName, update = fa
     }
     await runWithSpinner(`Updating plugin: ${pluginName}...`, async () => {
         let fetched = false;
+        let lastMessage = '';
         for (const url of githubRepoCandidates(repo)) {
             spawnSync('git', ['-C', targetDir, 'remote', 'set-url', 'origin', url], { stdio: 'ignore' });
-            if (await runGitAsync(targetDir, ['fetch', '--prune', 'origin'])) {
+            const result = await runGitAsync(targetDir, ['fetch', '--prune', 'origin']);
+            if (result.ok) {
                 fetched = true;
                 break;
             }
+            lastMessage = result.message;
         }
         if (!fetched) {
-            throw new Error(`Failed to update plugin: ${pluginName}`);
+            throw new Error(`Failed to update plugin: ${pluginName}${lastMessage ? ` (${lastMessage})` : ''}`);
         }
         let branch = spawnSync('git', ['-C', targetDir, 'rev-parse', '--abbrev-ref', 'HEAD'], { encoding: 'utf8' }).stdout.trim();
         if (branch === 'HEAD') {
             const sym = spawnSync('git', ['-C', targetDir, 'symbolic-ref', '-q', '--short', 'refs/remotes/origin/HEAD'], { encoding: 'utf8' }).stdout.trim();
             branch = sym.replace(/^origin\//, '');
         }
-        if (!branch || !(await runGitAsync(targetDir, ['reset', '--hard', `origin/${branch}`]))) {
+        if (!branch || !(await runGitAsync(targetDir, ['reset', '--hard', `origin/${branch}`])).ok) {
             throw new Error(`Failed to update plugin: ${pluginName}`);
         }
     });

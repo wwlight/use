@@ -3,8 +3,9 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { buildShellCommandLine, exitStatus, runCommand } from "../core/exec.js";
-import { cloneGitRepo, syncGitRepoPlugin } from "../core/git.js";
+import { cloneGitRepo, runGitAsync, syncGitRepoPlugin } from "../core/git.js";
 import { info, skip, step, stepSuccess, success, warn } from "../core/log.js";
+import { runWithSpinner } from "../core/spinner.js";
 import { loadManifest } from "../core/manifest.js";
 import { ensureDir, expandPath, homeDir, projectRoot } from "../core/paths.js";
 import { copyFileDataOnly } from "../sync/copy.js";
@@ -28,6 +29,69 @@ function removePathSafe(target) {
     if (!target || !fs.existsSync(target))
         return;
     fs.rmSync(target, { recursive: true, force: true });
+}
+/** Numeric parts of the first "x.y.z..." run in a tag name (null if none). */
+function tagVersionRank(tag) {
+    const match = String(tag).match(/\d+(?:\.\d+)*/);
+    if (!match)
+        return null;
+    return match[0].split('.').map((n) => Number(n));
+}
+function compareRanks(a, b) {
+    const len = Math.max(a.length, b.length);
+    for (let i = 0; i < len; i++) {
+        const va = a[i] ?? 0;
+        const vb = b[i] ?? 0;
+        if (va !== vb)
+            return va - vb;
+    }
+    return 0;
+}
+/** Latest tag by numeric version (git's -version:refname sorts "v2.1.0" above "7.5.0", so compare here). */
+function selectLatestTag(tags) {
+    let best = '';
+    let bestRank = null;
+    for (const tag of tags) {
+        const rank = tagVersionRank(tag);
+        if (!rank)
+            continue;
+        if (!bestRank || compareRanks(rank, bestRank) > 0) {
+            best = tag;
+            bestRank = rank;
+        }
+    }
+    return best;
+}
+/** Resolve the newest release tag and leave it checked out (each network op behind its own spinner). */
+async function resolveGitExtrasTag(workDir) {
+    const ls = await runWithSpinner('Listing remote release tags...', async () => {
+        const result = await runGitAsync(workDir, ['ls-remote', '--tags', '--refs', 'origin']);
+        if (!result.ok) {
+            throw new Error(`Could not list remote tags${result.message ? ` (${result.message})` : ''}`);
+        }
+        return result;
+    });
+    const names = (ls.stdout || '')
+        .split(/\r?\n/)
+        .map((line) => line.split('\t').pop().replace(/^refs\/tags\//, ''))
+        .filter(Boolean);
+    const tag = selectLatestTag(names);
+    if (!tag) {
+        throw new Error('Could not resolve the latest tag');
+    }
+    await runWithSpinner(`Fetching ${tag} ...`, async () => {
+        const result = await runGitAsync(workDir, ['fetch', 'origin', tag, '--depth=1']);
+        if (!result.ok) {
+            throw new Error(`Could not fetch ${tag}${result.message ? ` (${result.message})` : ''}`);
+        }
+    });
+    await runWithSpinner(`Checking out ${tag} ...`, async () => {
+        const result = await runGitAsync(workDir, ['checkout', 'FETCH_HEAD']);
+        if (!result.ok) {
+            throw new Error(`Failed to check out ${tag}${result.message ? ` (${result.message})` : ''}`);
+        }
+    });
+    return tag;
 }
 export async function runZshInstallCommand(_args = [], options = {}) {
     if (!commandExists('scoop'))
@@ -109,27 +173,12 @@ export async function runGitExtrasCommand(_args = []) {
     const workDir = path.join(os.tmpdir(), `use-git-extras-${process.pid}-${Date.now()}`);
     step('Installing git-extras...');
     await cloneGitRepo(repo, workDir, 'git-extras');
-    if (!fs.existsSync(path.join(workDir, '.git'))) {
-        throw new Error('Failed to clone the git-extras repository');
-    }
-    const latestCommit = spawnSync('git', ['rev-list', '--tags', '--max-count=1'], {
-        cwd: workDir,
-        encoding: 'utf8',
-    });
-    if (latestCommit.status !== 0 || !latestCommit.stdout.trim()) {
-        throw new Error('Could not resolve the latest tag commit');
-    }
-    const latestTag = spawnSync('git', ['describe', '--tags', latestCommit.stdout.trim()], {
-        cwd: workDir,
-        encoding: 'utf8',
-    });
-    if (latestTag.status !== 0 || !latestTag.stdout.trim()) {
-        throw new Error('Could not resolve the latest tag');
-    }
-    const checkout = runCommand('git', ['checkout', latestTag.stdout.trim()], { cwd: workDir });
-    if (exitStatus(checkout) !== 0)
-        throw new Error('Failed to check out the latest tag');
-    info(`Checked out version: ${latestTag.stdout.trim()}`);
+    // A --depth=1 clone carries no local tag refs, so "rev-list --tags" finds
+    // nothing. Resolve the newest tag remotely (one ls-remote), fetch just that
+    // one tip (one small fetch), then check out FETCH_HEAD. Ignore git's own
+    // -version:refname ordering: it wrongly ranks "v2.1.0" above "7.5.0".
+    const latestTag = await resolveGitExtrasTag(workDir);
+    info(`Checked out version: ${latestTag}`);
     const gitPath = scoopPrefix('git');
     const installCmd = path.join(workDir, 'install.cmd');
     if (fs.existsSync(installCmd)) {

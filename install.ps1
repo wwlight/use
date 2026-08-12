@@ -546,7 +546,7 @@ function Fetch-UseRepository {
 
   if (Expand-UseZipRepository -Target $Target) {
     Unblock-UseScripts -Root $Target
-    ConvertTo-UseGitRepository -Target $Target
+    $null = ConvertTo-UseGitRepository -Target $Target
     return
   }
 
