@@ -9,6 +9,8 @@ import { runWithSpinner } from "../core/spinner.js";
 import { loadManifest } from "../core/manifest.js";
 import { ensureDir, expandPath, homeDir, projectRoot } from "../core/paths.js";
 import { copyFileDataOnly } from "../sync/copy.js";
+// Bound network-heavy download so a dead mirror fails fast instead of hanging silently.
+const DOWNLOAD_TIMEOUT_MS = 300000;
 function commandExists(name) {
     const result = spawnSync(process.platform === 'win32' ? 'where' : 'which', [name], {
         encoding: 'utf8',
@@ -115,7 +117,7 @@ export async function runZshInstallCommand(_args = [], options = {}) {
     const tarFile = zipFile.replace(/\.zst$/, '');
     ensureDir(workDir);
     info('Downloading the Zsh archive...');
-    const download = runCommand('curl.exe', ['--ssl-no-revoke', '-L', zshInstall.downloadUrl, '-o', zipFile]);
+    const download = runCommand('curl.exe', ['--ssl-no-revoke', '-L', zshInstall.downloadUrl, '-o', zipFile], { timeoutMs: DOWNLOAD_TIMEOUT_MS });
     if (exitStatus(download) !== 0)
         throw new Error('Failed to download the Zsh archive');
     if (!commandExists('7z')) {

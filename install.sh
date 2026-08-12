@@ -5,6 +5,12 @@ REPO="https://github.com/wwlight/use.git"
 REPO_ZIP="https://github.com/wwlight/use/archive/refs/heads/main.zip"
 INSTALL_DIR="${HOME}/Desktop/use"
 ZIP_EXTRACT_NAME="use-main"
+# Per-request timeout so a dead mirror fails fast instead of hanging.
+CONNECT_TIMEOUT=15
+MAX_TIMEOUT=15
+# Abort a git transfer that stays under 1 B/s for 15s instead of hanging silently.
+export GIT_HTTP_LOW_SPEED_LIMIT=1
+export GIT_HTTP_LOW_SPEED_TIME=15
 # BEGIN GENERATED GITHUB ACCEL
 GITHUB_ACCEL_IDS=(
   "ghproxy"
@@ -214,7 +220,7 @@ download_zip_repo() {
     host=${url#*://}
     host=${host%%/*}
     rm -f "$zipfile"
-    if ! spin "Downloading $host ..." curl -fsSL --connect-timeout 15 --max-time 300 -o "$zipfile" "$url"; then
+    if ! spin "Downloading $host ..." curl -fsSL --connect-timeout "$CONNECT_TIMEOUT" --max-time "$MAX_TIMEOUT" -o "$zipfile" "$url"; then
       continue
     fi
     if ! spin "Extracting $ZIP_EXTRACT_NAME ..." unzip -q "$zipfile" -d "$tmp"; then
@@ -244,7 +250,7 @@ clone_repo() {
     host=${url#*://}
     host=${host%%/*}
     rm -rf "$target"
-    if spin "Cloning $host ..." git clone --depth=1 "$url" "$target"; then
+    if spin "Cloning $host ..." git -c http.connectTimeout="$CONNECT_TIMEOUT" clone --depth=1 "$url" "$target"; then
       step_success "Cloned repository to $(format_display_path "$target")"
       return 0
     fi
@@ -275,7 +281,7 @@ update_repo() {
     host=${url#*://}
     host=${host%%/*}
     git -C "$target" remote set-url origin "$url" || continue
-    if spin "Syncing $host ..." git -C "$target" fetch origin main; then
+    if spin "Syncing $host ..." git -C "$target" -c http.connectTimeout="$CONNECT_TIMEOUT" fetch origin main; then
       git -C "$target" reset --hard origin/main || error "Failed to reset local repository"
       step_success "Repository synced with origin/main"
       return 0
@@ -351,7 +357,7 @@ ensure_node() {
     while IFS= read -r url; do
       [ -n "$url" ] || continue
       info "Trying vite-plus installer: $url"
-      if ! script=$(curl -fsSL "$url"); then
+      if ! script=$(curl -fsSL --connect-timeout "$CONNECT_TIMEOUT" --max-time "$MAX_TIMEOUT" "$url"); then
         warn "vite-plus installer fetch failed: $url"
         continue
       fi

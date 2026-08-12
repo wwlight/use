@@ -25,6 +25,7 @@ export function runCommand(command, args, opts = {}) {
             cwd: opts.cwd,
             env: opts.env ?? process.env,
             shell: true,
+            timeout: opts.timeoutMs,
         });
     }
     return spawnSync(command, args, {
@@ -32,6 +33,7 @@ export function runCommand(command, args, opts = {}) {
         cwd: opts.cwd,
         shell: false,
         env: opts.env ?? process.env,
+        timeout: opts.timeoutMs,
     });
 }
 export function runPwsh(scriptPath, args = [], cwd) {

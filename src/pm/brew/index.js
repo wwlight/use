@@ -12,6 +12,10 @@ import { formatAlignedChoices, runMenuSelect } from "../../lib/menu-select.js";
 import { canOpenTerminal } from "../../lib/tty-term.js";
 import { brewMirrorConfigFile, brewMirrorEnv, deployBrewRuntime, ensureBrewZprofile, findBrewBinary, } from "./mirror.js";
 import { firstValueArg, isHelpFlag } from "../../core/args.js";
+// Bound network-heavy brew steps so a dead mirror fails fast instead of hanging silently.
+const BREW_CLONE_TIMEOUT_MS = 30000;
+const BREW_INSTALL_TIMEOUT_MS = 300000;
+const BREW_UPDATE_TIMEOUT_MS = 300000;
 function parseMirrorArg(args) {
     if (isHelpFlag(args))
         return '__HELP__';
@@ -78,7 +82,7 @@ function runInstallScript(mirror, env) {
     if (mode === 'git') {
         const dest = path.join(root, 'brew-install');
         fs.rmSync(dest, { recursive: true, force: true });
-        const clone = runCommand('git', ['clone', '--depth=1', url, dest], { cwd: root, env: installEnv });
+        const clone = runCommand('git', ['clone', '--depth=1', url, dest], { cwd: root, env: installEnv, timeoutMs: BREW_CLONE_TIMEOUT_MS });
         if (exitStatus(clone) !== 0)
             throw new Error('Failed to download the Homebrew installer!');
         const install = runCommand('/bin/bash', [path.join(dest, 'install.sh')], { cwd: root, env: installEnv });
@@ -90,6 +94,7 @@ function runInstallScript(mirror, env) {
     const curl = runCommand('/bin/bash', ['-c', `curl -fsSL ${JSON.stringify(url)} | /bin/bash`], {
         cwd: root,
         env: installEnv,
+        timeoutMs: BREW_INSTALL_TIMEOUT_MS,
     });
     if (exitStatus(curl) !== 0)
         throw new Error('Homebrew installation failed!');
@@ -109,7 +114,7 @@ async function installBrew(mirror) {
     const brew = findBrewBinary();
     if (!brew)
         throw new Error('Homebrew binary not found after install');
-    const update = runCommand(brew, ['update'], { env });
+    const update = runCommand(brew, ['update'], { env, timeoutMs: BREW_UPDATE_TIMEOUT_MS });
     if (exitStatus(update) !== 0)
         throw new Error('Homebrew update failed!');
     stepSuccess('Homebrew installation complete');
