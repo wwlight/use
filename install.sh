@@ -276,6 +276,12 @@ update_repo() {
   if ! command -v git >/dev/null 2>&1; then
     error "Git is required to update an existing repository checkout"
   fi
+  # Prefer the shared in-repo repo-update command. Old checkouts without the
+  # command fall back to the legacy inline logic below.
+  if node "$target/src/cli.js" repo-update "$target" 2>/dev/null; then
+    return 0
+  fi
+  warn "repo-update unavailable in this checkout; using legacy update..."
   while IFS= read -r url; do
     [ -n "$url" ] || continue
     host=${url#*://}

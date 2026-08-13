@@ -1,4 +1,4 @@
-import { error } from "./core/log.js";
+import { error, handleFatalError } from "./core/log.js";
 import { markCliInteractive, requirePlatform, stripArgSeparator } from "./core/platform.js";
 import { runBackupCommand } from "./commands/backup.js";
 import { runGitSetupCommand } from "./commands/git-setup.js";
@@ -8,6 +8,7 @@ import { runSyncCommand } from "./commands/sync.js";
 import { runClinkCommand, runGitExtrasCommand, runZshInstallCommand } from "./commands/windows-extras.js";
 import { runGenerateCommand } from "./commands/generate.js";
 import { runZshPluginCommand } from "./commands/zsh-plugin.js";
+import { runRepoUpdateCommand } from "./commands/repo-update.js";
 import { runBrewPmCommand } from "./pm/brew/index.js";
 import { runScoopPmCommand } from "./pm/scoop/index.js";
 const COMMANDS = {
@@ -28,6 +29,7 @@ const COMMANDS = {
     'zsh': { platforms: ['windows'], run: (_platform, args) => runZshInstallCommand(args) },
     'git-extras': { platforms: ['windows'], run: (_platform, args) => runGitExtrasCommand(args) },
     'clink': { platforms: ['windows'], run: (_platform, args) => runClinkCommand(args) },
+    'repo-update': { platforms: ['macos', 'windows'], run: (_platform, args) => runRepoUpdateCommand(args[0]) },
 };
 const ALL = Object.keys(COMMANDS);
 async function runTask(task, args) {
@@ -62,7 +64,7 @@ async function main() {
         process.exit(await runTask(task, args));
     }
     catch (err) {
-        error(err.message);
+        handleFatalError(err);
         process.exit(1);
     }
 }

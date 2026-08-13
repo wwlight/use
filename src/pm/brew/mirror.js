@@ -5,6 +5,7 @@ import { ensureDir, expandPath, formatLocalDisplay, homeDir, projectRoot } from 
 import { step, stepSuccess, success, warn } from "../../core/log.js";
 import { loadManifest } from "../../core/manifest.js";
 import { copyFileDataOnly } from "../../sync/copy.js";
+import { deployRuntimeFiles, staleRuntimeFiles } from "../../core/runtime-deploy.js";
 const BEGIN = '# >>> use-homebrew';
 const END = '# <<< use-homebrew';
 function brewConfigDir() {
@@ -163,8 +164,7 @@ export function ensureBrewZprofile() {
     fs.writeFileSync(temp, next, 'utf8');
     fs.renameSync(temp, zprofile);
 }
-export async function deployBrewRuntime() {
-    const root = projectRoot();
+function brewRuntimePlan(root = projectRoot()) {
     const macos = loadManifest('macos');
     const target = brewConfigDir();
     const catalog = path.join(root, macos.brewMirrorCatalog || 'configs/macos/brew/mirrors.tsv');
@@ -178,19 +178,26 @@ export async function deployBrewRuntime() {
         if (!fs.existsSync(file))
             throw new Error(`Homebrew runtime file not found: ${file}`);
     }
+    const plan = [
+        [catalog, 'mirrors.tsv'],
+        [helper, 'mirror-cli.zsh'],
+        [menuCli, 'lib/mirror-menu.js'],
+        [menu, 'lib/menu-select.js'],
+        [viewport, 'lib/menu-viewport.js'],
+        [width, 'lib/string-width.js'],
+        [tty, 'lib/tty-term.js'],
+    ].map(([src, rel]) => ({ src, dest: path.join(target, rel) }));
+    return { target, plan };
+}
+export function brewRuntimeDeployState() {
+    return path.join(brewConfigDir(), '.use-deploy-state.json');
+}
+export async function deployBrewRuntime() {
+    const { target, plan } = brewRuntimePlan();
     ensureDir(path.join(target, 'lib'));
     step('Deploying Homebrew mirror runtime...');
-    const deploys = [
-        [catalog, path.join(target, 'mirrors.tsv')],
-        [helper, path.join(target, 'mirror-cli.zsh')],
-        [menuCli, path.join(target, 'lib/mirror-menu.js')],
-        [menu, path.join(target, 'lib/menu-select.js')],
-        [viewport, path.join(target, 'lib/menu-viewport.js')],
-        [width, path.join(target, 'lib/string-width.js')],
-        [tty, path.join(target, 'lib/tty-term.js')],
-    ];
-    for (const [src, dest] of deploys) {
-        await copyFileDataOnly(src, dest);
+    await deployRuntimeFiles(plan, brewRuntimeDeployState());
+    for (const { dest } of plan) {
         success(`Deployed ${formatLocalDisplay(dest, homeDir())}`);
     }
     for (const legacy of ['menu.js', 'menu.ts', 'menu-select.ts', 'string-width.ts', 'tty-term.ts', 'menu.mjs', 'menu-select.mjs', 'string-width.mjs', 'tty-term.mjs']) {
@@ -205,4 +212,9 @@ export async function deployBrewRuntime() {
     }
     removeBrewMirrorLegacy();
     stepSuccess(`Deployed Homebrew mirror runtime to ${target}`);
+}
+/** Files in the deployed brew runtime that are missing or older than the repo. */
+export function staleBrewRuntimeFiles(root = projectRoot()) {
+    const { plan } = brewRuntimePlan(root);
+    return staleRuntimeFiles(plan, brewRuntimeDeployState());
 }

@@ -50,6 +50,13 @@
             "Info": ""
         },
         {
+            "Name": "tealdeer",
+            "Version": "1.8.1",
+            "Updated": "2026-07-12T21:47:36.1408255+08:00",
+            "Source": "main",
+            "Info": ""
+        },
+        {
             "Name": "winsw-pre",
             "Version": "3.0.0-alpha.11",
             "Updated": "2026-07-03T03:32:52.1073187+08:00",

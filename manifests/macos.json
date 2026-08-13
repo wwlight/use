@@ -11,6 +11,7 @@
     { "type": "brew", "name": "fzf" },
     { "type": "brew", "name": "git" },
     { "type": "brew", "name": "starship" },
+    { "type": "brew", "name": "tealdeer" },
     { "type": "brew", "name": "zoxide" },
     { "type": "cask", "name": "ghostty" },
     { "type": "cask", "name": "font-fira-code-nerd-font" }

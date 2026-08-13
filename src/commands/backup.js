@@ -6,11 +6,20 @@ import { loadManifest } from "../core/manifest.js";
 import { projectRoot } from "../core/paths.js";
 import { runBrew } from "../pm/brew/index.js";
 const BREW_DIRECTIVE = /^\s*(tap|brew|cask|mas|vscode|whalebrew)\s+"([^"]+)"/;
-function atomicWrite(filePath, content) {
+/** Write content to file only when it differs from the current bytes. */
+function atomicWriteIfChanged(filePath, content) {
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
+    try {
+        if (fs.readFileSync(filePath, 'utf8') === content)
+            return false;
+    }
+    catch {
+        // destination missing or unreadable -> always write
+    }
     const temp = `${filePath}.${process.pid}.${Date.now()}.tmp`;
     fs.writeFileSync(temp, content, { encoding: 'utf8', mode: 0o644 });
     fs.renameSync(temp, filePath);
+    return true;
 }
 function parseBrewfile(content) {
     const records = [];
@@ -96,7 +105,7 @@ function writeBrewLiteBackup(root, manifest) {
     const fullPath = path.join(root, manifest.brewfile);
     const litePath = path.join(root, manifest.brewfileLite);
     const result = renderBrewLite(fs.readFileSync(fullPath, 'utf8'), manifest);
-    atomicWrite(litePath, result.content);
+    atomicWriteIfChanged(litePath, result.content);
     return result;
 }
 function loadGithubAccelPrefixes(root) {
@@ -140,7 +149,7 @@ function writeScoopLiteBackup(root, manifest) {
     const litePath = path.join(root, liteRel);
     const prefixes = loadGithubAccelPrefixes(root);
     const full = normalizeScoopBackupBucketSources(JSON.parse(fs.readFileSync(fullPath, 'utf8')), prefixes);
-    fs.writeFileSync(fullPath, `${JSON.stringify(full, null, 4)}\n`);
+    atomicWriteIfChanged(fullPath, `${JSON.stringify(full, null, 4)}\n`);
     const byName = new Map((full.apps || []).map((app) => [app.Name, app]));
     const apps = [];
     const missing = [];
@@ -153,7 +162,7 @@ function writeScoopLiteBackup(root, manifest) {
     }
     const bucketNames = new Set(apps.map((app) => app.Source));
     const buckets = (full.buckets || []).filter((b) => bucketNames.has(b.Name));
-    fs.writeFileSync(litePath, `${JSON.stringify({ apps, buckets }, null, 4)}\n`);
+    atomicWriteIfChanged(litePath, `${JSON.stringify({ apps, buckets }, null, 4)}\n`);
     return { ok: true, missing, written: apps.length };
 }
 export async function runBackupCommand(platform) {

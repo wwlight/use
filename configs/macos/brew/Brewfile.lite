@@ -7,6 +7,8 @@ brew "fzf"
 brew "git"
 # Cross-shell prompt for astronauts
 brew "starship"
+# Very fast implementation of tldr in Rust
+brew "tealdeer"
 # Shell extension to navigate your filesystem faster
 brew "zoxide"
 cask "font-fira-code-nerd-font"

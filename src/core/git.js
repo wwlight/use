@@ -26,6 +26,19 @@ function needsGithubAccel(repo) {
     return /^https?:\/\/github\.com\//i.test(repo)
         || /^https?:\/\/raw\.githubusercontent\.com\//i.test(repo);
 }
+/** Strip a known accel prefix, returning the bare GitHub URL. */
+export function stripGithubAccelPrefix(url) {
+    let u = String(url || '').trim();
+    const common = loadManifest('common');
+    for (const mirror of common.githubAccel?.mirrors ?? []) {
+        const prefix = String(mirror.prefix || '').endsWith('/') ? mirror.prefix : `${mirror.prefix}/`;
+        if (u.startsWith(prefix)) {
+            u = u.slice(prefix.length);
+            break;
+        }
+    }
+    return u;
+}
 /**
  * Fetch/clone order: selected (USE_ACCEL) → other mirrors → official.
  * Matches install.sh / Scoop Get-ScoopMirrorFetchAttempts when a mirror is selected.

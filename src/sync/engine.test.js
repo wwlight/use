@@ -30,6 +30,46 @@ test('copyFileDataOnly copies bytes and supports utf8Bom', async () => {
     }
 });
 
+test('copyFileDataOnly skips identical content but force re-copies', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vpr-copy-skip-'));
+    try {
+        const src = path.join(root, 'a.txt');
+        const dest = path.join(root, 'out', 'a.txt');
+        fs.writeFileSync(src, 'hello\n');
+        await copyFileDataOnly(src, dest);
+        const firstMtime = fs.statSync(dest).mtimeMs;
+        fs.utimesSync(dest, new Date(), new Date(firstMtime - 5000));
+        const bumpedMtime = fs.statSync(dest).mtimeMs;
+        await copyFileDataOnly(src, dest);
+        assert.ok(
+            Math.abs(fs.statSync(dest).mtimeMs - bumpedMtime) < 1,
+            'identical copy must not touch mtime',
+        );
+        await copyFileDataOnly(src, dest, { force: true });
+        assert.ok(fs.statSync(dest).mtimeMs > bumpedMtime, 'force re-copies');
+    }
+    finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});
+
+test('copyFileDataOnly utf8Bom skips identical BOM content', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vpr-copy-bom-'));
+    try {
+        const src = path.join(root, 'a.txt');
+        const dest = path.join(root, 'out', 'bom.txt');
+        fs.writeFileSync(src, 'hello\n');
+        await copyFileDataOnly(src, dest, { encoding: 'utf8Bom' });
+        const firstMtime = fs.statSync(dest).mtimeMs;
+        await copyFileDataOnly(src, dest, { encoding: 'utf8Bom' });
+        assert.ok(Math.abs(fs.statSync(dest).mtimeMs - firstMtime) < 1, 'identical BOM copy must not touch mtime');
+        assert.equal(fs.readFileSync(dest, 'utf8'), '\uFEFFhello\n');
+    }
+    finally {
+        fs.rmSync(root, { recursive: true, force: true });
+    }
+});
+
 test('backupFile versions existing locals', async () => {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vpr-bak-'));
     try {

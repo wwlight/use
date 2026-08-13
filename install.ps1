@@ -569,6 +569,14 @@ function Update-UseRepository {
     Write-ErrorAndExit 'Git is required to update the repository'
   }
 
+  # Prefer the shared in-repo repo-update command. Old checkouts without the
+  # command fall back to the legacy inline logic below.
+  $selfCli = Join-Path $Target 'src/cli.js'
+  $selfNode = Resolve-NodeExe
+  & $selfNode $selfCli repo-update $Target 2>$null
+  if ($LASTEXITCODE -eq 0) { return }
+  Write-Warn 'repo-update unavailable in this checkout; using legacy update...'
+
   $spin = Test-CanSpin
   $candidates = @(Get-GithubRepoCandidates)
   for ($idx = 0; $idx -lt $candidates.Count; $idx++) {

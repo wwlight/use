@@ -11,15 +11,13 @@ import { projectRoot } from "../../core/paths.js";
 import { formatAlignedChoices, runMenuSelect } from "../../lib/menu-select.js";
 import { canOpenTerminal } from "../../lib/tty-term.js";
 import { brewMirrorConfigFile, brewMirrorEnv, deployBrewRuntime, ensureBrewZprofile, findBrewBinary, } from "./mirror.js";
-import { firstValueArg, isHelpFlag } from "../../core/args.js";
+import { resolveChoiceArg } from "../../core/args.js";
 // Bound network-heavy brew steps so a dead mirror fails fast instead of hanging silently.
 const BREW_CLONE_TIMEOUT_MS = 30000;
 const BREW_INSTALL_TIMEOUT_MS = 300000;
 const BREW_UPDATE_TIMEOUT_MS = 300000;
 function parseMirrorArg(args) {
-    if (isHelpFlag(args))
-        return '__HELP__';
-    return firstValueArg(args);
+    return resolveChoiceArg(args);
 }
 async function resolveBrewMirror(args) {
     const arg = parseMirrorArg(args);

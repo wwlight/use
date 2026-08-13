@@ -12,11 +12,9 @@ import { runGitSetupCommand } from "./git-setup.js";
 import { runZshInstallCommand } from "./windows-extras.js";
 import { runZshPluginCommand } from "./zsh-plugin.js";
 import { runConfigSync } from "../sync/engine.js";
-import { firstValueArg, isHelpFlag } from "../core/args.js";
+import { resolveChoiceArg } from "../core/args.js";
 function parseProfileArg(args) {
-    if (isHelpFlag(args))
-        return '__HELP__';
-    return firstValueArg(args);
+    return resolveChoiceArg(args);
 }
 async function resolveProfile(args, platform) {
     const arg = parseProfileArg(args);

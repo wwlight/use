@@ -1,13 +1,21 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { canceled, error, step } from "../core/log.js";
+import { canceled, error, step, warn } from "../core/log.js";
 import { markCliInteractive } from "../core/platform.js";
 import { isHelpFlag, stripDashArgs } from "../core/args.js";
 import { SYNC_DIRECTION_EXAMPLE, SYNC_DIRECTION_HINT, isSyncDirection, normalizeSyncDirection, promptSyncDirectionMenu, } from "../sync/direction.js";
 import { runConfigSync } from "../sync/engine.js";
 import { cleanupSyncTempFile, readSyncPairLines } from "../sync/pairs.js";
 import { runSyncSelectPrompt } from "../sync/select.js";
+import { staleBrewRuntimeFiles } from "../pm/brew/mirror.js";
+import { staleScoopRuntimeFiles } from "../pm/scoop/deploy.js";
+function warnStaleRuntime(platform) {
+    const stale = platform === 'macos' ? staleBrewRuntimeFiles() : staleScoopRuntimeFiles();
+    if (stale.length === 0)
+        return;
+    warn(`${stale.length} runtime helper(s) changed in the repo; re-run "vpr pm" to redeploy`);
+}
 function parseSyncDirection(args) {
     const meaningful = stripDashArgs(args);
     if (meaningful.length === 0)
@@ -116,6 +124,7 @@ export async function runSyncCommand(platform, args) {
     step(message);
     try {
         await runConfigSync({ platform, direction, fromDispatch: true });
+        warnStaleRuntime(platform);
         return 0;
     }
     catch (err) {

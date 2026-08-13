@@ -10,7 +10,6 @@ import { loadManifest, pathVarsForWindows } from "../../core/manifest.js";
 import { ensureDir, projectRoot } from "../../core/paths.js";
 import { deployScoopRuntime } from "./deploy.js";
 import { formatScoopMirrorLabel, resolveScoopMirror } from "./mirror.js";
-import { applyTldrMirror } from "../../../runtime/scoop/mirror/tealdeer.js";
 
 function bootstrapScript() {
     return path.join(projectRoot(), 'runtime', 'scoop', 'bootstrap', 'entry.ps1');
@@ -30,7 +29,8 @@ function readBootstrapPrefix(outFile, fallback) {
 }
 
 function runBootstrap(phase, activePrefix, root) {
-    const outFile = path.join(os.tmpdir(), `use-scoop-bootstrap-${process.pid}.txt`);
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'use-scoop-bootstrap-'));
+    const outFile = path.join(tmpDir, 'out.txt');
     const prev = process.env.USE_SCOOP_BOOTSTRAP_OUT;
     try {
         process.env.USE_SCOOP_BOOTSTRAP_OUT = outFile;
@@ -49,8 +49,7 @@ function runBootstrap(phase, activePrefix, root) {
             delete process.env.USE_SCOOP_BOOTSTRAP_OUT;
         else
             process.env.USE_SCOOP_BOOTSTRAP_OUT = prev;
-        if (fs.existsSync(outFile))
-            fs.unlinkSync(outFile);
+        fs.rmSync(tmpDir, { recursive: true, force: true });
     }
 }
 
@@ -81,13 +80,6 @@ export async function runScoopPmCommand(args = []) {
                 + `active mirror is ${formatScoopMirrorLabel(afterInstall)} after install fallback`,
             );
             activePrefix = afterInstall;
-        }
-        const tldr = applyTldrMirror(activePrefix);
-        if (tldr.applied) {
-            info(`tldr: archive_source set to ${tldr.archiveSource}`);
-        }
-        else if (tldr.skipped) {
-            info(`tldr: skipped (${tldr.skipped})`);
         }
         await deployScoopRuntime(activePrefix);
         activePrefix = runBootstrap('finish', activePrefix, root);

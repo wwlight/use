@@ -16,20 +16,7 @@ foreach ($__name in $__sysAliases.Keys) {
 }
 Remove-Variable __sysAliases, __name, __a -ErrorAction SilentlyContinue
 
-# eza
-function ls { eza --icons @args }
-function l { eza -l --icons @args }
-function la { eza -la --icons @args }
-function lt { eza --tree --icons @args }
-
-# Vite+
-function v { vp @args }
-function vc { vp create @args }
-function s { vpr start @args }
-function d { vpr dev @args }
-function b { vpr build @args }
-
-# Git
+# git
 function gp { git push @args }
 function gl { git pull @args }
 function grt { cd "$(git rev-parse --show-toplevel)" }
@@ -38,8 +25,24 @@ function gc {
     if ($branch) { git checkout $branch.Trim() }
 }
 
+# vite+
+function v { vp @args }
+function vc { vp create @args }
+function s { vpr start @args }
+function d { vpr dev @args }
+function b { vpr build @args }
+
+# eza
+function l { eza -l --icons @args }
+function la { eza -la --icons @args }
+function ls { eza --icons @args }
+function lt { eza --tree --icons @args }
+
+# tldr
+function t { tldr @args }
+function tt { tldr -L en @args }
+
 # Other
 function reload { . $PROFILE }
 function of { onefetch @args }
 function oc { opencode @args }
-function t { tldr @args }

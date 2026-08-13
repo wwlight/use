@@ -62,3 +62,10 @@ export function warn(message) {
 export function error(message) {
     console.error(`${COLOR_RED}${MARK_ERROR}${MARK_GAP}${message}${COLOR_RESET}`);
 }
+/** Print a fatal error; with USE_DEBUG=1 also print the stack for troubleshooting. */
+export function handleFatalError(err) {
+    if (process.env.USE_DEBUG === '1' && err?.stack)
+        console.error(err.stack);
+    else
+        error(err?.message || String(err));
+}

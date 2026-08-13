@@ -8,6 +8,7 @@ export ZSH_FUNCTIONS=$ZSH/functions
 export ZSH_COMPDUMP=$ZSH_CACHE/.zcompdump-$HOST
 export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml
 export EZA_CONFIG_DIR=$HOME/.config/eza
+export TEALDEER_CONFIG_DIR=${XDG_CONFIG_HOME:-$HOME/.config}/tealdeer
 [[ -d $ZSH_CACHE && -d $ZSH_HISTORY ]] || mkdir -p $ZSH_CACHE $ZSH_CACHE/zcompcache $ZSH_HISTORY
 
 # --- 历史记录 ---

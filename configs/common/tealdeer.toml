@@ -1,0 +1,9 @@
+# tealdeer (tldr) config — synced to ~/.config/tealdeer/config.toml.
+
+[updates]
+archive_source = "https://github.com/tldr-pages/tldr/releases/latest/download/"
+auto_update = false
+download_languages = ["en", "zh"]
+
+[search]
+languages = ["zh", "en"]

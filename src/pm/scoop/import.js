@@ -44,7 +44,8 @@ function writeMirroredImportFile(backupPath, activePrefix) {
     }
     if (!changed)
         return backupPath;
-    const temp = path.join(os.tmpdir(), `use-scoop-import-${process.pid}-${Date.now()}.json`);
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'use-scoop-import-'));
+    const temp = path.join(tmpDir, 'backup.json');
     fs.writeFileSync(temp, `${JSON.stringify(data, null, 2)}\n`, 'utf8');
     return temp;
 }
@@ -112,8 +113,9 @@ export async function restoreScoopPackages(root = projectRoot(), profile = '') {
         return 0;
     }
     finally {
-        if (importFile !== backupPath && fs.existsSync(importFile)) {
-            fs.unlinkSync(importFile);
+        if (importFile !== backupPath) {
+            const tmpDir = path.dirname(importFile);
+            fs.rmSync(tmpDir, { recursive: true, force: true });
         }
     }
 }

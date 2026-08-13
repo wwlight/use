@@ -1,27 +1,32 @@
 import { loadManifest } from "./manifest.js";
-export function formatInitUsage(common = loadManifest('common')) {
-    const keys = Object.keys(common.profiles ?? {});
+/**
+ * Render "Usage: vpr <cmd> [<a>|<b>|...]" plus an aligned choice list and
+ * examples. choices: [{ id, label }].
+ */
+export function formatChoiceUsage(cmd, choices, exampleArg) {
+    const keys = choices.map((c) => c.id);
     const pad = Math.max(0, ...keys.map((k) => k.length));
     return [
-        `Usage: vpr init [${keys.join('|')}]`,
+        `Usage: vpr ${cmd} [${keys.join('|')}]`,
         '',
-        ...keys.map((k) => `  ${k.padEnd(pad)}  ${common.profiles[k].label}`),
+        ...choices.map((c) => `  ${c.id.padEnd(pad)}  ${c.label}`),
         '',
         'Examples:',
-        '  vpr init',
-        ...keys.map((k) => `  vpr init -- ${k}`),
+        '  ' + `vpr ${cmd}`,
+        ...keys.map((k) => `  vpr ${cmd} -- ${k}`),
     ].join('\n');
 }
+export function formatInitUsage(common = loadManifest('common')) {
+    const profiles = Object.entries(common.profiles ?? {}).map(([id, cfg]) => ({
+        id,
+        label: cfg.label || id,
+    }));
+    return formatChoiceUsage('init', profiles);
+}
 export function formatPmUsage(macos = loadManifest('macos')) {
-    const keys = Object.keys(macos.brewMirrors ?? {});
-    const pad = Math.max(0, ...keys.map((k) => k.length));
-    return [
-        `Usage: vpr pm [${keys.join('|')}]`,
-        '',
-        ...keys.map((k) => `  ${k.padEnd(pad)}  ${macos.brewMirrors[k].label}`),
-        '',
-        'Examples:',
-        '  vpr pm',
-        ...keys.map((k) => `  vpr pm -- ${k}`),
-    ].join('\n');
+    const mirrors = Object.entries(macos.brewMirrors ?? {}).map(([id, cfg]) => ({
+        id,
+        label: cfg.label || id,
+    }));
+    return formatChoiceUsage('pm', mirrors);
 }

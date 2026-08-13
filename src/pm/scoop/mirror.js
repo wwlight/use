@@ -3,7 +3,8 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { firstValueArg, isHelpFlag } from "../../core/args.js";
+import { formatChoiceUsage } from "../../core/usage.js";
+import { resolveChoiceArg } from "../../core/args.js";
 import { canceled } from "../../core/log.js";
 import { loadManifest } from "../../core/manifest.js";
 import { scoopConfigDir } from "../../core/paths.js";
@@ -41,16 +42,7 @@ export function listScoopMirrors() {
 
 export function formatScoopPmUsage() {
     const rows = listScoopMirrors();
-    const pad = Math.max(0, ...rows.map((r) => r.id.length));
-    return [
-        `Usage: vpr pm [${rows.map((r) => r.id).join('|')}]`,
-        '',
-        ...rows.map((r) => `  ${r.id.padEnd(pad)}  ${r.label}`),
-        '',
-        'Examples:',
-        '  vpr pm',
-        ...rows.map((r) => `  vpr pm -- ${r.id}`),
-    ].join('\n');
+    return formatChoiceUsage('pm', rows.map((r) => ({ id: r.id, label: r.label })));
 }
 
 export function mirrorPrefixById(id) {
@@ -89,13 +81,11 @@ export function formatScoopMirrorLabel(prefix) {
  * @param {string[]} args
  */
 export async function resolveScoopMirror(args = []) {
-    if (isHelpFlag(args)) {
+    const choice = resolveChoiceArg(args) || '';
+    if (choice === '__HELP__') {
         console.log(formatScoopPmUsage());
         process.exit(0);
     }
-    let choice = firstValueArg(args) || '';
-    if (choice.startsWith('--'))
-        choice = choice.slice(2);
 
     // USE_ACCEL auto-selects only when non-interactive.
     const hintFromEnv = String(process.env.USE_ACCEL || '').trim();
