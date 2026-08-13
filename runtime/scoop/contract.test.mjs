@@ -152,16 +152,13 @@ assert.ok(!/\[Parameter\([^\]]*ValueFromRemainingArguments/.test(read('runtime/s
 
 assert.match(rootInstall, /Ensure-NodeRuntime/)
 assert.match(rootInstall, /Invoke-UseCli -CliArgs \$pmArgs/)
-assert.match(rootInstall, /SYNC_SKIP_PM_HELPERS\s*=\s*'1'/)
 
 const windowsManifest = JSON.parse(read('manifests/windows.json'))
 const syncRepos = windowsManifest.sync.toRepo.map((item) => String(item.repo))
 const syncLocals = windowsManifest.sync.toRepo.map((item) => String(item.local))
-assert.ok(syncRepos.some((repo) => repo === 'runtime/scoop/mirror/cli.js'))
-assert.ok(syncRepos.some((repo) => repo === 'runtime/scoop/scoop.ps1'))
-assert.ok(syncRepos.some((repo) => repo === 'runtime/scoop/services/cli.ps1'))
-assert.ok(syncLocals.some((local) => local.includes('{scoopConfigDir}/mirror/cli.js')))
-assert.ok(syncLocals.some((local) => local.includes('{scoopConfigDir}/scoop.ps1')))
+// Runtime helpers are deployed by pm, not part of config sync.
+assert.ok(!syncRepos.some((repo) => repo.startsWith('runtime/scoop/')))
+assert.ok(!syncLocals.some((local) => local.includes('{scoopConfigDir}/')))
 assert.ok(!syncLocals.some((local) => local.includes('/shell.ps1')))
 assert.ok(!syncLocals.some((local) => local.includes('manage.ps1')))
 assert.ok(!syncRepos.some((repo) => repo.includes('/deploy/')))

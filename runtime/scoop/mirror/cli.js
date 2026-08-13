@@ -13,6 +13,7 @@ import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { applyTldrMirror } from './tealdeer.js'
 const here = path.dirname(fileURLToPath(import.meta.url));
 const MARKERS = [
     // Longer legacy marker must be stripped before the shorter current marker.
@@ -458,7 +459,18 @@ function switchMirror(choice, config) {
     }
     setBucketRemotes(activePrefix, config);
     writeActivePrefix(config, activePrefix);
+    syncTldrMirror(activePrefix);
     printMirrorStatus({ ...config, activePrefix });
+}
+
+function syncTldrMirror(activePrefix) {
+    const result = applyTldrMirror(activePrefix);
+    if (result.applied) {
+        console.log(`tldr: archive_source set to ${result.archiveSource}`);
+    }
+    else if (result.skipped) {
+        console.log(`tldr: skipped (${result.skipped})`);
+    }
 }
 async function selectMirrorInteractively(config) {
     const { formatAlignedChoices, runMenuSelect } = await loadMenuModule();

@@ -63,6 +63,11 @@ export async function deployScoopRuntime(activePrefix = '') {
         throw new Error(`runtime/scoop/mirror/cli.js not found: ${cliSrc}`);
     plan.push({ src: cliSrc, dest: path.join(mirrorDir, 'cli.js') });
 
+    const tldrSrc = path.join(mirrorSrc, 'tealdeer.js');
+    if (!fs.existsSync(tldrSrc))
+        throw new Error(`runtime/scoop/mirror/tealdeer.js not found: ${tldrSrc}`);
+    plan.push({ src: tldrSrc, dest: path.join(mirrorDir, 'tealdeer.js') });
+
     for (const name of ['menu-select.js', 'menu-viewport.js', 'string-width.js', 'tty-term.js']) {
         const src = path.join(root, 'src', 'lib', name);
         if (!fs.existsSync(src))

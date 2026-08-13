@@ -27,6 +27,13 @@ export function scoopConfigDir(home = homeDir()) {
         return path.resolve(xdg, 'scoop');
     return path.join(home, '.config', 'scoop');
 }
+/** use PowerShell aliases root (XDG): ~/.config/pwsh — shared by pwsh 5 + 7 profiles. */
+export function pwshConfigDir(home = homeDir()) {
+    const xdg = process.env.XDG_CONFIG_HOME?.trim();
+    if (xdg)
+        return path.resolve(xdg, 'pwsh');
+    return path.join(home, '.config', 'pwsh');
+}
 export function resolveScoopDir(manifestScoopDir) {
     const fromEnv = process.env.USE_SCOOP_DIR || process.env.SCOOP;
     if (fromEnv && fromEnv.trim())
@@ -60,6 +67,10 @@ export function expandPath(input, vars = {}) {
     if (vars.scoopConfigDir) {
         const cfg = vars.scoopConfigDir.replace(/\\/g, '/');
         p = p.replaceAll('{scoopConfigDir}', cfg);
+    }
+    if (vars.pwshConfigDir) {
+        const cfg = vars.pwshConfigDir.replace(/\\/g, '/');
+        p = p.replaceAll('{pwshConfigDir}', cfg);
     }
     if (p === '~')
         return home;

@@ -37,13 +37,13 @@ assert.match(brewPm, /findBrewBinary/)
 assert.ok(!brewPm.includes('command -v brew'))
 assert.ok(!/if\s*\(\s*!process\.stdin\.isTTY\s*\)/.test(brewPm))
 
-assert.match(installSh, /SYNC_SKIP_PM_HELPERS=1/)
 assert.match(installSh, /REPO_ZIP|download_zip_repo|fetch_repo/)
 
 const syncLocals = manifest.sync.toRepo.map((item) => item.local)
-assert.ok(syncLocals.some((local) => String(local).includes('.config/homebrew/mirror-cli.zsh')))
-assert.ok(syncLocals.some((local) => String(local).includes('.config/homebrew/mirrors.tsv')))
-assert.ok(syncLocals.some((local) => String(local).includes('.config/homebrew/lib/mirror-menu.js')))
+// Runtime helpers are deployed by pm, not part of config sync.
+assert.ok(!syncLocals.some((local) => String(local).includes('.config/homebrew/mirror-cli.zsh')))
+assert.ok(!syncLocals.some((local) => String(local).includes('.config/homebrew/mirrors.tsv')))
+assert.ok(!syncLocals.some((local) => String(local).includes('.config/homebrew/lib/mirror-menu.js')))
 assert.ok(!syncLocals.some((local) => String(local).includes('manage.zsh')))
 assert.ok(!syncLocals.some((local) => String(local).includes('brew-mirror.zsh')))
 assert.equal(manifest.brewfile, 'configs/macos/brew/Brewfile')

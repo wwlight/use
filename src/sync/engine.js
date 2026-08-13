@@ -13,6 +13,7 @@ function expandItemLocal(local, platform) {
             scoopDir: vars.scoopDir,
             softwareAppsDir: vars.softwareAppsDir,
             scoopConfigDir: vars.scoopConfigDir,
+            pwshConfigDir: vars.pwshConfigDir,
         });
     }
     return expandPath(local, { home: homeDir() });

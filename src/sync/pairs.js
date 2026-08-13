@@ -26,6 +26,7 @@ function normalizeLocalForPair(local, platform) {
             !local.includes('{scoopDir}')
             && !local.includes('{softwareAppsDir}')
             && !local.includes('{scoopConfigDir}')
+            && !local.includes('{pwshConfigDir}')
         )
     ) {
         return local;
@@ -36,6 +37,7 @@ function normalizeLocalForPair(local, platform) {
         scoopDir: vars.scoopDir,
         scoopConfigDir: vars.scoopConfigDir,
         softwareAppsDir: vars.softwareAppsDir,
+        pwshConfigDir: vars.pwshConfigDir,
     }).replace(/\\/g, '/');
 }
 /**
@@ -74,7 +76,6 @@ function compareSyncItems(a, b, home = homeDir()) {
 }
 export function readSyncItems(platform, direction, profile) {
     const liteOnly = profile === 'lite' || process.env.SYNC_PROFILE === 'lite';
-    const skipPmHelpers = process.env.SYNC_SKIP_PM_HELPERS === '1';
     const items = [];
     for (const scope of syncScopes(platform)) {
         const manifest = loadManifest(scope);
@@ -82,8 +83,6 @@ export function readSyncItems(platform, direction, profile) {
             if (liteOnly && item.lite === false)
                 continue;
             if (direction === '1' && item.restoreOnly === true)
-                continue;
-            if (skipPmHelpers && item.pmHelper)
                 continue;
             const normalized = {
                 ...item,

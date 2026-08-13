@@ -403,15 +403,13 @@ install_macos() {
   fi
   run_cli pm
 
-  # pm already deployed helpers; init sync skips pmHelper pairs.
-  export SYNC_SKIP_PM_HELPERS=1
+  # pm already deployed helpers; runtime helpers are not part of config sync.
   export USE_INSTALLER=1
   if [ -n "$profile" ]; then
     run_cli init -- "$profile"
   else
     run_cli init
   fi
-  unset SYNC_SKIP_PM_HELPERS
   unset USE_INSTALLER
 
   printf '\n' >&2

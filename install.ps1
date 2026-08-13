@@ -669,8 +669,7 @@ try {
   Invoke-UseCli -CliArgs $pmArgs
 
   $env:SYNC_INTERACTIVE = '1'
-  # pm already deployed helpers; init sync skips pmHelper pairs.
-  $env:SYNC_SKIP_PM_HELPERS = '1'
+  # pm already deployed helpers; runtime helpers are not part of config sync.
   $env:USE_INSTALLER = '1'
   if ($InstallProfile) {
     Invoke-UseCli -CliArgs @('init', $InstallProfile)
@@ -684,7 +683,6 @@ try {
 finally {
   Remove-Item Env:GIT_HTTP_LOW_SPEED_LIMIT -ErrorAction SilentlyContinue
   Remove-Item Env:GIT_HTTP_LOW_SPEED_TIME -ErrorAction SilentlyContinue
-  Remove-Item Env:SYNC_SKIP_PM_HELPERS -ErrorAction SilentlyContinue
   Remove-Item Env:USE_INSTALLER -ErrorAction SilentlyContinue
   Remove-Item Env:USE_QUIET_INSTALL -ErrorAction SilentlyContinue
 }
