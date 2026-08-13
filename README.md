@@ -238,6 +238,7 @@ configs/macos/
 │   ├── Brewfile.lite             # 尝鲜版（由 Brewfile + brewLiteItems 生成）
 │   └── mirrors.tsv               # 镜像目录（由 manifests/macos.json 生成）
 ├── ghostty_config                # Ghostty 终端配置
+├── tealdeer.toml                 # tldr 配置
 └── utils.zsh                     # zsh 自定义函数
 ```
 
@@ -294,6 +295,7 @@ configs/windows/
 │   ├── backup.lite.json          # 尝鲜版最小依赖
 │   └── scoop.zsh                 # zsh：scoop mirror / services
 ├── starship.lua                  # cmd 下 clink + starship
+├── tealdeer.toml                 # tldr 配置
 └── utils.zsh                     # 自定义函数
 ```
 

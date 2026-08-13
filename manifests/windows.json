@@ -59,7 +59,8 @@
       { "local": "{scoopDir}/persist/clash-party/data/mihomo.yaml", "repo": "configs/common/mihomo.yaml", "lite": false, "defaultSelected": false },
       { "local": "~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1", "repo": "configs/windows/pwsh5_profile.ps1", "backup": true },
       { "local": "~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1", "repo": "configs/windows/pwsh7_profile.ps1", "backup": true },
-      { "local": "{pwshConfigDir}/aliases.ps1", "repo": "configs/windows/pwsh-aliases.ps1", "backup": true }
+      { "local": "{pwshConfigDir}/aliases.ps1", "repo": "configs/windows/pwsh-aliases.ps1", "backup": true },
+      { "local": "{scoopDir}/apps/tealdeer/current/config.toml", "repo": "configs/windows/tealdeer.toml" }
     ]
   },
   "zshInstall": {

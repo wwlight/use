@@ -25,7 +25,6 @@
       { "local": "~/.zsh/functions/aliases.zsh", "repo": "configs/common/aliases.zsh" },
       { "local": "~/.zsh/functions/github-accel.zsh", "repo": "configs/common/github-accel.zsh", "restoreOnly": true },
       { "local": "~/.config/starship/starship.toml", "repo": "configs/common/starship.toml" },
-      { "local": "~/.config/tealdeer/config.toml", "repo": "configs/common/tealdeer.toml", "restoreOnly": true },
       { "local": "~/.config/opencode/opencode.jsonc", "repo": "configs/common/opencode.jsonc", "backup": true, "lite": false, "defaultSelected": false }
     ]
   },

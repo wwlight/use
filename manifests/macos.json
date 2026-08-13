@@ -42,6 +42,7 @@
       { "local": "~/.bashrc", "repo": "configs/macos/.bashrc", "backup": true },
       { "local": "~/.zsh/functions/utils.zsh", "repo": "configs/macos/utils.zsh" },
       { "local": "~/.config/ghostty/config", "repo": "configs/macos/ghostty_config" },
+      { "local": "~/.config/tealdeer/config.toml", "repo": "configs/macos/tealdeer.toml" },
       { "local": "~/Library/Application Support/mihomo-party/mihomo.yaml", "repo": "configs/common/mihomo.yaml", "lite": false, "defaultSelected": false }
     ]
   },

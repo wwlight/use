@@ -4,13 +4,6 @@
 Invoke-Expression (&starship init powershell)
 $ENV:STARSHIP_CONFIG = "$HOME\\.config\\starship\\starship.toml"
 
-# Tealdeer (tldr) — unified config path across platforms
-$env:TEALDEER_CONFIG_DIR = if ($env:XDG_CONFIG_HOME) {
-    Join-Path $env:XDG_CONFIG_HOME 'tealdeer'
-} else {
-    Join-Path $env:USERPROFILE '.config\tealdeer'
-}
-
 # Vite+ env
 if (Test-Path "$HOME/.vite-plus/env.ps1") {
     . "$HOME/.vite-plus/env.ps1"
