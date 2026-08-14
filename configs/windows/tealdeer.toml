@@ -5,7 +5,7 @@ cache_dir = "D:\\SoftwareApps\\Scoop\\persist\\tealdeer\\cache"
 custom_pages_dir = "D:\\SoftwareApps\\Scoop\\persist\\tealdeer\\custom-pages"
 
 [updates]
-archive_source = "https://ghproxy.net/https://github.com/tldr-pages/tldr/releases/latest/download/"
+archive_source = "https://github.com/tldr-pages/tldr/releases/latest/download"
 auto_update = false
 download_languages = ["zh", "en"]
 

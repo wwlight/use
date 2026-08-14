@@ -71,6 +71,8 @@
     }
   },
   "plugin": [],
+  // 禁止自动更新与更新提示
+  "autoupdate": false,
   // 模型提供商配置
   "provider": {
     "omniroute": {
