@@ -174,7 +174,7 @@ function scoopMirrorDocs(mirrors) {
     const shown = mirrors.slice(0, README_MAX_MIRRORS);
     const width = 34;
     const lines = [
-        `${padComment('scoop mirror', width)}# 交互选择（↑↓ / Enter；Esc/Ctrl+C 取消；回车选中当前 * 则直接退出）`,
+        `${padComment('scoop mirror', width)}# 交互选择（↑↓ Select  Enter Confirm  Esc/Ctrl+C Cancel；回车选中当前 * 则直接退出）`,
         `${padComment('scoop mirror status', width)}# 显示当前镜像与下载规则`,
         ...shown.map(({ id, prefix }) => (
             `${padComment(`scoop mirror ${id}`, width)}# 直接切换到 ${hostLabel(prefix)}`

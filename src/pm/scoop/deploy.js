@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { loadManifest, pathVarsForWindows } from "../../core/manifest.js";
-import { step, stepSuccess, success } from "../../core/log.js";
+import { step, success } from "../../core/log.js";
 import { ensureDir, formatLocalDisplay, homeDir, projectRoot, scoopConfigDir } from "../../core/paths.js";
 import { copyFileDataOnly } from "../../core/copy.js";
 import { deployRuntimeFiles, staleRuntimeFiles } from "../../core/runtime-deploy.js";
@@ -98,7 +98,7 @@ export async function deployScoopRuntime(activePrefix = '') {
     for (const { dest } of plan) {
         success(`Deployed ${formatLocalDisplay(dest, homeDir())}`);
     }
-    stepSuccess(`Deployed Scoop helpers to ${formatLocalDisplay(configRoot, homeDir())}`);
+    success(`Deployed Scoop helpers to ${formatLocalDisplay(configRoot, homeDir())}`);
     return { scoopDir, configRoot, prefixes, accel };
 }
 /** Files in the deployed scoop runtime that are missing or older than the repo. */

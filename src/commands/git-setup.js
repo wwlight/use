@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import readline from 'node:readline';
-import { skip, step, stepSuccess, warn } from "../core/log.js";
+import { skip, step, success, warn } from "../core/log.js";
 import { loadManifest } from "../core/manifest.js";
 import { markCliInteractive } from "../core/platform.js";
 function gitAvailable() {
@@ -40,7 +40,7 @@ export async function runGitSetupCommand(_args = [], _options = {}) {
     spawnSync('git', ['config', '--global', '--replace-all', 'safe.directory', String(git.safeDirectory ?? '*')], { stdio: 'inherit' });
     gitConfig(['credential.helper', String(git.credentialHelper ?? 'store')]);
     if (hasGitIdentity()) {
-        stepSuccess('Git username and email are already configured');
+        success('Git username and email are already configured');
         return 0;
     }
     const skipConfig = await readTty('Skip Git username and email configuration? (y/n) [default: n]: ');
@@ -58,6 +58,6 @@ export async function runGitSetupCommand(_args = [], _options = {}) {
     if (!email)
         throw new Error('Git email was not provided');
     gitConfig(['user.email', email]);
-    stepSuccess('Git configuration complete');
+    success('Git configuration complete');
     return 0;
 }

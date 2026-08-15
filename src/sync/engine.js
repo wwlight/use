@@ -1,6 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
-import { step, stepSuccess, success, note, warn } from "../core/log.js";
+import { step, success, note, warn } from "../core/log.js";
 import { pathVarsForWindows } from "../core/manifest.js";
 import { expandPath, formatLocalDisplay, formatRepoDisplay, homeDir, projectRoot } from "../core/paths.js";
 import { backupFile, copyFileDataOnly } from "../core/copy.js";
@@ -69,7 +69,7 @@ export async function runConfigSync(opts) {
         success(`${counter} Restored ${localDisp}`);
     }
     const n = items.length;
-    stepSuccess(opts.direction === '1'
+    success(opts.direction === '1'
         ? `Backed up ${n} files to the repository`
         : `Restored ${n} files locally`);
 }

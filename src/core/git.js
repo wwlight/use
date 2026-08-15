@@ -193,25 +193,26 @@ async function reinstallGitRepoPlugin(repo, targetDir, pluginName) {
         fs.rmSync(tempDir, { recursive: true, force: true });
     }
 }
+/** @returns 'skipped' | 'installed' | 'updated' so callers can summarize accurately. */
 export async function syncGitRepoPlugin(repo, targetDir, pluginName, update = false) {
     // init (update=false): present -> skip; missing -> install
     if (!update) {
         if (fs.existsSync(targetDir)) {
             skip(`Plugin ${pluginName} already exists; skipping`);
-            return;
+            return 'skipped';
         }
         await cloneGitRepoPlugin(repo, targetDir, pluginName);
-        return;
+        return 'installed';
     }
     // vpr zsh-plugin / clink (update=true): always sync to latest
     if (!fs.existsSync(targetDir)) {
         await cloneGitRepoPlugin(repo, targetDir, pluginName);
-        return;
+        return 'installed';
     }
     if (!isGitRepo(targetDir) || !isSameRemoteRepo(targetDir, repo)) {
         warn(`Plugin ${pluginName} is missing a matching git remote; reinstalling...`);
         await reinstallGitRepoPlugin(repo, targetDir, pluginName);
-        return;
+        return 'updated';
     }
     await runWithSpinner(`Updating plugin: ${pluginName}...`, async () => {
         let fetched = false;
@@ -238,4 +239,5 @@ export async function syncGitRepoPlugin(repo, targetDir, pluginName, update = fa
         }
     });
     success(`Updated plugin: ${pluginName}`);
+    return 'updated';
 }

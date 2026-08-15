@@ -1,4 +1,4 @@
-import { step, stepSuccess } from "../core/log.js";
+import { step, success } from "../core/log.js";
 import { loadManifest, zshPluginsDir } from "../core/manifest.js";
 import { expandPath, ensureDir, homeDir } from "../core/paths.js";
 import { syncGitRepoPlugin } from "../core/git.js";
@@ -27,10 +27,26 @@ export async function runZshPluginCommand(args = [], options = {}) {
     const plugins = loadManifest('common').zshPlugins ?? [];
     const dir = expandPath(zshPluginsDir(), { home: homeDir() });
     ensureDir(dir);
+    let made = 0;
     for (const plugin of plugins) {
-        await syncGitRepoPlugin(plugin.repo, `${dir}/${plugin.name}`, plugin.name, update);
+        const status = await syncGitRepoPlugin(plugin.repo, `${dir}/${plugin.name}`, plugin.name, update);
+        if (status !== 'skipped')
+            made++;
     }
-    const n = plugins.length;
-    stepSuccess(update ? `Updated ${n} Zsh plugins` : `Installed ${n} Zsh plugins`);
+    const total = plugins.length;
+    const skipped = total - made;
+    if (made === 0) {
+        success(update
+            ? `All ${total} Zsh plugins already up to date`
+            : `All ${total} Zsh plugins already installed; skipped`);
+    }
+    else if (skipped === 0) {
+        success(update ? `Updated ${made} Zsh plugins` : `Installed ${made} Zsh plugins`);
+    }
+    else {
+        success(update
+            ? `Updated ${made} and skipped ${skipped} Zsh plugins`
+            : `Installed ${made} and skipped ${skipped} Zsh plugins`);
+    }
     return 0;
 }

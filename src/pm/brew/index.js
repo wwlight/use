@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { runCommand, exitStatus } from "../../core/exec.js";
-import { canceled, info, skip, step, stepSuccess, success } from "../../core/log.js";
+import { canceled, info, skip, step, success } from "../../core/log.js";
 import { formatPmUsage } from "../../core/usage.js";
 import { hasMirror, loadManifest, mirrorInstallMode, } from "../../core/manifest.js";
 import { projectRoot } from "../../core/paths.js";
@@ -115,7 +115,7 @@ async function installBrew(mirror) {
     const update = runCommand(brew, ['update'], { env, timeoutMs: BREW_UPDATE_TIMEOUT_MS });
     if (exitStatus(update) !== 0)
         throw new Error('Homebrew update failed!');
-    stepSuccess('Homebrew installation complete');
+    success('Homebrew installation complete');
 }
 function activeBrewMirrorId() {
     if (process.env.USE_HOMEBREW_MIRROR)
@@ -134,7 +134,8 @@ export function runBrew(args, cwd = projectRoot()) {
     if (!brew)
         throw new Error('brew not found; run vpr pm first');
     const mirrorId = activeBrewMirrorId();
-    const env = mirrorId && hasMirror(mirrorId) ? brewMirrorEnv(mirrorId) : process.env;
+    const env = { ...(mirrorId && hasMirror(mirrorId) ? brewMirrorEnv(mirrorId) : process.env) };
+    env.HOMEBREW_NO_AUTO_UPDATE = '1';
     return exitStatus(runCommand(brew, args, { cwd, env }));
 }
 export async function runBrewPmCommand(args = []) {

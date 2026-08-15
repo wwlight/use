@@ -51,12 +51,11 @@ detect_os() {
 
 OS=$(detect_os)
 
-info()   { printf "  %s\n" "$1" >&2; }
-note()   { printf "  \033[34m● %s\033[0m\n" "$1" >&2; }
-skip()   { printf "  \033[2m○ %s\033[0m\n" "$1" >&2; }
+info()   { printf "\033[2m● %s\033[0m\n" "$1" >&2; }
+note()   { printf "\033[34m● %s\033[0m\n" "$1" >&2; }
+skip()   { printf "\033[2m○ %s\033[0m\n" "$1" >&2; }
 step()   { printf "\n\033[1;35m◇ %s\033[0m\n" "$1" >&2; }
-success(){ printf "  \033[32m◆ %s\033[0m\n" "$1" >&2; }
-step_success(){ printf "\033[32m◆ %s\033[0m\n" "$1" >&2; }
+success(){ printf "\033[32m✓ %s\033[0m\n" "$1" >&2; }
 warn()   { printf "  \033[33m▲ %s\033[0m\n" "$1" >&2; }
 error()  { printf "\033[31m■ %s\033[0m\n" "$1" >&2; exit 1; }
 
@@ -87,7 +86,7 @@ spin() {
   pid=$!
   printf '\033[?25l' >&2
   while kill -0 "$pid" 2>/dev/null; do
-    printf '\r  \033[34m%s  %s\033[0m' "${frames[$((i % ${#frames[@]}))]}" "$msg" >&2
+    printf '\r\033[34m%s %s\033[0m' "${frames[$((i % ${#frames[@]}))]}" "$msg" >&2
     i=$((i + 1))
     sleep 0.1
   done
@@ -232,7 +231,7 @@ download_zip_repo() {
     rm -rf "$target"
     mv "${tmp}/${ZIP_EXTRACT_NAME}" "$target"
     rm -rf "$tmp"
-    step_success "Extracted repository to $(format_display_path "$target")"
+    success "Extracted repository to $(format_display_path "$target")"
     return 0
   done < <(github_zip_candidates)
 
@@ -251,7 +250,7 @@ clone_repo() {
     host=${host%%/*}
     rm -rf "$target"
     if spin "Cloning $host ..." git -c http.connectTimeout="$CONNECT_TIMEOUT" clone --depth=1 "$url" "$target"; then
-      step_success "Cloned repository to $(format_display_path "$target")"
+      success "Cloned repository to $(format_display_path "$target")"
       return 0
     fi
   done < <(github_repo_candidates)
@@ -289,7 +288,7 @@ update_repo() {
     git -C "$target" remote set-url origin "$url" || continue
     if spin "Syncing $host ..." git -C "$target" -c http.connectTimeout="$CONNECT_TIMEOUT" fetch origin main; then
       git -C "$target" reset --hard origin/main || error "Failed to reset local repository"
-      step_success "Repository synced with origin/main"
+      success "Repository synced with origin/main"
       return 0
     fi
   done < <(github_repo_candidates)
@@ -419,7 +418,7 @@ install_macos() {
   unset USE_INSTALLER
 
   printf '\n' >&2
-  step_success "Installation complete. The system is ready."
+  success "Installation complete. The system is ready."
   # curl | bash runs in a subshell; start an interactive shell through /dev/tty.
   if [[ -c /dev/tty ]] && [[ -t 2 ]]; then
     exec "${SHELL:-/bin/zsh}" -l </dev/tty >/dev/tty 2>/dev/tty

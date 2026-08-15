@@ -467,7 +467,7 @@ async function runSwitchCli(choiceArg) {
     if (['-h', '--help', 'help'].includes(choice)) {
         console.log('Usage: scoop mirror [<name>|official|status]');
         console.log('');
-        console.log('  (no args)        interactive select (↑↓ / Enter; Esc or Ctrl+C cancel; Enter on * exits; * = active)');
+        console.log('  (no args)        ↑↓ Select  Enter Confirm  Esc/Ctrl+C Cancel  Enter on * exits; * = active');
         console.log('  <name>|official  switch directly');
         console.log('  status           show active mirror');
         return;

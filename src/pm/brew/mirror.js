@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { ensureDir, expandPath, formatLocalDisplay, homeDir, projectRoot } from "../../core/paths.js";
-import { step, stepSuccess, success, warn } from "../../core/log.js";
+import { step, success, warn } from "../../core/log.js";
 import { loadManifest } from "../../core/manifest.js";
 import { copyFileDataOnly } from "../../core/copy.js";
 import { deployRuntimeFiles, staleRuntimeFiles } from "../../core/runtime-deploy.js";
@@ -208,7 +208,7 @@ export async function deployBrewRuntime() {
         }
     }
     removeBrewMirrorLegacy();
-    stepSuccess(`Deployed Homebrew mirror runtime to ${target}`);
+    success(`Deployed Homebrew mirror runtime to ${formatLocalDisplay(target, homeDir())}`);
 }
 /** Files in the deployed brew runtime that are missing or older than the repo. */
 export function staleBrewRuntimeFiles(root = projectRoot()) {

@@ -5,7 +5,7 @@ import path from 'node:path';
 import fs from 'node:fs';
 import os from 'node:os';
 import { runPwsh } from "../../core/exec.js";
-import { info, step, stepSuccess, warn } from "../../core/log.js";
+import { info, step, success, warn } from "../../core/log.js";
 import { loadManifest, pathVarsForWindows } from "../../core/manifest.js";
 import { ensureDir, projectRoot } from "../../core/paths.js";
 import { deployScoopRuntime } from "./deploy.js";
@@ -87,7 +87,7 @@ export async function runScoopPmCommand(args = []) {
 
     if (quiet) {
         step('Configuring Scoop mirror');
-        stepSuccess(`Setting up Scoop (${selectedLabel}) ...`);
+        success(`Setting up Scoop (${selectedLabel}) ...`);
     }
     await run();
     return 0;

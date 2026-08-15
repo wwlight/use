@@ -1,4 +1,4 @@
-import { canceled, step, stepSuccess, error } from "../core/log.js";
+import { canceled, step, success, error } from "../core/log.js";
 import { canOpenTerminal } from "../lib/tty-term.js";
 import { formatAlignedChoices, runMenuSelect } from "../lib/menu-select.js";
 import { generateBrewMirrorFiles } from "../generate/brew-mirror.js";
@@ -26,7 +26,7 @@ async function runGenerator(value) {
     for (const gen of targets) {
         step(`Generating ${gen.value}...`);
         gen.run();
-        stepSuccess(gen.done);
+        success(gen.done);
     }
     return 0;
 }

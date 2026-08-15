@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { canceled, info, step, stepSuccess } from "../core/log.js";
+import { canceled, info, step, success } from "../core/log.js";
 import { hasProfile, loadManifest, profileLabel, resolveProfileArtifact, } from "../core/manifest.js";
 import { formatInitUsage } from "../core/usage.js";
 import { ensureManifestDirectories } from "../core/dirs.js";
@@ -65,12 +65,12 @@ async function restorePackages(platform, profile) {
         const brewfile = resolveProfileArtifact('macos', profile);
         info(`Installing dependencies from ${path.basename(brewfile)}...`);
         restoreBrewPackages(root, profile);
-        stepSuccess('Brewfile dependencies installed');
+        success('Brewfile dependencies installed');
         return;
     }
     info('Restoring dependencies from the Scoop backup...');
     await restoreScoopPackages(root, profile);
-    stepSuccess('Scoop packages restored');
+    success('Scoop packages restored');
 }
 export async function runInitCommand(platform, args) {
     markCliInteractive();
@@ -78,7 +78,7 @@ export async function runInitCommand(platform, args) {
     const root = projectRoot();
     step('Creating directory structure...');
     ensureManifestDirectories(platform);
-    stepSuccess('Directory structure ready');
+    success('Directory structure ready');
     step(`Restoring packages (${profileLabel(profile)})...`);
     await restorePackages(platform, profile);
     step(platform === 'windows' ? 'Installing Zsh and plugins...' : 'Installing Zsh plugins...');
@@ -99,7 +99,7 @@ export async function runInitCommand(platform, args) {
     // One-click install prints its own finale; standalone init keeps this line.
     if (process.env.USE_INSTALLER !== '1') {
         process.stderr.write('\n');
-        stepSuccess('All operations complete. The system is ready.');
+        success('All operations complete. The system is ready.');
     }
     return 0;
 }

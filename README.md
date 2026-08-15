@@ -305,7 +305,7 @@ configs/windows/
 一键同步切换 Scoop 仓库、GitHub bucket 远端及下载镜像。
 
 ```sh
-scoop mirror                      # 交互选择（↑↓ / Enter；Esc/Ctrl+C 取消；回车选中当前 * 则直接退出）
+scoop mirror                      # 交互选择（↑↓ Select  Enter Confirm  Esc/Ctrl+C Cancel；回车选中当前 * 则直接退出）
 scoop mirror status               # 显示当前镜像与下载规则
 scoop mirror ghproxy              # 直接切换到 gh-proxy.com
 scoop mirror ghproxy-net          # 直接切换到 ghproxy.net

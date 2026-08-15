@@ -8,59 +8,60 @@ export const COLOR_RESET = '\x1b[0m';
 
 /** Gap after marks: "{mark} {text}". */
 const MARK_GAP = ' ';
-/** Nest icons start at the same column as step title text (mark width 1 + MARK_GAP). */
-export const LOG_NEST_INDENT = '  ';
 
 const MARK_STEP = '◇';
-const MARK_OK = '◆';
+const MARK_SUCCESS = '✓';
 const MARK_INFO = '●';
 const MARK_SKIP = '○';
 const MARK_WARN = '▲';
 const MARK_ERROR = '■';
 
-function nestLine(body) {
-    return `${LOG_NEST_INDENT}${body}`;
+/** All progress/result lines go to stderr; stdout stays free for command output. */
+const LOG_STREAM = process.stderr;
+
+/** Single mark-styling primitive: "{mark} {message}" wrapped in color. */
+function formatMark(mark, color, message) {
+    return `${color}${mark}${MARK_GAP}${message}${COLOR_RESET}`;
 }
 
 /** Styled section title (e.g. for menus that render their own frame). */
 export function formatStepTitle(message) {
-    return `${COLOR_PURPLE}${MARK_STEP}${MARK_GAP}${message}${COLOR_RESET}`;
+    return formatMark(MARK_STEP, COLOR_PURPLE, message);
 }
-/** Top-level success title (same column as step, solid mark). */
-function formatStepSuccessTitle(message) {
-    return `${COLOR_GREEN}${MARK_OK}${MARK_GAP}${message}${COLOR_RESET}`;
+
+function writeLine(body) {
+    LOG_STREAM.write(`${body}\n`);
 }
-export function info(message) {
-    console.log(nestLine(message));
+
+/** Process line: dim mark, kept left-aligned (flat layout). */
+export function info(message, { color = COLOR_DIM } = {}) {
+    writeLine(formatMark(MARK_INFO, color, message));
+}
+/** Item-level result line: blue mark. Contrasts with dim process lines. */
+export function note(message) {
+    info(message, { color: COLOR_BLUE });
 }
 export function step(message) {
-    console.log(`\n${formatStepTitle(message)}`);
-}
-/** Phase complete: top-level ◆ on stderr (same stream as install.sh / install.ps1). */
-export function stepSuccess(message) {
-    process.stderr.write(`${formatStepSuccessTitle(message)}\n`);
+    writeLine(`\n${formatStepTitle(message)}`);
 }
 export function success(message) {
-    console.log(nestLine(`${COLOR_GREEN}${MARK_OK}${MARK_GAP}${message}${COLOR_RESET}`));
-}
-export function note(message) {
-    console.log(nestLine(`${COLOR_BLUE}${MARK_INFO}${MARK_GAP}${message}${COLOR_RESET}`));
+    writeLine(formatMark(MARK_SUCCESS, COLOR_GREEN, message));
 }
 export function skip(message) {
-    console.log(nestLine(`${COLOR_DIM}${MARK_SKIP}${MARK_GAP}${message}${COLOR_RESET}`));
+    writeLine(formatMark(MARK_SKIP, COLOR_DIM, message));
 }
 /** Write cancel line to a stream (menu TTY should use the same stream as the frame). */
-export function writeCanceled(stream = process.stderr, message = 'Canceled') {
+export function writeCanceled(stream = LOG_STREAM, message = 'Canceled') {
     stream.write(`${COLOR_DIM}${message}${COLOR_RESET}\n`);
 }
 export function canceled(message = 'Canceled') {
-    writeCanceled(process.stderr, message);
+    writeCanceled(LOG_STREAM, message);
 }
 export function warn(message) {
-    console.warn(nestLine(`${COLOR_YELLOW}${MARK_WARN}${MARK_GAP}${message}${COLOR_RESET}`));
+    writeLine(formatMark(MARK_WARN, COLOR_YELLOW, message));
 }
 export function error(message) {
-    console.error(`${COLOR_RED}${MARK_ERROR}${MARK_GAP}${message}${COLOR_RESET}`);
+    writeLine(formatMark(MARK_ERROR, COLOR_RED, message));
 }
 /** Print a fatal error; with USE_DEBUG=1 also print the stack for troubleshooting. */
 export function handleFatalError(err) {

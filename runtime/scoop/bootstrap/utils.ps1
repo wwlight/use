@@ -64,7 +64,7 @@ function Test-ScoopQuietPm {
 function Write-Info {
     param([string]$Message)
     if ($script:ScoopSpinActive) { return }
-    Write-Host "  $Message"
+    Write-Host "● $Message" -ForegroundColor DarkGray
 }
 
 function Write-Step {
@@ -75,29 +75,29 @@ function Write-Step {
 function Write-Success {
     param([string]$Message)
     if ($script:ScoopSpinActive) { return }
-    Write-Host "  ◆ $Message" -ForegroundColor Green
+    Write-Host "✓ $Message" -ForegroundColor Green
 }
 
 function Write-StepSuccess {
     param([string]$Message)
-    Write-Host "◆ $Message" -ForegroundColor Green
+    Write-Host "✓ $Message" -ForegroundColor Green
 }
 
 function Write-Note {
     param([string]$Message)
     if ($script:ScoopSpinActive) { return }
-    Write-Host "  ● $Message" -ForegroundColor Blue
+    Write-Host "● $Message" -ForegroundColor Blue
 }
 
 function Write-Skip {
     param([string]$Message)
     if ($script:ScoopSpinActive) { return }
-    Write-Host "  ○ $Message" -ForegroundColor DarkGray
+    Write-Host "○ $Message" -ForegroundColor DarkGray
 }
 
 function Write-Warn {
     param([string]$Message)
-    Write-Host "  ▲ $Message" -ForegroundColor Yellow
+    Write-Host "▲ $Message" -ForegroundColor Yellow
 }
 
 function Write-ErrorAndExit {
@@ -155,7 +155,7 @@ function Invoke-Spin {
         [string]$Message,
         [Parameter(Mandatory)]
         [scriptblock]$Script,
-        [string]$Indent = '  ',
+        [string]$Indent = '',
         [scriptblock]$Done = $null
     )
 
@@ -181,7 +181,7 @@ function Invoke-Spin {
         if (-not $s.Active) { return }
         $c = $Event.MessageData.Frames[$s.Index % $Event.MessageData.Frames.Count]
         $s.Index++
-        [Console]::Error.Write(("`r{0}{1}[34m{2}  {3}{1}[0m" -f $Event.MessageData.Indent, [char]27, $c, $Event.MessageData.Message))
+        [Console]::Error.Write(("`r{0}{1}[34m{2} {3}{1}[0m" -f $Event.MessageData.Indent, [char]27, $c, $Event.MessageData.Message))
     }
     try { [Console]::CursorVisible = $false } catch { }
     $timer.Start()

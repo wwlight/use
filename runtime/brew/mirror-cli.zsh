@@ -289,7 +289,8 @@ _brew_mirror_cli() {
     if [[ "$choice" == "-h" || "$choice" == "--help" || "$choice" == "help" ]]; then
         printf '%s\n' \
             'Usage: brew mirror [<name>|official|status]' \
-            '       brew mirror          # interactive ↑↓ select (Esc/Ctrl+C cancel; Enter on * exits; * = active)'
+            '       brew mirror' \
+            '↑↓ Select  Enter Confirm  Esc/Ctrl+C Cancel  Enter on * exits; * = active'
         return
     fi
     if (( $# > 1 )); then

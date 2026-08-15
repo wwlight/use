@@ -24,13 +24,35 @@ $GithubAccelPrefixes = @(
 )
 # END GENERATED GITHUB ACCEL
 
-function Write-Info     { Write-Host "  $args" }
-function Write-Note     { Write-Host "  $([char]0x25CF) $args" -ForegroundColor Blue }
-function Write-Skip     { Write-Host "  $([char]0x25CB) $args" -ForegroundColor DarkGray }
-function Write-Step     { Write-Host "`n$([char]0x25C7) $args" -ForegroundColor Magenta }
-function Write-Success  { Write-Host "  $([char]0x25C6) $args" -ForegroundColor Green }
-function Write-StepSuccess { Write-Host "$([char]0x25C6) $args" -ForegroundColor Green }
-function Write-Warn     { Write-Host "  $([char]0x25B2) $args" -ForegroundColor Yellow }
+function Write-Info {
+    param([string]$Message)
+    Write-Host "● $Message" -ForegroundColor DarkGray
+}
+
+function Write-Note {
+    param([string]$Message)
+    Write-Host "● $Message" -ForegroundColor Blue
+}
+
+function Write-Skip {
+    param([string]$Message)
+    Write-Host "○ $Message" -ForegroundColor DarkGray
+}
+
+function Write-Step {
+    param([string]$Message)
+    Write-Host "`n◇ $Message" -ForegroundColor Magenta
+}
+
+function Write-Success {
+    param([string]$Message)
+    Write-Host "✓ $Message" -ForegroundColor Green
+}
+
+function Write-Warn {
+    param([string]$Message)
+    Write-Host "▲ $Message" -ForegroundColor Yellow
+}
 
 # Display paths under the user profile as ~/... (hide username); filesystem ops still use absolutes.
 function Format-DisplayPath {
@@ -83,7 +105,7 @@ function Invoke-Spin {
   param(
     [Parameter(Mandatory)][string]$Message,
     [Parameter(Mandatory)][scriptblock]$Script,
-    [string]$Indent = '  ',
+    [string]$Indent = '',
     [object[]]$ArgumentList = @()
   )
   if (-not (Test-CanSpin)) {
@@ -369,7 +391,7 @@ function Expand-UseZipRepository {
         continue
       }
       Move-Item -LiteralPath $extracted -Destination $Target
-      Write-StepSuccess "Extracted repository to $(Format-DisplayPath $Target)"
+      Write-Success "Extracted repository to $(Format-DisplayPath $Target)"
       return $true
     }
     return $false
@@ -520,7 +542,7 @@ function Copy-UseRepository {
       return ($LASTEXITCODE -eq 0)
     } -ArgumentList @($url, $Target)
     if ($cloned -ne $true) { continue }
-    Write-StepSuccess "Cloned repository to $(Format-DisplayPath $Target)"
+    Write-Success "Cloned repository to $(Format-DisplayPath $Target)"
     return $true
   }
   return $false
@@ -605,7 +627,7 @@ function Update-UseRepository {
     }
     git -C $Target reset --hard origin/main 1>$null 2>$null
     if ($LASTEXITCODE -ne 0) { Write-ErrorAndExit 'Failed to reset local repository' }
-    Write-StepSuccess 'Repository synced with origin/main'
+    Write-Success 'Repository synced with origin/main'
     return
   }
   Write-ErrorAndExit 'Failed to fetch remote repository'
@@ -686,7 +708,7 @@ try {
   }
 
   Write-Host ''
-  Write-StepSuccess 'Installation complete. The system is ready.'
+  Write-Success 'Installation complete. The system is ready.'
 }
 finally {
   Remove-Item Env:GIT_HTTP_LOW_SPEED_LIMIT -ErrorAction SilentlyContinue
