@@ -4,8 +4,9 @@ import { spawnSync } from 'node:child_process';
 import { ensureDir, expandPath, formatLocalDisplay, homeDir, projectRoot } from "../../core/paths.js";
 import { step, stepSuccess, success, warn } from "../../core/log.js";
 import { loadManifest } from "../../core/manifest.js";
-import { copyFileDataOnly } from "../../sync/copy.js";
+import { copyFileDataOnly } from "../../core/copy.js";
 import { deployRuntimeFiles, staleRuntimeFiles } from "../../core/runtime-deploy.js";
+import { sharedLibPlan } from "../../core/runtime-lib.js";
 const BEGIN = '# >>> use-homebrew';
 const END = '# <<< use-homebrew';
 function brewConfigDir() {
@@ -170,22 +171,18 @@ function brewRuntimePlan(root = projectRoot()) {
     const catalog = path.join(root, macos.brewMirrorCatalog || 'configs/macos/brew/mirrors.tsv');
     const helper = path.join(root, 'runtime/brew/mirror-cli.zsh');
     const menuCli = path.join(root, 'runtime/brew/mirror-menu.js');
-    const menu = path.join(root, 'src/lib/menu-select.js');
-    const viewport = path.join(root, 'src/lib/menu-viewport.js');
-    const width = path.join(root, 'src/lib/string-width.js');
-    const tty = path.join(root, 'src/lib/tty-term.js');
-    for (const file of [catalog, helper, menuCli, menu, viewport, width, tty]) {
-        if (!fs.existsSync(file))
-            throw new Error(`Homebrew runtime file not found: ${file}`);
+    const libDir = path.join(target, 'lib');
+    const uiPlan = sharedLibPlan(root, libDir, (name) => name !== 'mirror-url.js');
+    const sources = [catalog, helper, menuCli];
+    for (const src of [...sources, ...uiPlan.map((item) => item.src)]) {
+        if (!fs.existsSync(src))
+            throw new Error(`Homebrew runtime file not found: ${src}`);
     }
     const plan = [
         [catalog, 'mirrors.tsv'],
         [helper, 'mirror-cli.zsh'],
         [menuCli, 'lib/mirror-menu.js'],
-        [menu, 'lib/menu-select.js'],
-        [viewport, 'lib/menu-viewport.js'],
-        [width, 'lib/string-width.js'],
-        [tty, 'lib/tty-term.js'],
+        ...uiPlan.map((item) => [item.src, path.relative(target, item.dest)]),
     ].map(([src, rel]) => ({ src, dest: path.join(target, rel) }));
     return { target, plan };
 }

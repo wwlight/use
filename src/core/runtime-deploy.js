@@ -1,6 +1,6 @@
-import { copyFileDataOnly } from "../sync/copy.js";
 import fs from 'node:fs';
 import { fileSha256, readDeployState, writeDeployState } from "./deploy-state.js";
+import { copyFileDataOnly } from "./copy.js";
 /**
  * Deploy runtime files and record a deploy-state so stale copies can be
  * detected later. plan: [{ src, dest, encoding }]. statePath records

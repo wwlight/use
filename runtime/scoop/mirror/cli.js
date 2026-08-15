@@ -269,6 +269,26 @@ async function loadMenuModule() {
     }
     throw new Error('menu-select.js not found next to mirror/cli.js (re-run vpr pm / sync)');
 }
+async function loadUrlModule() {
+    const candidates = [path.join(here, 'lib', 'mirror-url.js')];
+    let dir = here;
+    for (;;) {
+        if (fs.existsSync(path.join(dir, 'manifests', 'common.json'))) {
+            candidates.push(path.join(dir, 'src', 'lib', 'mirror-url.js'));
+            break;
+        }
+        const parent = path.dirname(dir);
+        if (parent === dir)
+            break;
+        dir = parent;
+    }
+    for (const candidate of candidates) {
+        if (fs.existsSync(candidate)) {
+            return import(pathToFileURL(candidate).href);
+        }
+    }
+    throw new Error('mirror-url.js not found next to mirror/cli.js (re-run vpr pm / sync)');
+}
 async function runMenuCli(args) {
     const message = args[0];
     const rawChoices = args.slice(1);
@@ -290,24 +310,18 @@ async function runMenuCli(args) {
     else
         process.stdout.write(text);
 }
-function normalizePrefix(prefix) {
-    const value = String(prefix || '').trim();
-    if (!value)
-        return '';
-    return value.endsWith('/') ? value : `${value}/`;
-}
-function loadMirrorConfig(configPath) {
+function loadMirrorConfig(configPath, url) {
     const raw = JSON.parse(fs.readFileSync(configPath, 'utf8'));
     const prefixes = [];
     for (const item of raw.mirrorPrefix || []) {
-        const p = normalizePrefix(item);
+        const p = url.normalizePrefix(item);
         if (p && !prefixes.includes(p))
             prefixes.push(p);
     }
     let mirrors = (raw.mirrors || [])
         .map((item) => ({
         id: String(item.id || '').trim(),
-        prefix: normalizePrefix(item.prefix),
+        prefix: url.normalizePrefix(item.prefix),
     }))
         .filter((item) => item.id && item.prefix);
     if (mirrors.length === 0) {
@@ -322,7 +336,7 @@ function loadMirrorConfig(configPath) {
     }
     let activePrefix = '';
     if (Object.prototype.hasOwnProperty.call(raw, 'activePrefix')) {
-        activePrefix = normalizePrefix(raw.activePrefix);
+        activePrefix = url.normalizePrefix(raw.activePrefix);
     }
     else if (prefixes.length > 0) {
         activePrefix = prefixes[0];
@@ -336,45 +350,6 @@ function loadMirrorConfig(configPath) {
         configPath,
         raw,
     };
-}
-function stripMirrorPrefix(url, prefixes) {
-    for (const prefix of prefixes) {
-        if (url.toLowerCase().startsWith(prefix.toLowerCase())) {
-            return url.slice(prefix.length);
-        }
-    }
-    return url;
-}
-function isGithubHost(url, hosts) {
-    try {
-        return hosts.includes(new URL(url).hostname);
-    }
-    catch {
-        return false;
-    }
-}
-function mirrorId(prefix, config) {
-    if (!prefix)
-        return 'official';
-    for (const mirror of config.mirrors) {
-        if (mirror.prefix === prefix || mirror.prefix.replace(/\/$/, '') === prefix.replace(/\/$/, '')) {
-            return mirror.id;
-        }
-    }
-    return prefix;
-}
-function resolveMirrorChoice(choice, config) {
-    const value = String(choice || '').trim();
-    if (value === 'official')
-        return '';
-    for (const mirror of config.mirrors) {
-        if (mirror.id === value
-            || mirror.prefix === value
-            || mirror.prefix.replace(/\/$/, '') === value.replace(/\/$/, '')) {
-            return mirror.prefix;
-        }
-    }
-    throw new Error(`Unknown Scoop mirror '${choice}'. Run 'scoop mirror' to see available mirrors.`);
 }
 function buildShellCommandLine(command, args) {
     if (process.platform === 'win32') {
@@ -395,16 +370,16 @@ function runScoop(args) {
         throw result.error;
     return result;
 }
-function getUpstreamRepo(config) {
+function getUpstreamRepo(config, url) {
     if (config.scoopRepo)
         return config.scoopRepo;
     const result = runScoop(['config', 'scoop_repo']);
     const repo = String(result.stdout || '').trim();
     if (result.status !== 0 || !repo)
         return 'https://github.com/ScoopInstaller/Scoop';
-    return stripMirrorPrefix(repo, config.prefixes);
+    return url.stripMirrorPrefix(repo, config.prefixes);
 }
-function setBucketRemotes(activePrefix, config) {
+function setBucketRemotes(activePrefix, config, url) {
     const scoop = process.env.SCOOP;
     const bucketsRoot = path.join(scoop, 'buckets');
     if (!fs.existsSync(bucketsRoot))
@@ -419,8 +394,8 @@ function setBucketRemotes(activePrefix, config) {
         const origin = String(originResult.stdout || '').trim();
         if (originResult.status !== 0 || !origin)
             continue;
-        const bare = stripMirrorPrefix(origin, config.prefixes);
-        if (!isGithubHost(bare, config.githubHosts))
+        const bare = url.stripMirrorPrefix(origin, config.prefixes);
+        if (!url.isGithubHost(bare, config.githubHosts))
             continue;
         const target = activePrefix ? activePrefix + bare : bare;
         if (target === origin)
@@ -435,8 +410,8 @@ function writeActivePrefix(config, activePrefix) {
     const next = { ...config.raw, activePrefix };
     fs.writeFileSync(path.join(here, 'state.json'), `${JSON.stringify(next, null, 2)}\n`, 'utf8');
 }
-function printMirrorStatus(config) {
-    const activeId = mirrorId(config.activePrefix, config);
+function printMirrorStatus(config, url) {
+    const activeId = url.mirrorId(config.activePrefix, config.mirrors);
     const activeLabel = activeId === 'official'
         ? 'official'
         : `${activeId} (${config.activePrefix})`;
@@ -447,22 +422,22 @@ function printMirrorStatus(config) {
         console.log(`Scoop repo:    ${repo}`);
     console.log('Download rule: selected mirror -> other mirrors -> official; non-GitHub URLs use direct');
 }
-function switchMirror(choice, config) {
-    const activePrefix = resolveMirrorChoice(choice, config);
-    const upstreamRepo = getUpstreamRepo(config);
+function switchMirror(choice, config, url) {
+    const activePrefix = url.resolveMirrorChoice(choice, config.mirrors);
+    const upstreamRepo = getUpstreamRepo(config, url);
     const repo = activePrefix ? activePrefix + upstreamRepo : upstreamRepo;
     const setRepo = runScoop(['config', 'scoop_repo', repo]);
     if (setRepo.status !== 0) {
         const detail = String(setRepo.stderr || setRepo.stdout || '').trim();
         throw new Error(detail || `Could not set Scoop repo to ${repo}`);
     }
-    setBucketRemotes(activePrefix, config);
+    setBucketRemotes(activePrefix, config, url);
     writeActivePrefix(config, activePrefix);
-    printMirrorStatus({ ...config, activePrefix });
+    printMirrorStatus({ ...config, activePrefix }, url);
 }
-async function selectMirrorInteractively(config) {
+async function selectMirrorInteractively(config, url) {
     const { formatAlignedChoices, runMenuSelect } = await loadMenuModule();
-    const activeId = mirrorId(config.activePrefix, config);
+    const activeId = url.mirrorId(config.activePrefix, config.mirrors);
     const items = [
         ...config.mirrors.map((mirror) => ({
             value: mirror.id,
@@ -472,7 +447,7 @@ async function selectMirrorInteractively(config) {
         {
             value: 'official',
             name: 'official',
-            detail: getUpstreamRepo(config),
+            detail: getUpstreamRepo(config, url),
         },
     ];
     return runMenuSelect({
@@ -486,7 +461,8 @@ async function runSwitchCli(choiceArg) {
     if (!fs.existsSync(configPath)) {
         throw new Error(`Scoop mirror state not found at ${configPath}`);
     }
-    const config = loadMirrorConfig(configPath);
+    const url = await loadUrlModule();
+    const config = loadMirrorConfig(configPath, url);
     let choice = String(choiceArg || '').trim();
     if (['-h', '--help', 'help'].includes(choice)) {
         console.log('Usage: scoop mirror [<name>|official|status]');
@@ -497,15 +473,15 @@ async function runSwitchCli(choiceArg) {
         return;
     }
     if (choice === 'status') {
-        printMirrorStatus(config);
+        printMirrorStatus(config, url);
         return;
     }
     if (!choice) {
-        choice = await selectMirrorInteractively(config);
-        if (choice === mirrorId(config.activePrefix, config))
+        choice = await selectMirrorInteractively(config, url);
+        if (choice === url.mirrorId(config.activePrefix, config.mirrors))
             return;
     }
-    switchMirror(choice, config);
+    switchMirror(choice, config, url);
 }
 async function readStdin() {
     const chunks = [];

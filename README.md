@@ -194,9 +194,9 @@ Get-ChildItem runtime,configs -Recurse -Include *.ps1,*.psm1 | Unblock-File
 ├── src/                          # Node CLI（可移植业务逻辑，仅 JS）
 │   ├── cli.js
 │   ├── commands/                 # init / backup / setup / sync / generate / git-setup / zsh-plugin / windows-extras
-│   ├── core/                     # manifest / paths / platform / args / usage / log / git / spinner / dirs / exec
+│   ├── core/                     # manifest / paths / platform / args / usage / log / git / spinner / dirs / exec / copy / runtime-lib / runtime-deploy
 │   ├── generate/                 # brew-mirror / github-accel
-│   ├── lib/                      # ↑↓ 菜单（部署到 brew/scoop lib）
+│   ├── lib/                      # ↑↓ 菜单等共享库：CLI 静态 import，同时作为载荷部署到 brew/scoop lib（部署清单见 core/runtime-lib.js）
 │   ├── pm/
 │   │   ├── brew/                 # macOS：编排（JS）
 │   │   ├── scoop/                # Windows：编排（JS；调用 runtime/scoop/bootstrap）

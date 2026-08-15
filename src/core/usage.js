@@ -30,3 +30,18 @@ export function formatPmUsage(macos = loadManifest('macos')) {
     }));
     return formatChoiceUsage('pm', mirrors);
 }
+export function formatSyncUsage() {
+    return [
+        'Usage: vpr sync [1|2|backup|restore]',
+        '',
+        '  1 / backup   Back up configuration -> repository',
+        '  2 / restore  Restore configuration -> local machine',
+        '',
+        'Examples:',
+        '  vpr sync',
+        '  vpr sync backup',
+        '  vpr sync restore',
+        '  vpr sync -- 1',
+        '  vpr sync -- 2',
+    ].join('\n');
+}

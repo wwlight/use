@@ -10,13 +10,9 @@ import { loadManifest } from "../../core/manifest.js";
 import { scoopConfigDir } from "../../core/paths.js";
 import { formatAlignedChoices, runMenuSelect } from "../../lib/menu-select.js";
 import { canOpenTerminal } from "../../lib/tty-term.js";
+import { convertToMirrorUrl, joinScoopMirrorUrl, normalizePrefix } from "../../lib/mirror-url.js";
 
-function normalizePrefix(prefix) {
-    const value = String(prefix || '').trim();
-    if (!value)
-        return '';
-    return value.endsWith('/') ? value : `${value}/`;
-}
+export { convertToMirrorUrl, joinScoopMirrorUrl } from "../../lib/mirror-url.js";
 
 const DEFAULT_SCOOP_REPO = 'https://github.com/ScoopInstaller/Scoop';
 
@@ -148,44 +144,4 @@ export function readActiveScoopMirrorPrefix() {
     catch {
         return '';
     }
-}
-
-export function joinScoopMirrorUrl(url, prefix, allPrefixes = []) {
-    if (!url)
-        return url;
-    let bare = String(url).trim();
-    for (const p of allPrefixes) {
-        const known = normalizePrefix(p);
-        if (known && bare.toLowerCase().startsWith(known.toLowerCase())) {
-            bare = bare.slice(known.length);
-            break;
-        }
-    }
-    const active = normalizePrefix(prefix);
-    if (!active)
-        return bare;
-    return active + bare;
-}
-
-export function convertToMirrorUrl(url, prefix, allPrefixes, githubHosts) {
-    if (!url)
-        return url;
-    let bare = String(url).trim();
-    for (const p of allPrefixes) {
-        const known = normalizePrefix(p);
-        if (known && bare.toLowerCase().startsWith(known.toLowerCase())) {
-            bare = bare.slice(known.length);
-            break;
-        }
-    }
-    let host = '';
-    try {
-        host = new URL(bare).host;
-    }
-    catch {
-        return bare;
-    }
-    if (githubHosts?.includes(host))
-        return joinScoopMirrorUrl(bare, prefix, allPrefixes);
-    return bare;
 }

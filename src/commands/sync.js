@@ -4,6 +4,7 @@ import path from 'node:path';
 import { canceled, error, step, warn } from "../core/log.js";
 import { markCliInteractive } from "../core/platform.js";
 import { isHelpFlag, stripDashArgs } from "../core/args.js";
+import { formatSyncUsage } from "../core/usage.js";
 import { SYNC_DIRECTION_EXAMPLE, SYNC_DIRECTION_HINT, isSyncDirection, normalizeSyncDirection, promptSyncDirectionMenu, } from "../sync/direction.js";
 import { runConfigSync } from "../sync/engine.js";
 import { cleanupSyncTempFile, readSyncPairLines } from "../sync/pairs.js";
@@ -33,19 +34,7 @@ function parseSyncDirection(args) {
 async function promptSyncDirection(args) {
     const parsed = parseSyncDirection(args);
     if (parsed === '__HELP__') {
-        console.log([
-            'Usage: vpr sync [1|2|backup|restore]',
-            '',
-            '  1 / backup   Back up configuration -> repository',
-            '  2 / restore  Restore configuration -> local machine',
-            '',
-            'Examples:',
-            '  vpr sync',
-            '  vpr sync backup',
-            '  vpr sync restore',
-            '  vpr sync -- 1',
-            '  vpr sync -- 2',
-        ].join('\n'));
+        console.log(formatSyncUsage());
         process.exit(0);
     }
     if (parsed === '__INVALID__') {

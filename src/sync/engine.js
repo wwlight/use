@@ -3,7 +3,7 @@ import path from 'node:path';
 import { step, stepSuccess, success, note, warn } from "../core/log.js";
 import { pathVarsForWindows } from "../core/manifest.js";
 import { expandPath, formatLocalDisplay, formatRepoDisplay, homeDir, projectRoot } from "../core/paths.js";
-import { backupFile, copyFileDataOnly } from "./copy.js";
+import { backupFile, copyFileDataOnly } from "../core/copy.js";
 import { cleanupSyncTempFile, parsePairLine, readSyncItems, } from "./pairs.js";
 function expandItemLocal(local, platform) {
     if (platform === 'windows') {

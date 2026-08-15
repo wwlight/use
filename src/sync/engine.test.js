@@ -4,7 +4,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { projectRoot } from "../core/paths.js";
-import { backupFile, copyFileDataOnly } from "./copy.js";
+import { backupFile, copyFileDataOnly } from "../core/copy.js";
 import { runConfigSync } from "./engine.js";
 
 test('copyFileDataOnly copies bytes and supports utf8Bom', async () => {

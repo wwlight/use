@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
-import { ensureDir } from "../core/paths.js";
+import { ensureDir } from "./paths.js";
 // /NP: hide robocopy progress (\r) so it does not clobber sync log lines.
 const ROBOCOPY_FLAGS = ['/COPY:DAT', '/R:1', '/W:1', '/NFL', '/NDL', '/NJH', '/NJS', '/NC', '/NS', '/NP'];
 /** Cache the `where robocopy` probe: it used to spawn once per file copy. */

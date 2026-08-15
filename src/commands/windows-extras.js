@@ -8,7 +8,7 @@ import { info, skip, step, stepSuccess, success, warn } from "../core/log.js";
 import { runWithSpinner } from "../core/spinner.js";
 import { loadManifest } from "../core/manifest.js";
 import { ensureDir, expandPath, homeDir, projectRoot } from "../core/paths.js";
-import { copyFileDataOnly } from "../sync/copy.js";
+import { copyFileDataOnly } from "../core/copy.js";
 // Bound network-heavy download so a dead mirror fails fast instead of hanging silently.
 const DOWNLOAD_TIMEOUT_MS = 300000;
 function commandExists(name) {

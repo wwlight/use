@@ -5,6 +5,7 @@ import { step, stepSuccess, warn, error } from "../core/log.js";
 import { loadManifest } from "../core/manifest.js";
 import { projectRoot } from "../core/paths.js";
 import { runBrew } from "../pm/brew/index.js";
+import { mirrorPrefixes, stripMirrorPrefix } from "../lib/mirror-url.js";
 const BREW_DIRECTIVE = /^\s*(tap|brew|cask|mas|vscode|whalebrew)\s+"([^"]+)"/;
 /** Write content to file only when it differs from the current bytes. */
 function atomicWriteIfChanged(filePath, content) {
@@ -112,18 +113,7 @@ function loadGithubAccelPrefixes(root) {
     const commonPath = path.join(root, 'manifests/common.json');
     const common = JSON.parse(fs.readFileSync(commonPath, 'utf8'));
     const mirrors = Array.isArray(common.githubAccel?.mirrors) ? common.githubAccel.mirrors : [];
-    return mirrors
-        .map((item) => String(item?.prefix || '').trim())
-        .filter(Boolean)
-        .map((prefix) => (prefix.endsWith('/') ? prefix : `${prefix}/`));
-}
-function stripGithubAccelPrefix(url, prefixes) {
-    let value = String(url || '');
-    for (const prefix of prefixes) {
-        if (value.startsWith(prefix))
-            return value.slice(prefix.length);
-    }
-    return value;
+    return mirrorPrefixes(mirrors);
 }
 /** Keep bucket Sources canonical (official GitHub), not a transient mirror. */
 function normalizeScoopBackupBucketSources(backup, prefixes) {
@@ -131,7 +121,7 @@ function normalizeScoopBackupBucketSources(backup, prefixes) {
     for (const bucket of next.buckets || []) {
         if (!bucket || bucket.Source == null)
             continue;
-        bucket.Source = stripGithubAccelPrefix(bucket.Source, prefixes);
+        bucket.Source = stripMirrorPrefix(bucket.Source, prefixes);
     }
     return next;
 }

@@ -6,8 +6,9 @@ import path from 'node:path';
 import { loadManifest, pathVarsForWindows } from "../../core/manifest.js";
 import { step, stepSuccess, success } from "../../core/log.js";
 import { ensureDir, formatLocalDisplay, homeDir, projectRoot, scoopConfigDir } from "../../core/paths.js";
-import { copyFileDataOnly } from "../../sync/copy.js";
+import { copyFileDataOnly } from "../../core/copy.js";
 import { deployRuntimeFiles, staleRuntimeFiles } from "../../core/runtime-deploy.js";
+import { sharedLibPlan } from "../../core/runtime-lib.js";
 import { listScoopMirrors } from "./mirror.js";
 
 function writeUtf8NoBom(filePath, content) {
@@ -42,11 +43,11 @@ function scoopRuntimePlan(root = projectRoot()) {
         plan.push({ src, dest: path.join(mirrorDir, name) });
     }
 
-    for (const name of ['menu-select.js', 'menu-viewport.js', 'string-width.js', 'tty-term.js']) {
-        const src = path.join(root, 'src', 'lib', name);
-        if (!fs.existsSync(src))
-            throw new Error(`Shared menu helper not found: ${src}`);
-        plan.push({ src, dest: path.join(libDir, name) });
+    const sharedPlan = sharedLibPlan(root, libDir);
+    for (const item of sharedPlan) {
+        if (!fs.existsSync(item.src))
+            throw new Error(`Shared helper not found: ${item.src}`);
+        plan.push(item);
     }
 
     const servicesCliSrc = path.join(runtimeRoot, 'services', 'cli.ps1');

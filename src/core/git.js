@@ -5,15 +5,12 @@ import path from 'node:path';
 import { skip, success, warn } from "./log.js";
 import { runWithSpinner } from "./spinner.js";
 import { loadManifest } from "./manifest.js";
+import { mirrorPrefixes, stripMirrorPrefix } from "../lib/mirror-url.js";
+function loadGithubAccelPrefixes() {
+    return mirrorPrefixes(loadManifest('common').githubAccel?.mirrors);
+}
 function normalizeRepoUrl(url) {
-    let u = url.trim();
-    const common = loadManifest('common');
-    for (const mirror of common.githubAccel?.mirrors ?? []) {
-        if (u.startsWith(mirror.prefix)) {
-            u = u.slice(mirror.prefix.length);
-            break;
-        }
-    }
+    let u = stripMirrorPrefix(url.trim(), loadGithubAccelPrefixes());
     while (u.endsWith('/'))
         u = u.slice(0, -1);
     if (u.endsWith('.git'))
@@ -28,16 +25,7 @@ function needsGithubAccel(repo) {
 }
 /** Strip a known accel prefix, returning the bare GitHub URL. */
 export function stripGithubAccelPrefix(url) {
-    let u = String(url || '').trim();
-    const common = loadManifest('common');
-    for (const mirror of common.githubAccel?.mirrors ?? []) {
-        const prefix = String(mirror.prefix || '').endsWith('/') ? mirror.prefix : `${mirror.prefix}/`;
-        if (u.startsWith(prefix)) {
-            u = u.slice(prefix.length);
-            break;
-        }
-    }
-    return u;
+    return stripMirrorPrefix(String(url || '').trim(), loadGithubAccelPrefixes());
 }
 /**
  * Fetch/clone order: selected (USE_ACCEL) → other mirrors → official.
