@@ -1,73 +1,73 @@
 {
     "apps": [
         {
+            "Source": "main",
             "Name": "7zip",
-            "Version": "26.02",
             "Updated": "2026-07-02T22:32:13.8590224+08:00",
-            "Source": "main",
+            "Version": "26.02",
             "Info": ""
         },
         {
+            "Source": "main",
             "Name": "aria2",
-            "Version": "1.37.0-1",
             "Updated": "2026-08-04T22:47:41.8511321+08:00",
-            "Source": "main",
+            "Version": "1.37.0-1",
             "Info": ""
         },
         {
+            "Source": "main",
             "Name": "eza",
-            "Version": "0.23.5",
             "Updated": "2026-07-12T20:24:28.4846611+08:00",
-            "Source": "main",
+            "Version": "0.23.5",
             "Info": ""
         },
         {
-            "Name": "FiraCode-NF-Mono",
-            "Version": "3.5.0",
-            "Updated": "2026-08-05T00:48:11.8381185+08:00",
             "Source": "nerd-fonts",
+            "Name": "FiraCode-NF-Mono",
+            "Updated": "2026-08-28T22:07:14.0308367+08:00",
+            "Version": "3.5.1",
             "Info": ""
         },
         {
+            "Source": "main",
             "Name": "fzf",
-            "Version": "0.74.2",
-            "Updated": "2026-08-05T00:48:32.5059534+08:00",
-            "Source": "main",
+            "Updated": "2026-08-28T22:07:18.3113152+08:00",
+            "Version": "0.74.3",
             "Info": ""
         },
         {
-            "Name": "git",
-            "Version": "2.52.0",
-            "Updated": "2025-11-26T21:05:33.3396295+08:00",
             "Source": "main",
+            "Name": "git",
+            "Updated": "2025-11-26T21:05:33.3396295+08:00",
+            "Version": "2.52.0",
             "Info": "Held package"
         },
         {
+            "Source": "main",
             "Name": "starship",
-            "Version": "1.26.0",
             "Updated": "2026-07-03T03:20:48.0852015+08:00",
-            "Source": "main",
+            "Version": "1.26.0",
             "Info": ""
         },
         {
+            "Source": "main",
             "Name": "tealdeer",
-            "Version": "1.8.1",
-            "Updated": "2026-07-12T21:47:36.1408255+08:00",
-            "Source": "main",
+            "Updated": "2026-08-28T22:25:20.4956711+08:00",
+            "Version": "1.9.0",
             "Info": ""
         },
         {
-            "Name": "winsw-pre",
-            "Version": "3.0.0-alpha.11",
-            "Updated": "2026-07-03T03:32:52.1073187+08:00",
             "Source": "versions",
+            "Name": "winsw-pre",
+            "Updated": "2026-07-03T03:32:52.1073187+08:00",
+            "Version": "3.0.0-alpha.11",
             "Info": ""
         },
         {
-            "Name": "zoxide",
-            "Version": "0.10.0",
-            "Updated": "2026-07-12T20:29:13.1757175+08:00",
             "Source": "main",
+            "Name": "zoxide",
+            "Updated": "2026-07-12T20:29:13.1757175+08:00",
+            "Version": "0.10.0",
             "Info": ""
         }
     ],
@@ -75,19 +75,19 @@
         {
             "Name": "main",
             "Source": "https://github.com/ScoopInstaller/Main",
-            "Updated": "2026-08-08T20:32:55+08:00",
-            "Manifests": 1620
+            "Updated": "2026-08-29T08:55:02+08:00",
+            "Manifests": 1640
         },
         {
             "Name": "versions",
             "Source": "https://github.com/ScoopInstaller/Versions",
-            "Updated": "2026-08-08T21:16:41+08:00",
-            "Manifests": 595
+            "Updated": "2026-08-29T06:28:47+08:00",
+            "Manifests": 601
         },
         {
             "Name": "nerd-fonts",
             "Source": "https://github.com/matthewjberger/scoop-nerd-fonts",
-            "Updated": "2026-08-03T11:32:38+08:00",
+            "Updated": "2026-08-23T00:30:00+08:00",
             "Manifests": 367
         }
     ]

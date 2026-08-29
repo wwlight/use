@@ -1,8 +1,6 @@
-# Scoop services manager (WinSW).
-# IMPORTANT: do not declare ValueFromRemainingArguments here.
-# Under `pwsh -File script.ps1 install nginx`, that binding often leaves BOTH
-# CommandArgs and $args empty, so every command silently falls back to `ls`.
-# With only switches in param(), unbound tokens reliably land in $args.
+﻿# Scoop services manager (WinSW).
+# Only switches go in param(); bare tokens fall through to $args
+# (ValueFromRemainingArguments drops them under `pwsh -File`).
 param(
     [switch]$PrepareUninstall,
     [switch]$PrepareUpdate,
@@ -11,8 +9,7 @@ param(
 
 $CommandArgs = @($args | ForEach-Object { [string]$_ })
 
-# Array splatting never binds switches—the mode token lands in $args, so a bare
-# `scoop update` would show services usage. Promote the marker to its switch.
+# Promote a -Marker token (passed via $args) to its switch.
 if (-not $PrepareUninstall -and -not $PrepareUpdate -and -not $RestartChanged -and $CommandArgs.Count -ge 1) {
     switch ($CommandArgs[0]) {
         '-PrepareUninstall' { $PrepareUninstall = $true }
@@ -198,6 +195,7 @@ Usage: scoop services <command> [name]
 
 Commands:
   ls|list                List all managed services
+  info        <name>     Show a service's config and status
   install     <name>     Register and start a service
   uninstall   <name>     Unregister a service
   start       <name>     Start a service
@@ -206,13 +204,73 @@ Commands:
 "@
 }
 
+function Write-ScoopInfoLine {
+    param([string]$Key, [string]$Value)
+    Write-Host -NoNewline -ForegroundColor Green ($Key.PadRight(11))
+    Write-Host ": $Value"
+}
+
+function Invoke-ScoopServicesInfo {
+    param([string]$Name)
+
+    if (-not $Name) {
+        Write-Host 'Usage: scoop services info <name>'
+        return
+    }
+
+    $manifest = Get-ScoopServicesManifest -WarnIfMissing
+    if (-not $manifest.ContainsKey($Name)) {
+        Write-Host "'$Name' is not in the service manifest (add it to manifest.json)" -ForegroundColor Yellow
+        return
+    }
+
+    $cfg = $manifest[$Name]
+    $xml = Get-ScoopServiceXmlPath -Name $Name
+    $exists = Test-Path -LiteralPath $xml
+    $status = Get-ScoopWinSwStatusText -Name $Name
+    if ($status -eq 'NonExistent') { $status = 'not installed' }
+
+    $exe = if ($cfg.executable) { [string]$cfg.executable } else { '' }
+    $argsVal = if ($cfg.arguments) { [string]$cfg.arguments } else { '' }
+    $stopExe = if ($cfg.stopexecutable) { [string]$cfg.stopexecutable } else { $exe }
+    $stopArgs = if ($cfg.stoparguments) { [string]$cfg.stoparguments } else { '' }
+    $configText = if ($exists) {
+        (Get-Content -LiteralPath $xml -Raw -Encoding UTF8).Trim()
+    }
+    else {
+        '(xml not generated yet — run: scoop services install ' + $Name + ')'
+    }
+
+    $xmlLabel = if ($exists) { "$xml (exists)" } else { "$xml (none)" }
+
+    Write-Host ''
+    Write-ScoopInfoLine 'Name' $Name
+    Write-ScoopInfoLine 'Status' $status
+    Write-ScoopInfoLine 'XML' $xmlLabel
+    Write-ScoopInfoLine 'Executable' $exe
+    Write-ScoopInfoLine 'Arguments' $argsVal
+    Write-ScoopInfoLine 'Stop exe' $stopExe
+    Write-ScoopInfoLine 'Stop args' $stopArgs
+    $indent = ' ' * 13
+    $cfgLines = $configText -split "`n"
+    $cfgDisplay = if ($cfgLines.Count -gt 1) {
+        $cfgLines[0] + "`n" + (($cfgLines[1..($cfgLines.Count - 1)] | ForEach-Object { "$indent$_" }) -join "`n")
+    }
+    else {
+        $cfgLines[0]
+    }
+    Write-Host -NoNewline -ForegroundColor Green ('Config'.PadRight(11))
+    Write-Host ": $cfgDisplay"
+    Write-Host ''
+}
+
 function Invoke-ScoopServicesList {
     $winswExe = Join-Path $env:SCOOP 'apps\winsw-pre\current\WinSW.exe'
     if (-not (Test-Path -LiteralPath $winswExe)) {
         [Console]::Error.WriteLine("winsw: WinSW not found at $winswExe (run 'scoop install winsw-pre')")
         Stop-ScoopServicesCli -Code 1
     }
-    # persist/<app>/<app>-winsw-service.xml. Literal wildcard — Join-Path can mishandle '*'.
+    # Literal wildcard glob; Join-Path mishandles '*'.
     $xmls = @(Get-ChildItem -Path "$env:SCOOP\persist\*\*-winsw-service.xml" -File -ErrorAction SilentlyContinue)
     Write-Output ("{0} {1} Path" -f ('Name'.PadRight(15)), ('Status'.PadRight(15)))
     foreach ($xml in $xmls) {
@@ -237,6 +295,9 @@ function Invoke-ScoopServicesManager {
     switch ($action) {
         'ls' { Invoke-ScoopServicesList }
         'list' { Invoke-ScoopServicesList }
+        'info' {
+            Invoke-ScoopServicesInfo -Name $svc
+        }
         'install' {
             if (-not $svc) {
                 Write-Host 'Usage: scoop services install <name>'
@@ -244,7 +305,7 @@ function Invoke-ScoopServicesManager {
             }
             $manifest = Get-ScoopServicesManifest -WarnIfMissing
             if (-not $manifest.ContainsKey($svc)) {
-                Write-Host "'$svc' is not in the service manifest"
+                Write-Host "'$svc' is not in the service manifest (add it to manifest.json)" -ForegroundColor Yellow
                 return
             }
             if (-not (Ensure-ScoopServiceXml -Name $svc)) {
@@ -270,22 +331,58 @@ function Invoke-ScoopServicesManager {
                 Invoke-ScoopWinSw stop $svc
                 Invoke-ScoopWinSw uninstall $svc
                 Remove-Item -LiteralPath (Get-ScoopServiceXmlPath -Name $svc) -Force -ErrorAction SilentlyContinue
+                Write-Host "Service '$svc' unregistered"
             }
             else {
                 Write-Host "Service '$svc' is not registered"
             }
         }
         'start' {
-            if ($svc) { Invoke-ScoopWinSw start $svc }
-            else { Write-Host 'Usage: scoop services start <name>' }
+            if (-not $svc) {
+                Write-Host 'Usage: scoop services start <name>'
+                return
+            }
+            $manifest = Get-ScoopServicesManifest -WarnIfMissing
+            if (-not $manifest.ContainsKey($svc)) {
+                Write-Host "'$svc' is not in the service manifest (add it to manifest.json)" -ForegroundColor Yellow
+                return
+            }
+            if (-not (Ensure-ScoopServiceXml -Name $svc)) {
+                Write-Host "Failed to prepare service definition for '$svc'"
+                return
+            }
+            $status = Get-ScoopWinSwStatusText -Name $svc
+            if ($status -eq 'NonExistent') {
+                Invoke-ScoopWinSw install $svc
+                Invoke-ScoopWinSw start $svc
+            }
+            else {
+                Invoke-ScoopWinSw start $svc
+            }
         }
         'stop' {
-            if ($svc) { Invoke-ScoopWinSw stop $svc }
-            else { Write-Host 'Usage: scoop services stop <name>' }
+            if (-not $svc) {
+                Write-Host 'Usage: scoop services stop <name>'
+                return
+            }
+            $status = Get-ScoopWinSwStatusText -Name $svc
+            if ($status -eq 'NonExistent') {
+                Write-Host "Service '$svc' is not installed"
+                return
+            }
+            Invoke-ScoopWinSw stop $svc
         }
         'restart' {
-            if ($svc) { Invoke-ScoopWinSw restart $svc }
-            else { Write-Host 'Usage: scoop services restart <name>' }
+            if (-not $svc) {
+                Write-Host 'Usage: scoop services restart <name>'
+                return
+            }
+            $status = Get-ScoopWinSwStatusText -Name $svc
+            if ($status -eq 'NonExistent') {
+                Write-Host "Service '$svc' is not installed"
+                return
+            }
+            Invoke-ScoopWinSw restart $svc
         }
         'help' { Show-ScoopServicesHelp }
         '-h' { Show-ScoopServicesHelp }
@@ -313,7 +410,7 @@ function Invoke-ScoopServicesPrepareUninstall {
     }
 }
 
-# Snapshot registered services before scoop update.
+# Snapshot running services before `scoop update`.
 function Invoke-ScoopServicesPrepareUpdate {
     param([string[]]$Apps)
 
@@ -347,7 +444,7 @@ function Invoke-ScoopServicesPrepareUpdate {
     [IO.File]::WriteAllText($snapshotPath, (($entries | ConvertTo-Json -Depth 5) + "`n"), $encoding)
 }
 
-# After successful scoop update: restart services whose version changed and were running.
+# After a successful update, restart services whose version changed.
 function Invoke-ScoopServicesRestartChanged {
     $snapshotPath = Get-ScoopServicesSnapshotPath
     if (-not (Test-Path -LiteralPath $snapshotPath)) { return }

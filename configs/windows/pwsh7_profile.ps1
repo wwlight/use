@@ -31,3 +31,9 @@ if (Test-Path -LiteralPath $__pwshAliases) {
     . $__pwshAliases
 }
 Remove-Variable __pwshCfg, __pwshAliases -ErrorAction SilentlyContinue
+
+# mise
+$mise = Get-Command mise -ErrorAction SilentlyContinue
+if ($mise -and (Test-Path $mise.Source)) {
+    (&mise activate pwsh) | Out-String | Invoke-Expression
+}

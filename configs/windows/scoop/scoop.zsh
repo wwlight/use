@@ -24,8 +24,8 @@ _scoop_ps() {
     file="$(cygpath -w "$file")"
   fi
 
-  # Avoid `pwsh -File script.ps1 install nginx`: unbound tokens are often dropped.
-  # Build an explicit PowerShell call so switches/args always reach the script.
+  # Avoid `pwsh -File script.ps1`: unbound tokens get dropped.
+  # Build an explicit call so switches/args always reach the script.
   if (( $# == 0 )); then
     "$ps_exe" -NoProfile -ExecutionPolicy Bypass -File "$file"
     return $?
@@ -33,7 +33,7 @@ _scoop_ps() {
   local call="& $(_scoop_ps_quote "$file")"
   local a
   for a in "$@"; do
-    # Keep -Switch tokens bare so PowerShell binds them as parameters.
+    # Leave -Switch tokens bare so PowerShell binds them as parameters.
     if [[ "$a" == -* ]]; then
       call+=" $a"
     else
@@ -210,8 +210,8 @@ scoop() {
     ec=$?
     if (( ec == 0 )); then
       _scoop_restart_changed_services
+      _scoop_ensure_mirror_hook
     fi
-    _scoop_ensure_mirror_hook
     return $ec
   else
     command scoop "$@"

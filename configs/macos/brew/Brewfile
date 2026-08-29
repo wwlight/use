@@ -1,5 +1,4 @@
 tap "anomalyco/tap", trusted: true
-tap "sdkman/tap", trusted: true
 # Resource monitor. C++ version and continuation of bashtop and bpytop
 brew "btop"
 # Container runtimes on MacOS (and Linux) with minimal setup
@@ -22,6 +21,8 @@ brew "git"
 brew "git-extras"
 # Common error values for all GnuPG components
 brew "libgpg-error"
+# Polyglot runtime manager (asdf rust clone)
+brew "mise"
 # Deep clean and optimize your Mac
 brew "mole"
 # Open source relational database management system
@@ -54,14 +55,14 @@ brew "valkey"
 brew "zoxide"
 # The AI coding agent built for the terminal.
 brew "anomalyco/tap/opencode"
-# SDKMAN! the Software Development Kit Manager
-brew "sdkman/tap/sdkman-cli"
 # Android SDK component
 cask "android-platform-tools"
 # Another Mihomo GUI
 cask "clash-party"
 # Write, edit, and chat about your code with AI
 cask "cursor"
+# Universal database tool and SQL client
+cask "dbeaver-community"
 cask "font-fira-code-nerd-font"
 cask "font-fira-mono-nerd-font"
 cask "font-lxgw-wenkai"

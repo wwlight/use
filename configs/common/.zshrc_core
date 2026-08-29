@@ -1,6 +1,6 @@
-# ~/.zsh/.zshrc_core — 公共核心配置
+# ~/.zsh/.zshrc_core — shared core config
 
-# --- 环境变量 ---
+# --- environment ---
 export ZSH=$HOME/.zsh
 export ZSH_CACHE=$ZSH/cache
 export ZSH_HISTORY=$ZSH/history
@@ -10,7 +10,7 @@ export STARSHIP_CONFIG=$HOME/.config/starship/starship.toml
 export EZA_CONFIG_DIR=$HOME/.config/eza
 [[ -d $ZSH_CACHE && -d $ZSH_HISTORY ]] || mkdir -p $ZSH_CACHE $ZSH_CACHE/zcompcache $ZSH_HISTORY
 
-# --- 历史记录 ---
+# --- history ---
 export HISTFILE=$ZSH_HISTORY/.zsh_history
 export HISTSIZE=5000
 export SAVEHIST=4000
@@ -25,13 +25,13 @@ setopt hist_ignore_space
 setopt hist_verify
 setopt share_history
 
-# --- shell 行为 ---
+# --- shell behavior ---
 setopt auto_cd
 setopt correct
 setopt complete_in_word
 setopt always_to_end
 
-# --- 插件 ---
+# --- plugins ---
 fpath=(
     $ZSH/plugins/zsh-completions/src
     $ZSH_FUNCTIONS
@@ -61,7 +61,7 @@ ZSH_AUTOSUGGEST_BUFFER_MAX_SIZE=20
 ZSH_AUTOSUGGEST_USE_ASYNC=1
 ZSH_AUTOSUGGEST_HIGHLIGHT_STYLE="fg=#53555c"
 
-# --- 工具缓存 ---
+# --- tool caches (starship / fzf / zoxide) ---
 if [[ ! -s $ZSH_FUNCTIONS/tools-init.zsh ]]; then
     {
         command -v starship >/dev/null && starship init zsh
@@ -70,7 +70,7 @@ if [[ ! -s $ZSH_FUNCTIONS/tools-init.zsh ]]; then
     } > $ZSH_FUNCTIONS/tools-init.zsh
 fi
 
-# --- uv 补全懒加载 ---
+# --- lazy-load uv completions ---
 _uv_lazy() {
     local _c=$1 _f=$2; eval "
         _$c() { unset -f _$c; eval \"\$(command $c $_f zsh 2>/dev/null)\"; _$c \"\$@\" }
@@ -79,6 +79,6 @@ _uv_lazy() {
 command -v uv  >/dev/null && _uv_lazy uv  generate-shell-completion
 command -v uvx >/dev/null && _uv_lazy uvx --generate-shell-completion
 
-# --- 自定义命令函数 ---
+# --- custom command functions ---
 funcfiles=($ZSH_FUNCTIONS/*.zsh(N))
 for f in ${(o)funcfiles}; do source $f; done

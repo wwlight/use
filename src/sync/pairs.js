@@ -76,8 +76,9 @@ function compareSyncItems(a, b, home = homeDir()) {
 }
 export function readSyncItems(platform, direction, profile) {
     const liteOnly = profile === 'lite' || process.env.SYNC_PROFILE === 'lite';
+    const scopes = syncScopes(platform);
     const items = [];
-    for (const scope of syncScopes(platform)) {
+    scopes.forEach((scope, scopeIndex) => {
         const manifest = loadManifest(scope);
         for (const item of manifest.sync?.toRepo ?? []) {
             if (liteOnly && item.lite === false)
@@ -94,11 +95,23 @@ export function readSyncItems(platform, direction, profile) {
                 backup: Boolean(normalized.backup),
                 encoding: normalized.encoding ?? '',
                 defaultSelected: normalized.defaultSelected !== false,
+                scopeIndex,
                 rawLine: toPairLine(normalized),
             });
         }
+    });
+    if (direction === '1') {
+        items.sort((a, b) => {
+            if (a.scopeIndex !== b.scopeIndex)
+                return a.scopeIndex - b.scopeIndex;
+            const ka = formatRepoDisplay(a.repo);
+            const kb = formatRepoDisplay(b.repo);
+            return ka < kb ? -1 : ka > kb ? 1 : 0;
+        });
     }
-    items.sort((a, b) => compareSyncItems(a, b));
+    else {
+        items.sort((a, b) => compareSyncItems(a, b));
+    }
     return items;
 }
 export function readSyncPairLines(platform, direction, profile) {
