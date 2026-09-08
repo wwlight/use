@@ -1,6 +1,10 @@
 #!/bin/zsh
 # ~/.zshrc — macos
 
+# Homebrew: skip auto-update, quiet env hints
+export HOMEBREW_NO_AUTO_UPDATE=1
+export HOMEBREW_NO_ENV_HINTS=1
+
 # docker compose
 export COMPOSE_FILE=$HOME/.docker/compose.yml
 
@@ -17,6 +21,10 @@ path=(
 )
 
 [[ -r $HOME/.zsh/.zshrc_core ]] && source $HOME/.zsh/.zshrc_core
+
+fpath+=(
+    ${HOMEBREW_PREFIX:-${commands[brew]:h:h}}/share/zsh/site-functions(N)
+)
 
 # mise
 if (( $+commands[mise] )); then

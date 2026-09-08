@@ -4,7 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { runCommand, exitStatus } from "../../core/exec.js";
-import { canceled, info, skip, step, success } from "../../core/log.js";
+import { canceled, info, skip, step, success, warn } from "../../core/log.js";
 import { formatPmUsage } from "../../core/usage.js";
 import { hasMirror, loadManifest, mirrorInstallMode, } from "../../core/manifest.js";
 import { projectRoot } from "../../core/paths.js";
@@ -101,7 +101,9 @@ async function installBrew(mirror) {
     await deployBrewRuntime();
     step('Ensuring Homebrew...');
     const env = applySelectedMirror(mirror);
-    if (findBrewBinary()) {
+    const existing = findBrewBinary();
+    if (existing) {
+        disableBrewAnalytics(existing, env);
         skip('Homebrew is already installed; skipping');
         return;
     }
@@ -112,6 +114,7 @@ async function installBrew(mirror) {
     const brew = findBrewBinary();
     if (!brew)
         throw new Error('Homebrew binary not found after install');
+    disableBrewAnalytics(brew, env);
     const update = runCommand(brew, ['update'], { env, timeoutMs: BREW_UPDATE_TIMEOUT_MS });
     if (exitStatus(update) !== 0)
         throw new Error('Homebrew update failed!');
@@ -127,6 +130,14 @@ function activeBrewMirrorId() {
     catch {
         return undefined;
     }
+}
+/** Turn off Homebrew analytics; non-fatal so it never blocks installation. */
+function disableBrewAnalytics(brew, env) {
+    const off = runCommand(brew, ['analytics', 'off'], { env });
+    if (exitStatus(off) === 0)
+        success('Homebrew analytics disabled');
+    else
+        warn('Could not disable Homebrew analytics');
 }
 /** Apply the active mirror env and run the real brew binary. */
 export function runBrew(args, cwd = projectRoot()) {

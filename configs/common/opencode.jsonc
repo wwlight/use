@@ -2,17 +2,13 @@
   "$schema": "https://opencode.ai/config.json",
   // MCP 服务器配置
   "mcp": {
-    "mdn": {
-      "type": "remote",
-      "url": "https://mcp.mdn.mozilla.net/",
-      "enabled": true
-    },
-    "shadcn": {
+    "chrome-devtools": {
       "type": "local",
       "command": [
-        "npx",
-        "shadcn@latest",
-        "mcp"
+        "pnpm",
+        "dlx",
+        "chrome-devtools-mcp@latest",
+        "--autoConnect"
       ],
       "enabled": true
     },
@@ -31,6 +27,11 @@
       ],
       "enabled": true
     },
+    "mdn": {
+      "type": "remote",
+      "url": "https://mcp.mdn.mozilla.net/",
+      "enabled": true
+    },
     "serena": {
       "type": "local",
       "command": [
@@ -38,6 +39,16 @@
         "start-mcp-server",
         "--context",
         "ide"
+      ],
+      "enabled": true
+    },
+    "shadcn": {
+      "type": "local",
+      "command": [
+        "pnpm",
+        "dlx",
+        "shadcn@latest",
+        "mcp"
       ],
       "enabled": true
     }
@@ -48,8 +59,6 @@
     "hostname": "0.0.0.0",
     "mdns": true
   },
-  // 默认模型
-  "model": "omniroute/oc/deepseek-v4-flash-free",
   // 注入到 system prompt 的额外指令
   "instructions": [
     "~/.config/opencode/skills/git-workspace/SKILL.md",
@@ -80,44 +89,44 @@
       "options": {
         "baseURL": "http://127.0.0.1:20129/v1"
       },
-      "models": {
-        "auto/best-free": {
-          "name": "best-free",
-          "description": "自动组合·最佳免费"
-        },
-        "oc/big-pickle": {
-          "name": "big-pickle",
-          "description": "OpenCode 免费模型"
-        },
-        "oc/deepseek-v4-flash-free": {
-          "name": "deepseek-v4-flash-free",
-          "description": "DeepSeek V4 免费版"
-        },
-        "oc/minimax-m3-free": {
-          "name": "minimax-m3-free",
-          "description": "MiniMax M3 免费版"
-        },
-        "oc/minimax-m2.5-free": {
-          "name": "minimax-m2.5-free",
-          "description": "MiniMax M2.5 免费版"
-        },
-        "oc/ling-2.6-1t-free": {
-          "name": "ling-2.6-1t-free",
-          "description": "Ling 2.6 免费版"
-        },
-        "oc/trinity-large-preview-free": {
-          "name": "trinity-large-preview-free",
-          "description": "Trinity 免费版"
-        },
-        "oc/nemotron-3-super-free": {
-          "name": "nemotron-3-super-free",
-          "description": "Nemotron 3 免费版"
-        },
-        "oc/qwen3.6-plus-free": {
-          "name": "qwen3.6-plus-free",
-          "description": "Qwen3.6 免费版"
-        }
-      }
+      // "models": {
+      //   "auto/best-free": {
+      //     "name": "best-free",
+      //     "description": "自动组合·最佳免费"
+      //   },
+      //   "oc/big-pickle": {
+      //     "name": "big-pickle",
+      //     "description": "OpenCode 免费模型"
+      //   },
+      //   "oc/deepseek-v4-flash-free": {
+      //     "name": "deepseek-v4-flash-free",
+      //     "description": "DeepSeek V4 免费版"
+      //   },
+      //   "oc/minimax-m3-free": {
+      //     "name": "minimax-m3-free",
+      //     "description": "MiniMax M3 免费版"
+      //   },
+      //   "oc/minimax-m2.5-free": {
+      //     "name": "minimax-m2.5-free",
+      //     "description": "MiniMax M2.5 免费版"
+      //   },
+      //   "oc/ling-2.6-1t-free": {
+      //     "name": "ling-2.6-1t-free",
+      //     "description": "Ling 2.6 免费版"
+      //   },
+      //   "oc/trinity-large-preview-free": {
+      //     "name": "trinity-large-preview-free",
+      //     "description": "Trinity 免费版"
+      //   },
+      //   "oc/nemotron-3-super-free": {
+      //     "name": "nemotron-3-super-free",
+      //     "description": "Nemotron 3 免费版"
+      //   },
+      //   "oc/qwen3.6-plus-free": {
+      //     "name": "qwen3.6-plus-free",
+      //     "description": "Qwen3.6 免费版"
+      //   }
+      // }
     }
   }
 }

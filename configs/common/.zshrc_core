@@ -24,6 +24,7 @@ setopt hist_reduce_blanks
 setopt hist_ignore_space
 setopt hist_verify
 setopt share_history
+setopt extended_history
 
 # --- shell behavior ---
 setopt auto_cd
@@ -37,7 +38,7 @@ fpath=(
     $ZSH_FUNCTIONS
     $fpath
 )
-autoload -Uz $ZSH_FUNCTIONS/_*(N:t)
+for f ($ZSH_FUNCTIONS/_*(N:t)) autoload -Uz $f
 zstyle ':completion:*' use-cache on
 zstyle ':completion:*' cache-path $ZSH_CACHE/zcompcache
 zstyle ':completion:*' menu select

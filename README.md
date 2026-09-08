@@ -350,7 +350,7 @@ scoop hold clink                  # 禁止更新
 ```text
 configs/common/
 ├── .zshrc_core                   # macos / windows 公共核心 zsh
-├── _eza                          # eza 补全（只恢复）
+├── _eza                          # eza zsh 补全（Windows：vpr sync restore；mac：brew 自带）
 ├── aliases.zsh                   # 公共别名
 ├── github-accel.zsh              # GitHub 加速函数（生成，只恢复）
 ├── mihomo.yaml                   # Mihomo 配置
