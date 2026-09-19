@@ -7,6 +7,8 @@ port: 7892
 redir-port: 0
 tproxy-port: 0
 allow-lan: false
+hosts:
+  localhost: 127.0.0.1
 unified-delay: true
 tcp-concurrent: true
 log-level: info
@@ -37,6 +39,7 @@ dns:
   enhanced-mode: fake-ip
   fake-ip-range: 198.18.0.1/16
   fake-ip-filter:
+    - localhost
     - +.lan
     - +.local
     - +.msftconnecttest.com

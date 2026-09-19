@@ -16,7 +16,6 @@ typeset -U path PATH
 path=(
     $HOME/.cargo/bin(N)
     $HOME/.local/bin(N)  # uv tool
-    $HOME/.opencode/bin(N)
     $path
 )
 

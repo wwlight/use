@@ -9,7 +9,6 @@
 typeset -U path PATH
 path=(
     $HOME/.local/bin(N)  # uv tool
-    $HOME/.opencode/bin(N)
     ${path:#/}
 )
 

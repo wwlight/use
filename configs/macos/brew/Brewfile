@@ -26,7 +26,7 @@ brew "mise"
 # Deep clean and optimize your Mac
 brew "mole"
 # Open source relational database management system
-brew "mysql"
+brew "mysql", restart_service: :changed
 # Incremental parsing library
 brew "tree-sitter"
 # Ambitious Vim-fork focused on extensibility and agility
@@ -78,8 +78,6 @@ cask "iina"
 cask "intellij-idea"
 # Open-source screen recorder built with web technology
 cask "kap"
-# Open-source keystroke visualiser
-cask "keycastr"
 # Open-source cross-platform alternative to AirDrop
 cask "localsend"
 # Window manager
