@@ -1,4 +1,9 @@
+[env]
+RUSTUP_DIST_SERVER = "https://rsproxy.cn"
+RUSTUP_UPDATE_ROOT = "https://rsproxy.cn/rustup"
+
 [tools]
 java = ["zulu-8.96.0.205", "zulu-17.68.203.0"]
 maven = "3.9.8"
 python = "3.14.7"
+rust = "stable"

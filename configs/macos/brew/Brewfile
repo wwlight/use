@@ -39,8 +39,6 @@ brew "onefetch"
 brew "pinentry-mac"
 # CLI proxy to minimize LLM token consumption
 brew "rtk"
-# Rust toolchain installer
-brew "rustup"
 # Command-line interface for SQLite
 brew "sqlite"
 # Cross-shell prompt for astronauts
@@ -53,8 +51,8 @@ brew "uv"
 brew "valkey"
 # Shell extension to navigate your filesystem faster
 brew "zoxide"
-# The AI coding agent built for the terminal.
-brew "anomalyco/tap/opencode"
+# OpenCode V2 - the AI coding agent for the terminal
+brew "anomalyco/tap/opencode-v2", trusted: true
 # Android SDK component
 cask "android-platform-tools"
 # Another Mihomo GUI

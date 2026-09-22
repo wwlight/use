@@ -160,7 +160,7 @@ export async function runBackupCommand(platform) {
     step('Backing up installed packages...');
     if (platform === 'macos') {
         const manifest = loadManifest('macos');
-        const dumpStatus = runBrew(['bundle', 'dump', '--no-vscode', '--no-npm', '--force', `--file=./${manifest.brewfile}`], root);
+        const dumpStatus = runBrew(['bundle', 'dump', '--no-vscode', '--no-npm', '--no-cargo', '--force', `--file=./${manifest.brewfile}`], root);
         if (dumpStatus !== 0)
             return dumpStatus;
         try {
