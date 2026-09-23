@@ -140,6 +140,7 @@ vpr sync                          # 交互选择同步方向
 vpr sync backup                   # 备份配置 → 仓库
 vpr sync restore                  # 恢复配置 → 本地
 vpr zsh-plugin                    # 安装/更新 zsh 插件
+vpr skills                        # 按 skill 锁安装全局 skill，并删除锁里没有的目录
 vpr git-setup                     # Git 全局配置
 ```
 
@@ -193,7 +194,7 @@ Get-ChildItem runtime,configs -Recurse -Include *.ps1,*.psm1 | Unblock-File
 │       └── bootstrap/            # 安装阶段（不进 src、不部署）
 ├── src/                          # Node CLI（可移植业务逻辑，仅 JS）
 │   ├── cli.js
-│   ├── commands/                 # init / backup / setup / sync / generate / git-setup / zsh-plugin / windows-extras
+│   ├── commands/                 # init / backup / setup / sync / generate / git-setup / zsh-plugin / skills / windows-extras
 │   ├── core/                     # manifest / paths / platform / args / usage / log / git / spinner / dirs / exec / copy / runtime-lib / runtime-deploy
 │   ├── generate/                 # brew-mirror / github-accel
 │   ├── lib/                      # ↑↓ 菜单等共享库：CLI 静态 import，同时作为载荷部署到 brew/scoop lib（部署清单见 core/runtime-lib.js）
@@ -354,7 +355,14 @@ configs/common/
 ├── aliases.zsh                   # 公共别名
 ├── github-accel.zsh              # GitHub 加速函数（生成，只恢复）
 ├── mihomo.yaml                   # Mihomo 配置
-├── opencode.jsonc                # OpenCode 配置
+├── opencode/                     # OpenCode 手写配置，同步清单里是这一条目录
+│   ├── opencode.jsonc
+│   ├── AGENTS.md
+│   ├── agents/
+│   ├── commands/
+│   ├── plugins/
+│   └── skills/
+├── agents/skill-lock.json        # ~/.agents 全局 skill 锁
 └── starship.toml                 # starship 配置
 ```
 

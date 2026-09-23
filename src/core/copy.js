@@ -76,6 +76,88 @@ export async function copyFileDataOnly(source, destination, opts = {}) {
     }
     fs.copyFileSync(source, destination);
 }
+const DIRECTORY_SKIP = new Set(['node_modules', '.git', '.DS_Store']);
+function directorySkip(name, exclude) {
+    return DIRECTORY_SKIP.has(name) || exclude.has(name);
+}
+/**
+ * Mirror `source` onto `destination`.
+ * Skipped names are left untouched on the destination, including extras that exist only there.
+ */
+export async function syncDirectory(source, destination, opts = {}) {
+    if (!fs.existsSync(source) || !fs.statSync(source).isDirectory()) {
+        throw new Error(`Source directory not found: ${source}`);
+    }
+    const exclude = new Set(opts.exclude ?? []);
+    ensureDir(destination);
+    await copyDirectoryEntries(source, destination, exclude);
+    pruneDirectoryEntries(source, destination, exclude);
+}
+function unlinkIfSymlink(target) {
+    try {
+        if (fs.lstatSync(target).isSymbolicLink()) {
+            fs.unlinkSync(target);
+            return true;
+        }
+    }
+    catch {
+        return false;
+    }
+    return false;
+}
+async function copyDirectoryEntries(source, destination, exclude) {
+    for (const entry of fs.readdirSync(source, { withFileTypes: true })) {
+        if (directorySkip(entry.name, exclude) || entry.isSymbolicLink())
+            continue;
+        const from = path.join(source, entry.name);
+        const to = path.join(destination, entry.name);
+        unlinkIfSymlink(to);
+        if (entry.isDirectory()) {
+            if (fs.existsSync(to) && !fs.statSync(to).isDirectory())
+                fs.rmSync(to, { force: true });
+            ensureDir(to);
+            await copyDirectoryEntries(from, to, exclude);
+            continue;
+        }
+        if (!entry.isFile())
+            continue;
+        if (fs.existsSync(to) && fs.statSync(to).isDirectory())
+            fs.rmSync(to, { recursive: true, force: true });
+        await copyFileDataOnly(from, to);
+    }
+}
+function pruneDirectoryEntries(source, destination, exclude) {
+    if (!fs.existsSync(destination))
+        return;
+    for (const entry of fs.readdirSync(destination, { withFileTypes: true })) {
+        if (directorySkip(entry.name, exclude))
+            continue;
+        const from = path.join(source, entry.name);
+        const to = path.join(destination, entry.name);
+        if (entry.isSymbolicLink() || !fs.existsSync(from)) {
+            fs.rmSync(to, { recursive: true, force: true });
+            continue;
+        }
+        if (entry.isDirectory() && fs.statSync(from).isDirectory())
+            pruneDirectoryEntries(from, to, exclude);
+    }
+}
+export async function backupDirectory(targetDir, backupDir, exclude = []) {
+    if (!fs.existsSync(targetDir))
+        return null;
+    ensureDir(backupDir);
+    const now = new Date();
+    const yyyy = String(now.getFullYear());
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const dd = String(now.getDate()).padStart(2, '0');
+    const base = `${path.basename(targetDir)}.bak.${yyyy}${mm}${dd}`;
+    let n = 0;
+    while (fs.existsSync(path.join(backupDir, `${base}.${n}`)))
+        n += 1;
+    const name = `${base}.${n}`;
+    await syncDirectory(targetDir, path.join(backupDir, name), { exclude });
+    return name;
+}
 export async function backupFile(targetFile, backupDir) {
     if (!fs.existsSync(targetFile))
         return null;

@@ -12,6 +12,7 @@
     "backup": "node ./src/cli.js backup",
     "setup": "node ./src/cli.js setup",
     "sync": "node ./src/cli.js sync",
+    "skills": "node ./src/cli.js skills",
     "zsh": "node ./src/cli.js zsh",
     "zsh-plugin": "node ./src/cli.js zsh-plugin",
     "git-setup": "node ./src/cli.js git-setup",

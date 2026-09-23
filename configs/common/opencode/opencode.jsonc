@@ -1,0 +1,133 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  // MCP 服务器配置。chrome-devtools / mdn / shadcn 默认禁用，由对应子 agent 打开。
+  "mcp": {
+    "chrome-devtools": {
+      "type": "local",
+      "command": [
+        "pnpm",
+        "dlx",
+        "chrome-devtools-mcp@latest",
+        "--autoConnect"
+      ],
+      "enabled": true,
+      "timeout": 30000
+    },
+    "headroom": {
+      "type": "local",
+      "command": [
+        "docker",
+        "exec",
+        "-i",
+        "headroom",
+        "headroom",
+        "mcp",
+        "serve",
+        "--proxy-url",
+        "http://localhost:20129"
+      ],
+      "enabled": true,
+      "timeout": 30000
+    },
+    "mdn": {
+      "type": "remote",
+      "url": "https://mcp.mdn.mozilla.net/",
+      "enabled": true,
+      "timeout": 30000
+    },
+    "serena": {
+      "type": "local",
+      "command": [
+        "serena",
+        "start-mcp-server",
+        "--context",
+        "ide"
+      ],
+      "enabled": true,
+      "timeout": 30000
+    },
+    "shadcn": {
+      "type": "local",
+      "command": [
+        "pnpm",
+        "dlx",
+        "shadcn@latest",
+        "mcp"
+      ],
+      "enabled": true,
+      "timeout": 30000
+    }
+  },
+  // 服务端监听配置
+  "server": {
+    "port": 4096,
+    "hostname": "0.0.0.0",
+    "mdns": true
+  },
+  // 上下文压缩。保留最近约 15000 token，并留出 20000 token 余量。
+  "compaction": {
+    "auto": true,
+    "preserve_recent_tokens": 15000,
+    "reserved": 20000
+  },
+  // 写入后按项目已有格式化器格式化；启用 LSP 诊断
+  "formatter": true,
+  "lsp": true,
+  // 请求发出前脱敏密钥。本地 plugins/rtk.ts 仍自动加载。
+  "plugin": ["opencode-vibeguard"],
+  // 权限控制。同一键内靠后的规则优先。
+  "permission": {
+    "edit": {
+      "*": "ask",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "*.env.example": "ask",
+      "*credentials*": "deny",
+      "*opencode/service.json": "deny"
+    },
+    "read": {
+      "*": "allow",
+      "*.env": "deny",
+      "*.env.*": "deny",
+      "*.env.example": "allow",
+      "*credentials*": "deny",
+      "*opencode/service.json": "deny"
+    },
+    "bash": {
+      "*": "ask",
+      "git status": "allow",
+      "git status *": "allow",
+      "git diff": "allow",
+      "git diff *": "allow",
+      "git log": "allow",
+      "git log *": "allow",
+      "git show": "allow",
+      "git show *": "allow",
+      "grep": "allow",
+      "grep *": "allow",
+      "ls": "allow",
+      "ls *": "allow",
+      "which": "allow",
+      "which *": "allow",
+      "pnpm": "allow",
+      "pnpm *": "allow",
+      "rtk": "allow",
+      "rtk *": "allow",
+      "git commit": "ask",
+      "git commit *": "ask",
+      "git push": "ask",
+      "git push *": "ask",
+      "git reset": "ask",
+      "git reset *": "ask",
+      "docker": "ask",
+      "docker *": "ask",
+      "rm -rf": "deny",
+      "rm -rf *": "deny"
+    },
+    "chrome-devtools_*": "deny",
+    "mdn_*": "deny",
+    "shadcn_*": "deny"
+  },
+  // 有新版本时只提示，不自动安装
+  "autoupdate": "notify"
+}

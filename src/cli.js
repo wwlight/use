@@ -7,6 +7,7 @@ import { runSetupCommand } from "./commands/setup.js";
 import { runSyncCommand } from "./commands/sync.js";
 import { runClinkCommand, runGitExtrasCommand, runZshInstallCommand } from "./commands/windows-extras.js";
 import { runGenerateCommand } from "./commands/generate.js";
+import { runSkillsCommand } from "./commands/skills.js";
 import { runZshPluginCommand } from "./commands/zsh-plugin.js";
 import { runRepoUpdateCommand } from "./commands/repo-update.js";
 import { runBrewPmCommand } from "./pm/brew/index.js";
@@ -24,6 +25,7 @@ const COMMANDS = {
     'setup': { platforms: ['macos', 'windows'], run: (platform, args) => runSetupCommand(platform, args) },
     'sync': { platforms: ['macos', 'windows'], run: (platform, args) => runSyncCommand(platform, args) },
     'zsh-plugin': { platforms: ['macos', 'windows'], run: (_platform, args) => runZshPluginCommand(args) },
+    'skills': { platforms: ['macos', 'windows'], run: (_platform, args) => runSkillsCommand(args) },
     'generate': { platforms: ['macos', 'windows'], run: (_platform, args) => runGenerateCommand(args) },
     'git-setup': { platforms: ['macos', 'windows'], run: (_platform, args) => runGitSetupCommand(args) },
     'zsh': { platforms: ['windows'], run: (_platform, args) => runZshInstallCommand(args) },

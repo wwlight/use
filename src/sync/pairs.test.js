@@ -16,6 +16,15 @@ function assertContiguousPrefix(displays, prefix) {
     );
 }
 
+test('unchecked items stay in the menu and drop out of the default sync', () => {
+    clearManifestCache();
+    const menu = readSyncItems('macos', '2');
+    const defaults = readSyncItems('macos', '2', undefined, { defaultsOnly: true });
+    assert.equal(menu.find((entry) => entry.repo === 'configs/common/opencode')?.defaultSelected, false);
+    assert.equal(defaults.some((entry) => entry.repo === 'configs/common/opencode'), false);
+    assert.ok(defaults.some((entry) => entry.repo === 'configs/common/agents/skill-lock.json'));
+});
+
 test('readSyncPairLines excludes restoreOnly on backup direction', () => {
     clearManifestCache();
     const lines = readSyncPairLines('macos', '1');

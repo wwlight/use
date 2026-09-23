@@ -3,7 +3,7 @@ import path from 'node:path';
 import { step, success, note, warn } from "../core/log.js";
 import { pathVarsForWindows } from "../core/manifest.js";
 import { expandPath, formatLocalDisplay, formatRepoDisplay, homeDir, projectRoot } from "../core/paths.js";
-import { backupFile, copyFileDataOnly } from "../core/copy.js";
+import { backupDirectory, backupFile, copyFileDataOnly, syncDirectory } from "../core/copy.js";
 import { cleanupSyncTempFile, parsePairLine, readSyncItems, } from "./pairs.js";
 function expandItemLocal(local, platform) {
     if (platform === 'windows') {
@@ -24,9 +24,17 @@ function loadItemsFromEnvOrManifest(platform, direction) {
         const lines = fs.readFileSync(filtered, 'utf8').split(/\r?\n/).filter(Boolean);
         cleanupSyncTempFile(filtered);
         delete process.env.SYNC_FILTERED_PAIRS;
-        return lines.map(parsePairLine);
+        const catalog = readSyncItems(platform, direction);
+        return lines.map((line) => {
+            const parsed = parsePairLine(line);
+            const match = catalog.find((item) => item.local === parsed.local && item.repo === parsed.repo);
+            if (!match)
+                return parsed;
+            return { ...parsed, directory: match.directory, exclude: match.exclude };
+        });
     }
-    return readSyncItems(platform, direction);
+    // No menu: keep the default checks. An explicit selection still includes unchecked rows.
+    return readSyncItems(platform, direction, undefined, { defaultsOnly: true });
 }
 export async function runConfigSync(opts) {
     const items = opts.items ?? loadItemsFromEnvOrManifest(opts.platform, opts.direction);
@@ -49,23 +57,33 @@ export async function runConfigSync(opts) {
         const repoAbs = path.join(root, item.repo);
         const localDisp = formatLocalDisplay(localAbs, home);
         if (opts.direction === '1') {
-            await copyFileDataOnly(localAbs, repoAbs);
+            if (item.directory)
+                await syncDirectory(localAbs, repoAbs, { exclude: item.exclude });
+            else
+                await copyFileDataOnly(localAbs, repoAbs);
             note(`${counter} Backed up ${formatRepoDisplay(item.repo)}`);
             continue;
         }
         let bakName = null;
-        if (item.backup) {
+        if (item.backup && item.directory) {
+            bakName = await backupDirectory(localAbs, backupRoot, item.exclude);
+            if (bakName)
+                note(`${counter} Backed up ~/.backup/${bakName}`);
+        }
+        else if (item.backup) {
             try {
                 bakName = await backupFile(localAbs, backupRoot);
-                if (bakName) {
+                if (bakName)
                     note(`${counter} Backed up ~/.backup/${bakName}`);
-                }
             }
             catch (err) {
                 warn(`Backup failed for ${localDisp}: ${err.message}`);
             }
         }
-        await copyFileDataOnly(repoAbs, localAbs, { encoding: item.encoding });
+        if (item.directory)
+            await syncDirectory(repoAbs, localAbs, { exclude: item.exclude });
+        else
+            await copyFileDataOnly(repoAbs, localAbs, { encoding: item.encoding });
         success(`${counter} Restored ${localDisp}`);
     }
     const n = items.length;

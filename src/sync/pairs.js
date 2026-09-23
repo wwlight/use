@@ -74,7 +74,7 @@ function compareSyncItems(a, b, home = homeDir()) {
         return da < db ? -1 : 1;
     return a.repo < b.repo ? -1 : a.repo > b.repo ? 1 : 0;
 }
-export function readSyncItems(platform, direction, profile) {
+export function readSyncItems(platform, direction, profile, options = {}) {
     const liteOnly = profile === 'lite' || process.env.SYNC_PROFILE === 'lite';
     const scopes = syncScopes(platform);
     const items = [];
@@ -95,6 +95,8 @@ export function readSyncItems(platform, direction, profile) {
                 backup: Boolean(normalized.backup),
                 encoding: normalized.encoding ?? '',
                 defaultSelected: normalized.defaultSelected !== false,
+                directory: normalized.directory === true,
+                exclude: Array.isArray(normalized.exclude) ? normalized.exclude.map(String) : [],
                 scopeIndex,
                 rawLine: toPairLine(normalized),
             });
@@ -112,6 +114,8 @@ export function readSyncItems(platform, direction, profile) {
     else {
         items.sort((a, b) => compareSyncItems(a, b));
     }
+    if (options.defaultsOnly)
+        return items.filter((item) => item.defaultSelected);
     return items;
 }
 export function readSyncPairLines(platform, direction, profile) {

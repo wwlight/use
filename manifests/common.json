@@ -24,8 +24,9 @@
       { "local": "~/.zsh/functions/aliases.zsh", "repo": "configs/common/aliases.zsh" },
       { "local": "~/.zsh/functions/github-accel.zsh", "repo": "configs/common/github-accel.zsh", "restoreOnly": true },
       { "local": "~/.config/starship/starship.toml", "repo": "configs/common/starship.toml" },
-      { "local": "~/.config/opencode/opencode.jsonc", "repo": "configs/common/opencode.jsonc", "backup": true, "lite": false, "defaultSelected": false },
-      { "local": "~/.config/mise/config.toml", "repo": "configs/common/mise.config.toml", "backup": true, "lite": false },
+      { "local": "~/.config/opencode", "repo": "configs/common/opencode", "backup": true, "lite": false, "defaultSelected": false, "directory": true, "exclude": ["node_modules", "package.json", "package-lock.json", "bun.lock", ".gitignore", ".DS_Store", "cli.json", "service.json", "tui.json", "vibeguard.config.json"] },
+      { "local": "~/.agents/.skill-lock.json", "repo": "configs/common/agents/skill-lock.json", "backup": true, "lite": false },
+      { "local": "~/.config/mise/config.toml", "repo": "configs/common/mise.config.toml", "backup": true, "lite": false }
     ]
   },
   "zshPlugins": [
