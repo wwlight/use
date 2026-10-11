@@ -766,13 +766,13 @@
     <rect x="320" y="30" width="160" height="56" rx="6" class="c-mask" />
     <rect x="320" y="30" width="160" height="56" rx="6" class="c-frontend" stroke-width="1.5" />
     <text x="400" y="56" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">vpr init</text>
-    <text x="400" y="72" class="t-muted" font-size="9" text-anchor="middle">→ _dispatch.mjs</text>
+    <text x="400" y="72" class="t-muted" font-size="9" text-anchor="middle">→ src/cli.js</text>
 
     <rect x="30" y="126" width="140" height="56" rx="6" class="c-mask" />
     <rect x="30" y="126" width="140" height="56" rx="6" class="c-backend dash-flow-box" stroke-width="2"
           stroke-dasharray="4,4" />
-    <text x="100" y="152" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">init.sh</text>
-    <text x="100" y="168" class="t-muted" font-size="9" text-anchor="middle">scripts/macos</text>
+    <text x="100" y="152" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">init.js</text>
+    <text x="100" y="168" class="t-muted" font-size="9" text-anchor="middle">macOS 分支</text>
 
     <rect x="230" y="126" width="140" height="56" rx="6" class="c-mask" />
     <rect x="230" y="126" width="140" height="56" rx="6" class="c-backend" stroke-width="1.5" />
@@ -785,8 +785,8 @@
     <rect x="630" y="126" width="140" height="56" rx="6" class="c-mask" />
     <rect x="630" y="126" width="140" height="56" rx="6" class="c-backend dash-flow-box" stroke-width="2"
           stroke-dasharray="4,4" />
-    <text x="700" y="152" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">init.ps1</text>
-    <text x="700" y="168" class="t-muted" font-size="9" text-anchor="middle">scripts/windows</text>
+    <text x="700" y="152" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">init.js</text>
+    <text x="700" y="168" class="t-muted" font-size="9" text-anchor="middle">Windows 分支</text>
 
     <rect x="30" y="238" width="110" height="56" rx="6" class="c-mask" />
     <rect x="30" y="238" width="110" height="56" rx="6" class="c-backend" stroke-width="1.5" />
@@ -822,19 +822,19 @@
     <rect x="30" y="446" width="150" height="56" rx="6" class="c-mask" />
     <rect x="30" y="446" width="150" height="56" rx="6" class="c-backend" stroke-width="1.5" />
     <text x="105" y="478" class="t-primary" font-size="11" font-weight="600"
-          text-anchor="middle">zsh-plugins-install</text>
+          text-anchor="middle">zsh-plugin</text>
 
     <rect x="320" y="446" width="160" height="56" rx="6" class="c-mask" />
     <rect x="320" y="446" width="160" height="56" rx="6" class="c-frontend dash-flow-box" stroke-width="2"
           stroke-dasharray="4,4" />
-    <text x="400" y="470" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">config-sync 2</text>
+    <text x="400" y="470" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">vpr sync 2</text>
     <text x="400" y="486" class="t-muted" font-size="9" text-anchor="middle">恢复配置 → 本地</text>
 
     <rect x="620" y="446" width="150" height="56" rx="6" class="c-mask" />
     <rect x="620" y="446" width="150" height="56" rx="6" class="c-backend" stroke-width="1.5" />
     <text x="695" y="472" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">zsh-install</text>
     <text x="695" y="488" class="t-primary" font-size="11" font-weight="600"
-          text-anchor="middle">zsh-plugins-install</text>
+          text-anchor="middle">zsh-plugin</text>
 
     <rect x="320" y="542" width="160" height="56" rx="6" class="c-mask" />
     <rect x="320" y="542" width="160" height="56" rx="6" class="c-frontend" stroke-width="1.5" />
