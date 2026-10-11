@@ -89,6 +89,12 @@ function Test-ScoopMirrorAccelHost {
     return ($Hosts -contains $uri.Host)
 }
 
+function Test-ScoopMirrorAccelIsOfficial {
+    $cfg = Get-ScoopMirrorAccelConfig
+    if (-not $cfg) { return $true }
+    return [string]::IsNullOrWhiteSpace([string]$cfg.ActivePrefix)
+}
+
 function Get-ScoopMirrorAccelCandidates {
     param([string]$Url)
 
@@ -106,19 +112,23 @@ function Get-ScoopMirrorAccelCandidates {
         return $one
     }
 
-    $list = New-Object System.Collections.Generic.List[string]
+    # Official: bare GitHub URL only — never probe mirror prefixes.
     $active = [string]$cfg.ActivePrefix
-
-    if (-not [string]::IsNullOrWhiteSpace($active)) {
-        $first = $active + $bare
-        if (-not $list.Contains($first)) { [void]$list.Add($first) }
-        foreach ($p in $cfg.Prefixes) {
-            if ($p -eq $active) { continue }
-            $candidate = $p + $bare
-            if (-not $list.Contains($candidate)) { [void]$list.Add($candidate) }
-        }
+    if ([string]::IsNullOrWhiteSpace($active)) {
+        $one = New-Object System.Collections.Generic.List[string]
+        [void]$one.Add($bare)
+        return $one
     }
 
+    # Mirror selected: active → other mirrors → official.
+    $list = New-Object System.Collections.Generic.List[string]
+    $first = $active + $bare
+    if (-not $list.Contains($first)) { [void]$list.Add($first) }
+    foreach ($p in $cfg.Prefixes) {
+        if ($p -eq $active) { continue }
+        $candidate = $p + $bare
+        if (-not $list.Contains($candidate)) { [void]$list.Add($candidate) }
+    }
     if (-not $list.Contains($bare)) { [void]$list.Add($bare) }
     return $list
 }

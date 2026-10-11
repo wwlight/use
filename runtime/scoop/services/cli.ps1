@@ -410,7 +410,8 @@ function Invoke-ScoopServicesPrepareUninstall {
     }
 }
 
-# Snapshot running services before `scoop update`.
+# Stop running managed services and snapshot them before `scoop update`
+# so package files are not locked (nginx, mysql, …).
 function Invoke-ScoopServicesPrepareUpdate {
     param([string[]]$Apps)
 
@@ -428,9 +429,18 @@ function Invoke-ScoopServicesPrepareUpdate {
         $status = Get-ScoopWinSwStatusText -Name $name
         if ($status -eq 'NonExistent') { continue }
         $version = Get-ScoopAppVersion -Name $name
+        $running = ($status -eq 'Active (running)')
         $entries[$name] = [ordered]@{
             version = $version
-            running = ($status -eq 'Active (running)')
+            running = $running
+        }
+        if (-not $running) { continue }
+        try {
+            Write-Host "Stopping service '$name' before update..." -ForegroundColor Cyan
+            Invoke-ScoopWinSw stop $name
+        }
+        catch {
+            Write-Host "▲ Failed to stop service '$name': $($_.Exception.Message)" -ForegroundColor Yellow
         }
     }
 
@@ -444,7 +454,7 @@ function Invoke-ScoopServicesPrepareUpdate {
     [IO.File]::WriteAllText($snapshotPath, (($entries | ConvertTo-Json -Depth 5) + "`n"), $encoding)
 }
 
-# After a successful update, restart services whose version changed.
+# After a successful update, resume services that were running (stopped in PrepareUpdate).
 function Invoke-ScoopServicesRestartChanged {
     $snapshotPath = Get-ScoopServicesSnapshotPath
     if (-not (Test-Path -LiteralPath $snapshotPath)) { return }
@@ -469,22 +479,31 @@ function Invoke-ScoopServicesRestartChanged {
         if (-not $manifest.ContainsKey($name)) { continue }
         if (-not (Test-ScoopServiceRestartOnUpdate -Cfg $manifest[$name])) { continue }
         if (-not (Test-Path -LiteralPath (Get-ScoopServiceXmlPath -Name $name))) { continue }
+        if (-not [bool]$before.running) { continue }
 
         $status = Get-ScoopWinSwStatusText -Name $name
         if ($status -eq 'NonExistent') { continue }
 
         $afterVersion = Get-ScoopAppVersion -Name $name
         $beforeVersion = [string]$before.version
-        if ([string]::IsNullOrWhiteSpace($afterVersion) -or [string]::IsNullOrWhiteSpace($beforeVersion)) { continue }
-        if ($afterVersion -eq $beforeVersion) { continue }
-        if (-not [bool]$before.running) { continue }
+        $versionChanged = (
+            -not [string]::IsNullOrWhiteSpace($afterVersion) -and
+            -not [string]::IsNullOrWhiteSpace($beforeVersion) -and
+            $afterVersion -ne $beforeVersion
+        )
 
         try {
-            Write-Host "Restarting service '$name' after update ($beforeVersion -> $afterVersion)" -ForegroundColor Cyan
-            Invoke-ScoopWinSw restart $name
+            if ($versionChanged) {
+                Write-Host "Restarting service '$name' after update ($beforeVersion -> $afterVersion)" -ForegroundColor Cyan
+                Invoke-ScoopWinSw restart $name
+            }
+            else {
+                Write-Host "Starting service '$name' after update" -ForegroundColor Cyan
+                Invoke-ScoopWinSw start $name
+            }
         }
         catch {
-            Write-Host "▲ Failed to restart service '$name': $($_.Exception.Message)" -ForegroundColor Yellow
+            Write-Host "▲ Failed to resume service '$name': $($_.Exception.Message)" -ForegroundColor Yellow
         }
     }
 }

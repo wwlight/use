@@ -23,7 +23,7 @@ skip-auth-prefixes:
   - 127.0.0.1/32
   - ::1/128
 tun:
-  enable: false
+  enable: true
   stack: mixed
   auto-route: true
   auto-redirect: false

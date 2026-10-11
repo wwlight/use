@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { partitionSkillLock, quoteCmdArg, readSkillLock, runSkillsCommand, skillLockLocal, skillsAddArgs, } from "./skills.js";
+import { partitionSkillLock, quoteCmdArg, readSkillLock, runSkillsCommand, skillLockLocal, skillsAddArgs, windowsCmdLine, } from "./skills.js";
 
 const command = { cmd: 'skills', baseArgs: [] };
 
@@ -47,6 +47,13 @@ test('partitionSkillLock groups by source and keeps skills with no source', () =
 
 test('quoteCmdArg keeps shell metacharacters inside quotes', () => {
     assert.equal(quoteCmdArg('a&b%c'), '"a&b%%c"');
+});
+
+test('windowsCmdLine wraps the full command so cmd /c keeps inner quotes', () => {
+    assert.equal(
+        windowsCmdLine('npx.cmd', ['--yes', 'skills', '--version']),
+        '""npx.cmd" "--yes" "skills" "--version""',
+    );
 });
 
 test('runSkillsCommand installs each source and removes unlocked directories', async () => {

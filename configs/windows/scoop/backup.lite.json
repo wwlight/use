@@ -1,73 +1,73 @@
 {
     "apps": [
         {
-            "Source": "main",
             "Name": "7zip",
-            "Updated": "2026-07-02T22:32:13.8590224+08:00",
-            "Version": "26.02",
+            "Version": "26.04",
+            "Source": "main",
+            "Updated": "2026-10-11T07:32:51.6395608+08:00",
             "Info": ""
         },
         {
-            "Source": "main",
             "Name": "aria2",
-            "Updated": "2026-08-04T22:47:41.8511321+08:00",
             "Version": "1.37.0-1",
+            "Source": "main",
+            "Updated": "2026-08-04T22:47:41.8511321+08:00",
             "Info": ""
         },
         {
-            "Source": "main",
             "Name": "eza",
-            "Updated": "2026-07-12T20:24:28.4846611+08:00",
             "Version": "0.23.5",
+            "Source": "main",
+            "Updated": "2026-07-12T20:24:28.4846611+08:00",
             "Info": ""
         },
         {
-            "Source": "nerd-fonts",
             "Name": "FiraCode-NF-Mono",
-            "Updated": "2026-08-28T22:07:14.0308367+08:00",
             "Version": "3.5.1",
+            "Source": "nerd-fonts",
+            "Updated": "2026-08-28T22:07:14.0308367+08:00",
             "Info": ""
         },
         {
-            "Source": "main",
             "Name": "fzf",
-            "Updated": "2026-08-28T22:07:18.3113152+08:00",
-            "Version": "0.74.3",
+            "Version": "0.74.4",
+            "Source": "main",
+            "Updated": "2026-10-11T07:33:00.4036209+08:00",
             "Info": ""
         },
         {
-            "Source": "main",
             "Name": "git",
-            "Updated": "2025-11-26T21:05:33.3396295+08:00",
             "Version": "2.52.0",
+            "Source": "main",
+            "Updated": "2025-11-26T21:05:33.3396295+08:00",
             "Info": "Held package"
         },
         {
-            "Source": "main",
             "Name": "starship",
-            "Updated": "2026-07-03T03:20:48.0852015+08:00",
             "Version": "1.26.0",
+            "Source": "main",
+            "Updated": "2026-07-03T03:20:48.0852015+08:00",
             "Info": ""
         },
         {
-            "Source": "main",
             "Name": "tealdeer",
-            "Updated": "2026-08-28T22:25:20.4956711+08:00",
             "Version": "1.9.0",
-            "Info": ""
-        },
-        {
-            "Source": "versions",
-            "Name": "winsw-pre",
-            "Updated": "2026-07-03T03:32:52.1073187+08:00",
-            "Version": "3.0.0-alpha.11",
-            "Info": ""
-        },
-        {
             "Source": "main",
+            "Updated": "2026-08-28T22:25:20.4956711+08:00",
+            "Info": ""
+        },
+        {
+            "Name": "winsw-pre",
+            "Version": "3.0.0-alpha.11",
+            "Source": "versions",
+            "Updated": "2026-07-03T03:32:52.1073187+08:00",
+            "Info": ""
+        },
+        {
             "Name": "zoxide",
-            "Updated": "2026-07-12T20:29:13.1757175+08:00",
             "Version": "0.10.0",
+            "Source": "main",
+            "Updated": "2026-07-12T20:29:13.1757175+08:00",
             "Info": ""
         }
     ],
@@ -75,19 +75,19 @@
         {
             "Name": "main",
             "Source": "https://github.com/ScoopInstaller/Main",
-            "Updated": "2026-08-29T08:55:02+08:00",
-            "Manifests": 1640
+            "Updated": "2026-10-11T04:31:03+08:00",
+            "Manifests": 1671
         },
         {
             "Name": "versions",
             "Source": "https://github.com/ScoopInstaller/Versions",
-            "Updated": "2026-08-29T06:28:47+08:00",
-            "Manifests": 601
+            "Updated": "2026-10-11T07:41:29+08:00",
+            "Manifests": 626
         },
         {
             "Name": "nerd-fonts",
             "Source": "https://github.com/matthewjberger/scoop-nerd-fonts",
-            "Updated": "2026-08-23T00:30:00+08:00",
+            "Updated": "2026-09-27T00:59:28+08:00",
             "Manifests": 367
         }
     ]

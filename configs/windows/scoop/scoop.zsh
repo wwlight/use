@@ -114,6 +114,21 @@ _scoop_manage_mirror() {
   node "$cli" switch "${1:-}"
 }
 
+# Resolve bucket add repo through the active Scoop mirror (git clone bypasses download hook).
+_scoop_mirror_bucket_repo() {
+  local name="$1" repo="${2:-}" cli url
+  cli="$(_scoop_mirror_cli)"
+  [[ -f "$cli" ]] || return 1
+  command -v node >/dev/null 2>&1 || return 1
+  if [[ -n "$repo" ]]; then
+    url="$(node "$cli" bucket-repo "$name" "$repo" 2>/dev/null)" || return 1
+  else
+    url="$(node "$cli" bucket-repo "$name" 2>/dev/null)" || return 1
+  fi
+  [[ -n "$url" ]] || return 1
+  print -r -- "$url"
+}
+
 _scoop_services_helper() {
   print -r -- "$(_scoop_config_dir)/services/cli.ps1"
 }
@@ -154,7 +169,8 @@ _scoop_prepare_update_services() {
   local p
   p="$(_scoop_services_helper)"
   [[ -f "$p" ]] || return 0
-  _scoop_ps "$p" -PrepareUpdate "$@" >/dev/null 2>&1 || true
+  # Stop running managed services before update; keep stdout so stop notices show.
+  _scoop_ps "$p" -PrepareUpdate "$@" || true
 }
 
 _scoop_restart_changed_services() {
@@ -197,6 +213,15 @@ scoop() {
     }
   fi
 
+  if [[ "$1" == "bucket" && "$2" == "add" && -n "${3:-}" ]]; then
+    local mirrored
+    if mirrored="$(_scoop_mirror_bucket_repo "$3" "${4:-}")"; then
+      command scoop bucket add "$3" "$mirrored"
+      return $?
+    fi
+    command scoop "$@"
+    return $?
+  fi
   if [[ "$1" == "uninstall" ]]; then
     local apps
     apps=($(_scoop_apps_from "${@:2}"))
@@ -208,10 +233,9 @@ scoop() {
     _scoop_prepare_update_services "${apps[@]}"
     command scoop "$@"
     ec=$?
-    if (( ec == 0 )); then
-      _scoop_restart_changed_services
-      _scoop_ensure_mirror_hook
-    fi
+    # PrepareUpdate already stopped running services. Resume them even if update failed.
+    _scoop_restart_changed_services
+    _scoop_ensure_mirror_hook
     return $ec
   else
     command scoop "$@"

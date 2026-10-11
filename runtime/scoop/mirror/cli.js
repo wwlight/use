@@ -7,6 +7,7 @@
  *   node cli.js repair                      # install/refresh download.ps1 hook
  *   node cli.js switch [<name>|official|status]  # switch / status (interactive if omitted)
  *   node cli.js menu <title> <choice>...         # interactive ↑↓ select
+ *   node cli.js bucket-repo <name> [<repo>]      # print mirrored git URL for bucket add
  */
 import { Buffer } from 'node:buffer'
 import { spawnSync } from 'node:child_process'
@@ -379,6 +380,40 @@ function getUpstreamRepo(config, url) {
         return 'https://github.com/ScoopInstaller/Scoop';
     return url.stripMirrorPrefix(repo, config.prefixes);
 }
+/** Resolve a known bucket name (or explicit repo) to the active-mirror git URL. */
+function resolveBucketRepoUrl(name, repoArg, config, url) {
+    let repo = String(repoArg || '').trim();
+    if (!repo) {
+        const scoop = process.env.SCOOP;
+        if (!scoop)
+            throw new Error('SCOOP environment variable is not set');
+        const bucketsJson = path.join(scoop, 'apps', 'scoop', 'current', 'buckets.json');
+        if (!fs.existsSync(bucketsJson))
+            throw new Error(`Scoop buckets.json not found at ${bucketsJson}`);
+        const known = JSON.parse(fs.readFileSync(bucketsJson, 'utf8'));
+        repo = String(known[name] || '').trim();
+        if (!repo)
+            return '';
+    }
+    return url.convertToMirrorUrl(repo, config.activePrefix, config.prefixes, config.githubHosts);
+}
+
+function printBucketRepoUrl(nameArg, repoArg) {
+    const name = String(nameArg || '').trim();
+    if (!name)
+        throw new Error('Usage: node cli.js bucket-repo <name> [<repo>]');
+    const configPath = path.join(here, 'state.json');
+    if (!fs.existsSync(configPath))
+        throw new Error(`Scoop mirror state not found at ${configPath}`);
+    return loadUrlModule().then((url) => {
+        const config = loadMirrorConfig(configPath, url);
+        const mirrored = resolveBucketRepoUrl(name, repoArg, config, url);
+        if (!mirrored)
+            return;
+        process.stdout.write(`${mirrored}\n`);
+    });
+}
+
 function setBucketRemotes(activePrefix, config, url) {
     const scoop = process.env.SCOOP;
     const bucketsRoot = path.join(scoop, 'buckets');
@@ -420,7 +455,12 @@ function printMirrorStatus(config, url) {
     const repo = String(repoResult.stdout || '').trim();
     if (repoResult.status === 0 && repo)
         console.log(`Scoop repo:    ${repo}`);
-    console.log('Download rule: selected mirror -> other mirrors -> official; non-GitHub URLs use direct');
+    if (activeId === 'official') {
+        console.log('Download rule: official only (no mirror fallback); non-GitHub URLs use direct');
+    }
+    else {
+        console.log('Download rule: selected mirror -> other mirrors -> official; non-GitHub URLs use direct');
+    }
 }
 function switchMirror(choice, config, url) {
     const activePrefix = url.resolveMirrorChoice(choice, config.mirrors);
@@ -506,6 +546,10 @@ if (isMain) {
             await runMenuCli(process.argv.slice(3));
             process.exit(0);
         }
+        if (mode === 'bucket-repo') {
+            await printBucketRepoUrl(process.argv[3] || '', process.argv[4] || '');
+            process.exit(0);
+        }
         const input = await readStdin();
         let output;
         if (mode === 'clean')
@@ -513,7 +557,7 @@ if (isMain) {
         else if (mode === 'smudge')
             output = addHook(input);
         else {
-            console.error('Usage: node cli.js <clean|smudge|repair|switch|menu>');
+            console.error('Usage: node cli.js <clean|smudge|repair|switch|menu|bucket-repo>');
             process.exit(2);
         }
         process.stdout.write(output);

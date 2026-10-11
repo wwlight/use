@@ -1,5 +1,6 @@
 # Scoop download hook: rewrite URLs and aria2 retries for the active mirror.
 # Repair / git filter live in cli.js (Node).
+# Official (empty activePrefix): strip mirror prefixes only — no candidate fallback.
 
 $shared = Join-Path $PSScriptRoot 'shared.ps1'
 if (-not (Test-Path -LiteralPath $shared)) {
@@ -18,6 +19,9 @@ if (Get-Command handle_special_urls -ErrorAction SilentlyContinue) {
         return (ConvertTo-ScoopMirrorUrl $url)
     }
 }
+
+# Official mode: leave Scoop's Start-Download / aria2 paths alone (no fallback loop).
+if (Test-ScoopMirrorAccelIsOfficial) { return }
 
 if (Get-Command Start-Download -ErrorAction SilentlyContinue) {
     function Start-Download ($url, $to, $cookies) {

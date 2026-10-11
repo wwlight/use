@@ -327,11 +327,11 @@ scoop services start nginx        # 启动
 scoop services stop nginx         # 停止
 scoop services restart nginx      # 重启
 scoop uninstall nginx             # 自动注销服务后卸载
-scoop update nginx                # 版本变更且服务原在运行 → 自动 restart（类 brew :changed）
+scoop update nginx                # 更新前停止正在运行的服务，结束后按快照恢复
 ```
 
 > [!NOTE]
-> `scoop update` / `scoop update *` 会对 manifest 中已注册且更新前在运行的服务，在版本号变化后自动重启。
+> `scoop update` / `scoop update *` 会先停止 manifest 中已注册且正在运行的服务，结束后按快照恢复。版本变了用 restart，没变用 start。
 > 清单项可设 `"restartOnUpdate": false` 退出该行为；缺省为启用。
 
 ### clink

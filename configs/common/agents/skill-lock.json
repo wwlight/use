@@ -6,9 +6,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/tt-a1i/archify.git",
       "skillPath": "archify/SKILL.md",
-      "skillFolderHash": "68f9fae4d0b4a17c5cd8cba9682e7306f879d4bb",
+      "skillFolderHash": "a38bc1bc9e97804aa5d23f09c357ac23e096eb54",
       "installedAt": "2026-07-08T00:18:38.351Z",
-      "updatedAt": "2026-09-23T15:36:36.460Z"
+      "updatedAt": "2026-10-11T01:10:38.961Z"
     },
     "find-skills": {
       "source": "vercel-labs/skills",
@@ -24,9 +24,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/mattpocock/skills.git",
       "skillPath": "skills/productivity/teach/SKILL.md",
-      "skillFolderHash": "2ab11f2f51f3c29771edb5d4258d807a49462491",
+      "skillFolderHash": "3fd617b610e59acbb99644de1ef37e394ff53cd1",
       "installedAt": "2026-07-08T00:19:40.734Z",
-      "updatedAt": "2026-09-23T15:36:39.827Z"
+      "updatedAt": "2026-10-11T01:10:44.635Z"
     },
     "frontend-design": {
       "source": "anthropics/skills",
@@ -42,9 +42,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/cathrynlavery/diagram-design.git",
       "skillPath": "skills/diagram-design/SKILL.md",
-      "skillFolderHash": "b15b596ca202592330107c5adff030614e88d877",
+      "skillFolderHash": "8ea76af062529d7631b5dc3878e98b3f84031efe",
       "installedAt": "2026-08-19T16:49:14.426Z",
-      "updatedAt": "2026-09-23T15:36:55.195Z"
+      "updatedAt": "2026-10-11T01:10:58.407Z"
     },
     "grill-me": {
       "source": "mattpocock/skills",

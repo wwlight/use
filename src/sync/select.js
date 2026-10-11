@@ -54,8 +54,52 @@ function columns(output) {
     }
     return 80;
 }
-function isToggleKey(str, key) {
+/** xterm modifyOtherKeys / kitty CSI-u encodings for Shift+Space. */
+export const SHIFT_SPACE_SEQUENCES = [
+    '\x1b[27;2;32~',
+    '\x1b[32;2u',
+];
+
+/** Space / x without modifiers: toggle the active row. */
+export function isToggleKey(str, key) {
+    if (key?.shift || key?.meta || key?.ctrl)
+        return false;
     return str === ' ' || key?.name === 'space' || key?.name === 'x';
+}
+
+/**
+ * Invert-all bindings. Plain Shift+Space is usually indistinguishable from Space
+ * in ConPTY/Cursor; prefer `i`, plus Shift/Alt+Space when the terminal reports it.
+ */
+export function isInvertKey(str, key) {
+    if (key?.name === 'i')
+        return true;
+    if (key?.name !== 'space' && str !== ' ')
+        return false;
+    return Boolean(key?.shift || key?.meta);
+}
+
+export function invertChoices(choices) {
+    for (const choice of choices)
+        choice.selected = !choice.selected;
+    return choices;
+}
+
+/** Pull one recognized Shift+Space sequence out of a rolling raw buffer. */
+export function consumeShiftSpaceSequence(buffer) {
+    let buf = String(buffer || '');
+    for (const seq of SHIFT_SPACE_SEQUENCES) {
+        const at = buf.indexOf(seq);
+        if (at < 0)
+            continue;
+        return {
+            matched: true,
+            buffer: buf.slice(0, at) + buf.slice(at + seq.length),
+        };
+    }
+    if (buf.length > 64)
+        buf = buf.slice(-64);
+    return { matched: false, buffer: buf };
 }
 function createMultiselect({ message, choices, input, output }) {
     let cursor = 0;
@@ -64,12 +108,14 @@ function createMultiselect({ message, choices, input, output }) {
     let state = 'active';
     let error = '';
     let altScreen = false;
+    let rawBuf = '';
     /** @type {import('node:readline').Interface | undefined} */
     let rl;
     function leaveAltScreen() {
         if (!altScreen)
             return;
-        output.write('\x1B[?1049l');
+        // Disable modifyOtherKeys, then leave the alt screen.
+        output.write('\x1B[>4;0m\x1B[?1049l');
         altScreen = false;
     }
     function pageSize() {
@@ -94,8 +140,8 @@ function createMultiselect({ message, choices, input, output }) {
             }));
         }
         const nav = choices.length > pageSize()
-            ? `↑↓ Move (${cursor + 1}/${choices.length})  Space/x Toggle  Enter Confirm  Esc/Ctrl+C Cancel`
-            : '↑↓ Move  Space/x Toggle  Enter Confirm  Esc/Ctrl+C Cancel';
+            ? `↑↓ Move (${cursor + 1}/${choices.length})  Space/x Toggle  i Invert  Enter Confirm  Esc/Ctrl+C Cancel`
+            : '↑↓ Move  Space/x Toggle  i Invert  Enter Confirm  Esc/Ctrl+C Cancel';
         const lines = [
             '',
             formatStepTitle(message),
@@ -117,7 +163,8 @@ function createMultiselect({ message, choices, input, output }) {
             leaveAltScreen();
         }
         else if (!prevFrame) {
-            payload += '\x1B[?1049h\x1B[?25l\x1B[H\x1B[J';
+            // modifyOtherKeys level 2: terminals that support it can emit Shift+Space.
+            payload += '\x1B[?1049h\x1B[>4;2m\x1B[?25l\x1B[H\x1B[J';
             altScreen = true;
             payload += frame;
         }
@@ -149,6 +196,7 @@ function createMultiselect({ message, choices, input, output }) {
         readline.emitKeypressEvents(input, rl);
         const close = ({ endLine = true } = {}) => {
             input.removeListener('keypress', onKeypress);
+            input.removeListener('data', onRawData);
             leaveAltScreen();
             if (endLine)
                 output.write('\n');
@@ -167,9 +215,28 @@ function createMultiselect({ message, choices, input, output }) {
             err.printed = true;
             reject(err);
         };
+        const doInvert = () => {
+            invertChoices(choices);
+            error = '';
+            render();
+        };
+        // Node's keypress parser does not decode modifyOtherKeys / CSI-u; scan raw bytes.
+        const onRawData = (chunk) => {
+            if (state === 'submit')
+                return;
+            rawBuf += Buffer.isBuffer(chunk) ? chunk.toString('latin1') : String(chunk);
+            const result = consumeShiftSpaceSequence(rawBuf);
+            rawBuf = result.buffer;
+            if (result.matched)
+                doInvert();
+        };
         const onKeypress = (str, key) => {
             if (state === 'submit')
                 return;
+            if (isInvertKey(str, key)) {
+                doInvert();
+                return;
+            }
             if (isToggleKey(str, key)) {
                 choices[cursor].selected = !choices[cursor].selected;
                 error = '';
@@ -223,6 +290,7 @@ function createMultiselect({ message, choices, input, output }) {
             }
             render();
         };
+        input.on('data', onRawData);
         input.on('keypress', onKeypress);
         render();
     });

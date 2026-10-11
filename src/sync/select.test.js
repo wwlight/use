@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { formatSyncChoiceLine } from "./select.js";
+import { consumeShiftSpaceSequence, formatSyncChoiceLine, invertChoices, isInvertKey, isToggleKey } from "./select.js";
 import { isSyncDirection, normalizeSyncDirection, SYNC_DIRECTION_BACKUP, SYNC_DIRECTION_CHOICES, SYNC_DIRECTION_HINT, SYNC_DIRECTION_RESTORE, } from "./direction.js";
 test('sync direction helpers', () => {
     assert.equal(isSyncDirection('1'), true);
@@ -23,4 +23,27 @@ test('sync choice line formatting', () => {
     assert.equal(formatSyncChoiceLine('a.txt', { selected: true, active: false }), '  [✓] a.txt');
     assert.equal(formatSyncChoiceLine('b.txt', { selected: false, active: true }), '◇ [ ] b.txt');
     assert.equal(formatSyncChoiceLine('c.txt', { selected: true, active: true }), '◆ [✓] c.txt');
+});
+
+test('Space toggles one row; i / Shift+Space invert all', () => {
+    assert.equal(isToggleKey(' ', { name: 'space', shift: false }), true);
+    assert.equal(isToggleKey(' ', { name: 'space', shift: true }), false);
+    assert.equal(isInvertKey(' ', { name: 'space', shift: true }), true);
+    assert.equal(isInvertKey(' ', { name: 'space', meta: true }), true);
+    assert.equal(isInvertKey('i', { name: 'i' }), true);
+    assert.equal(isInvertKey(' ', { name: 'space', shift: false }), false);
+    assert.equal(isInvertKey('x', { name: 'x', shift: true }), false);
+
+    const choices = [
+        { selected: true },
+        { selected: false },
+        { selected: true },
+    ];
+    invertChoices(choices);
+    assert.deepEqual(choices.map((c) => c.selected), [false, true, false]);
+
+    const hit = consumeShiftSpaceSequence('ab\x1b[27;2;32~cd');
+    assert.equal(hit.matched, true);
+    assert.equal(hit.buffer, 'abcd');
+    assert.equal(consumeShiftSpaceSequence('plain').matched, false);
 });

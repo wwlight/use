@@ -149,10 +149,11 @@ function _scoop_prepare_update_services {
   [void]$argList.Add('-PrepareUpdate')
   foreach ($a in $args) { [void]$argList.Add($a) }
   try {
+    # Stop running managed services (nginx, …) then snapshot for post-update resume.
     _scoop_invoke_helper -Path $p -ArgumentList $argList.ToArray()
   }
   catch {
-    # Snapshot is best-effort; never block scoop update.
+    # Stop/snapshot is best-effort; never block scoop update.
   }
 }
 
@@ -171,6 +172,26 @@ function _scoop_restart_changed_services {
 
 function _scoop_apps {
   $args | Where-Object { $_ -notlike '-*' } | Select-Object -Skip 1
+}
+
+function _scoop_mirror_bucket_repo {
+  param(
+    [Parameter(Mandatory)][string]$Name,
+    [string]$Repo = ''
+  )
+  $cli = _scoop_mirror_cli
+  if (-not (Test-Path -LiteralPath $cli)) { return $null }
+  if (-not (Get-Command node.exe -ErrorAction SilentlyContinue)) { return $null }
+  $output = if ([string]::IsNullOrWhiteSpace($Repo)) {
+    & node.exe $cli bucket-repo $Name 2>$null
+  }
+  else {
+    & node.exe $cli bucket-repo $Name $Repo 2>$null
+  }
+  if ($LASTEXITCODE -ne 0) { return $null }
+  $url = [string]($output | Select-Object -Last 1)
+  if ([string]::IsNullOrWhiteSpace($url)) { return $null }
+  return $url.Trim()
 }
 
 function scoop {
@@ -195,6 +216,16 @@ function scoop {
       if ($args.Count -gt 1) { $svcArgs = $args[1..($args.Count - 1)] }
       _scoop_manage_services @svcArgs
       return
+    }
+    # bucket add uses git clone (not the download hook) — rewrite repo via active mirror.
+    if ($args[0] -eq 'bucket' -and $args.Count -ge 3 -and [string]$args[1] -eq 'add') {
+      $bucketName = [string]$args[2]
+      $bucketRepo = if ($args.Count -ge 4) { [string]$args[3] } else { '' }
+      $mirrored = _scoop_mirror_bucket_repo -Name $bucketName -Repo $bucketRepo
+      if ($mirrored) {
+        & $__scoop @('bucket', 'add', $bucketName, $mirrored)
+        return
+      }
     }
     if ($args[0] -eq 'uninstall') {
       $apps = @(_scoop_apps @args)
@@ -222,7 +253,8 @@ function scoop {
   & $__scoop @args
   $ec = $LASTEXITCODE
   if ($args.Count -ge 1 -and $args[0] -eq 'update') {
-    if ($ec -eq 0) { _scoop_restart_changed_services }
+    # PrepareUpdate already stopped running services. Resume them even if update failed.
+    _scoop_restart_changed_services
     _scoop_ensure_mirror_hook
   }
   $global:LASTEXITCODE = $ec

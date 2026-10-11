@@ -1,0 +1,12 @@
+{
+  "dependencies": {
+    "@opencode/plugin": "latest"
+  },
+  "devEngines": {
+    "packageManager": {
+      "name": "bun",
+      "version": "^1.4.0",
+      "onFail": "download"
+    }
+  }
+}

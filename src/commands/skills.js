@@ -87,14 +87,31 @@ export function quoteCmdArg(arg) {
     return `"${String(arg).replace(/"/g, '""').replace(/%/g, '%%')}"`;
 }
 
-export function resolveSkillsCommand() {
+/**
+ * Build a `/c` string for cmd.exe. Outer quotes are required: without them,
+ * cmd strips the first and last `"` and mangles multi-arg lines into
+ * `npx.cmd" "--yes" "skills"`.
+ */
+export function windowsCmdLine(cmd, args = []) {
+    return `"${[cmd, ...args].map(quoteCmdArg).join(' ')}"`;
+}
+
+function firstWhere(name) {
     const finder = process.platform === 'win32' ? 'where.exe' : 'which';
-    const found = spawnSync(finder, ['skills'], { encoding: 'utf8' });
-    const bin = found.status === 0
-        ? found.stdout.split(/\r?\n/).map((line) => line.trim()).find(Boolean)
-        : '';
-    if (bin)
-        return { cmd: bin, baseArgs: [] };
+    const found = spawnSync(finder, [name], { encoding: 'utf8' });
+    if (found.status !== 0)
+        return '';
+    return found.stdout.split(/\r?\n/).map((line) => line.trim()).find(Boolean) || '';
+}
+
+export function resolveSkillsCommand() {
+    const skillsBin = firstWhere('skills');
+    if (skillsBin)
+        return { cmd: skillsBin, baseArgs: [] };
+    // vite-plus exposes `vpx skills` when a global `skills` binary is absent.
+    const vpxBin = firstWhere('vpx');
+    if (vpxBin)
+        return { cmd: vpxBin, baseArgs: ['skills'] };
     return {
         cmd: process.platform === 'win32' ? 'npx.cmd' : 'npx',
         baseArgs: ['--yes', 'skills'],
@@ -148,7 +165,7 @@ function restoreSnapshot(skillsDir, snap) {
 function spawnCommand(cmd, args) {
     return new Promise((resolve) => {
         const child = process.platform === 'win32'
-            ? spawn(process.env.ComSpec || 'cmd.exe', ['/d', '/c', [cmd, ...args].map(quoteCmdArg).join(' ')], {
+            ? spawn(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', windowsCmdLine(cmd, args)], {
                 stdio: 'inherit',
                 windowsHide: true,
                 windowsVerbatimArguments: true,
