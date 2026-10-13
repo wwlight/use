@@ -73,8 +73,7 @@
   // 写入后按项目已有格式化器格式化；启用 LSP 诊断
   "formatter": true,
   "lsp": true,
-  // 请求发出前脱敏密钥。本地 plugins/rtk.ts 仍自动加载。
-  "plugin": ["opencode-vibeguard"],
+  "plugins": ["rtk"],
   // 权限控制。同一键内靠后的规则优先。
   "permission": {
     "edit": {
