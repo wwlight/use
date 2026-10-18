@@ -1,4 +1,6 @@
 tap "anomalyco/tap", trusted: true
+tap "fayazara/tap"
+tap "omlahore/tap"
 # Resource monitor. C++ version and continuation of bashtop and bpytop
 brew "btop"
 # Container runtimes on MacOS (and Linux) with minimal setup
@@ -53,6 +55,8 @@ brew "valkey"
 brew "zoxide"
 # OpenCode V2 - the AI coding agent for the terminal
 brew "anomalyco/tap/opencode-v2", trusted: true
+# Debloat macOS: turn off Apple Intelligence, analytics, ads and pop-ups
+brew "omlahore/tap/removemacai", trusted: true
 # Android SDK component
 cask "android-platform-tools"
 # Another Mihomo GUI
@@ -84,12 +88,10 @@ cask "loop"
 cask "motrix"
 # Reverse proxy, secure introspectable tunnels to localhost
 cask "ngrok"
-# Knowledge base that works on top of a local folder of plain text Markdown files
-cask "obsidian"
 # Control your tools with a few keystrokes
 cask "raycast"
-# Screen recorder and editor
-cask "screen-studio"
+# Native macOS menu bar screenshot and screen recording tool
+cask "fayazara/tap/screendrop", trusted: true
 # Rime input method engine
 cask "squirrel-app"
 # App to switch hosts
@@ -100,4 +102,6 @@ cask "the-unarchiver"
 cask "visual-studio-code"
 # Free messaging and calling application
 cask "wechat"
+# All-in-one office suite
+cask "wpsoffice"
 uv "serena-agent"

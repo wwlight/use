@@ -54,6 +54,15 @@
       "skillFolderHash": "3df14e2d3a89459bf300614be9247e3ce74798f8",
       "installedAt": "2026-09-09T14:06:15.164Z",
       "updatedAt": "2026-09-23T15:36:43.226Z"
+    },
+    "weread-skills": {
+      "source": "Tencent/WeChatReading",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/Tencent/WeChatReading.git",
+      "skillPath": "skills/SKILL.md",
+      "skillFolderHash": "f3427b147df128407221e455b3d42f16e2962aad",
+      "installedAt": "2026-10-15T14:06:06.153Z",
+      "updatedAt": "2026-10-15T14:06:06.153Z"
     }
   },
   "dismissed": {}

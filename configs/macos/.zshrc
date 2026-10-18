@@ -29,3 +29,21 @@ fpath+=(
 if (( $+commands[mise] )); then
     eval "$(mise activate zsh)"
 fi
+
+# ---- 动态代理开关（Clash）----
+proxy_on() {
+  export http_proxy="http://127.0.0.1:7890"
+  export https_proxy="http://127.0.0.1:7890"
+  export all_proxy="socks5://127.0.0.1:7890"
+  export no_proxy="localhost,127.0.0.1,192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,*.local"
+}
+
+proxy_off() {
+  unset http_proxy https_proxy all_proxy no_proxy \
+        HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY
+}
+
+# 每次开新终端时探测 Clash 的 7890 是否在监听，在就自动开代理
+if nc -z -w 1 127.0.0.1 7890 2>/dev/null; then
+  proxy_on
+fi
