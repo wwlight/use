@@ -85,7 +85,7 @@ keybind = page_down=scroll_page_down
 
 # 禁用“加粗即变亮”的旧式风格
 bold-is-bright = false
-# 自动检查更新
-auto-update = check
+# 更新统一交给 Homebrew（brew upgrade）
+auto-update = off
 # 终端协议类型
 term = xterm-ghostty

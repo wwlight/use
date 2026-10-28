@@ -1,9 +1,12 @@
 #!/bin/zsh
 # ~/.zshrc — macos
 
-# Homebrew: skip auto-update, quiet env hints
+# Homebrew: skip auto-update, quiet env hints, include auto_updates / :latest casks
 export HOMEBREW_NO_AUTO_UPDATE=1
 export HOMEBREW_NO_ENV_HINTS=1
+export HOMEBREW_UPGRADE_GREEDY=1
+# Local-only variables, not tracked in git
+[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
 
 # docker compose
 export COMPOSE_FILE=$HOME/.docker/compose.yml
@@ -30,7 +33,7 @@ if (( $+commands[mise] )); then
     eval "$(mise activate zsh)"
 fi
 
-# ---- 动态代理开关（Clash）----
+# Dynamic proxy toggle (Clash)
 proxy_on() {
   export http_proxy="http://127.0.0.1:7890"
   export https_proxy="http://127.0.0.1:7890"
@@ -43,7 +46,7 @@ proxy_off() {
         HTTP_PROXY HTTPS_PROXY ALL_PROXY NO_PROXY
 }
 
-# 每次开新终端时探测 Clash 的 7890 是否在监听，在就自动开代理
+# Probe Clash port 7890 on every new shell; enable proxy if it is listening
 if nc -z -w 1 127.0.0.1 7890 2>/dev/null; then
   proxy_on
 fi
