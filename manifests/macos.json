@@ -13,6 +13,7 @@
     { "type": "brew", "name": "starship" },
     { "type": "brew", "name": "tealdeer" },
     { "type": "brew", "name": "zoxide" },
+    { "type": "brew", "name": "voidzero-dev/vite-plus/vp" },
     { "type": "cask", "name": "ghostty" },
     { "type": "cask", "name": "font-fira-code-nerd-font" }
   ],

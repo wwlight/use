@@ -1,8 +1,8 @@
 #!/bin/zsh
 # ~/.zshrc — windows
 
-# Local-only variables, not tracked in git
-[[ -f $HOME/.zshrc.local ]] && source $HOME/.zshrc.local
+# Machine-local variables, synced at ~/.zsh/.zshrc.local
+[[ -f $HOME/.zsh/.zshrc.local ]] && source $HOME/.zsh/.zshrc.local
 
 # vite+ environment init
 [[ -r $HOME/.vite-plus/env ]] && . "$HOME/.vite-plus/env"

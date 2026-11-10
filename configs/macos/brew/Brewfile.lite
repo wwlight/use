@@ -1,4 +1,5 @@
 # Generated from Brewfile using manifests/macos.json brewLiteItems.
+tap "voidzero-dev/vite-plus", "https://github.com/voidzero-dev/vite-plus"
 # Modern, maintained replacement for ls
 brew "eza"
 # Command-line fuzzy finder written in Go
@@ -11,6 +12,8 @@ brew "starship"
 brew "tealdeer"
 # Shell extension to navigate your filesystem faster
 brew "zoxide"
+# Unified toolchain for the web
+brew "voidzero-dev/vite-plus/vp"
 cask "font-fira-code-nerd-font"
 # Terminal emulator that uses platform-native UI and GPU acceleration
 cask "ghostty"

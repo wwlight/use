@@ -190,29 +190,9 @@ function scoopMirrorDocs(mirrors) {
 
 function readmeDocs(mirrors) {
     const useBase = 'https://raw.githubusercontent.com/wwlight/use/main';
-    const viteBase = 'https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli';
     const shown = mirrors.slice(0, README_MAX_MIRRORS);
     const sections = [
         '使用需要 Node.js 环境。',
-        '',
-        '## 前置：安装 [vite.plus](https://viteplus.dev/)',
-        '',
-        '### macos',
-        '',
-        codeBlock('sh', 'curl -fsSL https://vite.plus | bash'),
-        '',
-        shown
-            .map(({ prefix }) => codeBlock('sh', `curl -fsSL ${prefix}${viteBase}/install.sh | bash`))
-            .join('\n\n'),
-        '',
-        '### windows',
-        '',
-        codeBlock('powershell', 'irm https://vite.plus/ps1 | iex'),
-        '',
-        shown
-            .map(({ prefix }) => codeBlock('powershell', `irm ${prefix}${viteBase}/install.ps1 | iex`))
-            .join('\n\n'),
-        '',
         '',
         '## 一键安装',
         '',

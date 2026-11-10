@@ -5,8 +5,8 @@
 export HOMEBREW_NO_AUTO_UPDATE=1
 export HOMEBREW_NO_ENV_HINTS=1
 export HOMEBREW_UPGRADE_GREEDY=1
-# Local-only variables, not tracked in git
-[[ -f ~/.zshrc.local ]] && source ~/.zshrc.local
+# Machine-local variables, synced at ~/.zsh/.zshrc.local
+[[ -f ~/.zsh/.zshrc.local ]] && source ~/.zsh/.zshrc.local
 
 # docker compose
 export COMPOSE_FILE=$HOME/.docker/compose.yml

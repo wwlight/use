@@ -3,37 +3,6 @@
 <!-- BEGIN GENERATED GITHUB ACCEL DOCS -->
 使用需要 Node.js 环境。
 
-## 前置：安装 [vite.plus](https://viteplus.dev/)
-
-### macos
-
-```sh
-curl -fsSL https://vite.plus | bash
-```
-
-```sh
-curl -fsSL https://gh-proxy.com/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.sh | bash
-```
-
-```sh
-curl -fsSL https://ghproxy.net/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.sh | bash
-```
-
-### windows
-
-```powershell
-irm https://vite.plus/ps1 | iex
-```
-
-```powershell
-irm https://gh-proxy.com/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.ps1 | iex
-```
-
-```powershell
-irm https://ghproxy.net/https://raw.githubusercontent.com/voidzero-dev/vite-plus/main/packages/cli/install.ps1 | iex
-```
-
-
 ## 一键安装
 
 ### macos · 交互选择
@@ -351,18 +320,20 @@ scoop hold clink                  # 禁止更新
 ```text
 configs/common/
 ├── .zshrc_core                   # macos / windows 公共核心 zsh
+├── .zshrc.local                  # ~/.zsh/.zshrc.local，本机变量
 ├── _eza                          # eza zsh 补全（Windows：vpr sync restore；mac：brew 自带）
 ├── aliases.zsh                   # 公共别名
 ├── github-accel.zsh              # GitHub 加速函数（生成，只恢复）
 ├── mihomo.yaml                   # Mihomo 配置
 ├── opencode/                     # OpenCode 手写配置，同步清单里是这一条目录
-│   ├── opencode.jsonc
-│   ├── AGENTS.md
+│   ├── opencode.jsonc            # AGENTS.md 不在这个目录里同步
 │   ├── agents/
 │   ├── commands/
 │   ├── plugins/
 │   └── skills/
-├── agents/skill-lock.json        # ~/.agents 全局 skill 锁
+├── agents/
+│   ├── AGENTS.md                 # ~/.config/opencode/AGENTS.md
+│   └── skill-lock.json           # ~/.agents 全局 skill 锁
 └── starship.toml                 # starship 配置
 ```
 

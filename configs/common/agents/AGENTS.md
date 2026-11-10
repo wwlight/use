@@ -50,3 +50,16 @@ OpenCode 的 shell 没有 TTY。命令必须一次跑完，不能等待确认、
 - 禁止 `git commit` 不带 `-m` 而打开编辑器。提交说明放在 `-m` 里。
 - 设置 `GIT_PAGER=cat`、`PAGER=cat`，不要跑 `less`、`vim`、`nano`。
 - 读文件、改文件用内置工具，不用 `cat`、`sed`、`echo >` 绕过去。
+
+## 9. Homebrew 第三方 tap 信任
+
+信任记在 `~/.homebrew/trust.json`。没有命令会自动清掉已卸载软件留下的信任。
+
+- 只信任正在用的包：`brew trust --formula <user>/<tap>/<name>` 或 `brew trust --cask <user>/<tap>/<name>`。不要 `brew trust --tap`。整份 tap 被信任后，`brew uninstall` 不会删掉这条信任。
+- `brew uninstall` 只在 tap 本身未被信任时，删掉对应 formula 或 cask 的信任。
+- `brew untap` 只删本机 tap 仓库，不改 `trust.json`。先在 tap 还在时执行 `brew untrust`，再 `brew untap`。
+- `brew untrust --tap <tap>` 会连带删掉以该 tap 引用开头的 formula、cask、command 信任。还在用的包要在这之后重新 `brew trust`。
+- `brew trust` 和 `brew untrust` 不带参数只是列出条目，不会清理。
+- 远程不是默认的 `homebrew-<repo>` 时，信任按仓库 URL 记录，例如 `https://github.com/org/repo/name`。`brew bundle dump` 只在信任条目与 `user/tap/formula` 全名完全一致时，才在 formula 或 cask 行写 `trusted: true`。URL 形式在运行时仍然算已信任。
+- 只 tap 了、没有安装包的仓库不需要信任。确认没有已安装包后再 `brew untap`。
+- 改完信任后，若要让 Brewfile 跟上，再执行 `brew bundle dump --file=<Brewfile> --force`。

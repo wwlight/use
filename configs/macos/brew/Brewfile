@@ -1,6 +1,6 @@
-tap "anomalyco/tap", trusted: true
+tap "anomalyco/tap"
 tap "fayazara/tap"
-tap "omlahore/tap"
+tap "voidzero-dev/vite-plus", "https://github.com/voidzero-dev/vite-plus"
 # Resource monitor. C++ version and continuation of bashtop and bpytop
 brew "btop"
 # Container runtimes on MacOS (and Linux) with minimal setup
@@ -55,8 +55,8 @@ brew "valkey"
 brew "zoxide"
 # OpenCode V2 - the AI coding agent for the terminal
 brew "anomalyco/tap/opencode-v2", trusted: true
-# Debloat macOS: turn off Apple Intelligence, analytics, ads and pop-ups
-brew "omlahore/tap/removemacai", trusted: true
+# Unified toolchain for the web
+brew "voidzero-dev/vite-plus/vp"
 # Android SDK component
 cask "android-platform-tools"
 # Another Mihomo GUI
@@ -74,10 +74,10 @@ cask "font-symbols-only-nerd-font"
 cask "ghostty"
 # Web browser
 cask "google-chrome"
+# AI teammates that work across your apps and tools
+cask "grok-bot"
 # Free and open-source media player
 cask "iina"
-# Java IDE by JetBrains
-cask "intellij-idea"
 # Open-source screen recorder built with web technology
 cask "kap"
 # Open-source cross-platform alternative to AirDrop
@@ -98,8 +98,6 @@ cask "squirrel-app"
 cask "switchhosts"
 # Unpacks archive files
 cask "the-unarchiver"
-# Open-source code editor
-cask "visual-studio-code"
 # Free messaging and calling application
 cask "wechat"
 # All-in-one office suite
