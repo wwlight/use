@@ -278,3 +278,113 @@ test('directory restore stops when its backup fails', async () => {
         fs.rmSync(path.dirname(repoDir), { recursive: true, force: true });
     }
 });
+
+test('restore backfills a missing repository file from the local copy', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vpr-sync-backfill-'));
+    const prevHome = process.env.HOME;
+    const prevUserProfile = process.env.USERPROFILE;
+    const repoRel = path.join('.tmp-vpr-sync-test', `backfill-${process.pid}`, 'configs', 'localrc');
+    const repoFile = path.join(projectRoot(), repoRel);
+    try {
+        const home = path.join(root, 'home');
+        fs.mkdirSync(home, { recursive: true });
+        process.env.HOME = home;
+        process.env.USERPROFILE = home;
+        const localFile = path.join(home, '.localrc');
+        fs.writeFileSync(localFile, 'machine-local\n');
+
+        await runConfigSync({
+            platform: 'macos',
+            direction: '2',
+            fromDispatch: true,
+            items: [{ local: '~/.localrc', repo: repoRel, backup: true }],
+        });
+
+        assert.equal(fs.readFileSync(repoFile, 'utf8'), 'machine-local\n');
+        assert.equal(fs.readFileSync(localFile, 'utf8'), 'machine-local\n');
+    }
+    finally {
+        if (prevHome === undefined)
+            delete process.env.HOME;
+        else
+            process.env.HOME = prevHome;
+        if (prevUserProfile === undefined)
+            delete process.env.USERPROFILE;
+        else
+            process.env.USERPROFILE = prevUserProfile;
+        fs.rmSync(root, { recursive: true, force: true });
+        fs.rmSync(path.dirname(path.dirname(repoFile)), { recursive: true, force: true });
+    }
+});
+
+test('restore succeeds when both the repository and local copies are missing', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vpr-sync-absent-'));
+    const prevHome = process.env.HOME;
+    const prevUserProfile = process.env.USERPROFILE;
+    const repoRel = path.join('.tmp-vpr-sync-test', `absent-${process.pid}`, 'configs', 'missingrc');
+    const repoFile = path.join(projectRoot(), repoRel);
+    try {
+        const home = path.join(root, 'home');
+        fs.mkdirSync(home, { recursive: true });
+        process.env.HOME = home;
+        process.env.USERPROFILE = home;
+        const localFile = path.join(home, '.missingrc');
+
+        await runConfigSync({
+            platform: 'macos',
+            direction: '2',
+            fromDispatch: true,
+            items: [{ local: '~/.missingrc', repo: repoRel, backup: true }],
+        });
+
+        assert.equal(fs.existsSync(localFile), false);
+        assert.equal(fs.existsSync(repoFile), false);
+    }
+    finally {
+        if (prevHome === undefined)
+            delete process.env.HOME;
+        else
+            process.env.HOME = prevHome;
+        if (prevUserProfile === undefined)
+            delete process.env.USERPROFILE;
+        else
+            process.env.USERPROFILE = prevUserProfile;
+        fs.rmSync(root, { recursive: true, force: true });
+        fs.rmSync(path.dirname(path.dirname(repoFile)), { recursive: true, force: true });
+    }
+});
+
+test('backup succeeds when the local source is missing', async () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'vpr-sync-nobackup-'));
+    const prevHome = process.env.HOME;
+    const prevUserProfile = process.env.USERPROFILE;
+    const repoRel = path.join('.tmp-vpr-sync-test', `nobackup-${process.pid}`, 'configs', 'missingrc');
+    const repoFile = path.join(projectRoot(), repoRel);
+    try {
+        const home = path.join(root, 'home');
+        fs.mkdirSync(home, { recursive: true });
+        process.env.HOME = home;
+        process.env.USERPROFILE = home;
+
+        await runConfigSync({
+            platform: 'macos',
+            direction: '1',
+            fromDispatch: true,
+            items: [{ local: '~/.missingrc', repo: repoRel, backup: false }],
+        });
+
+        assert.equal(fs.existsSync(repoFile), false);
+    }
+    finally {
+        if (prevHome === undefined)
+            delete process.env.HOME;
+        else
+            process.env.HOME = prevHome;
+        if (prevUserProfile === undefined)
+            delete process.env.USERPROFILE;
+        else
+            process.env.USERPROFILE = prevUserProfile;
+        fs.rmSync(root, { recursive: true, force: true });
+        fs.rmSync(path.dirname(path.dirname(repoFile)), { recursive: true, force: true });
+    }
+});

@@ -57,11 +57,40 @@ export async function runConfigSync(opts) {
         const repoAbs = path.join(root, item.repo);
         const localDisp = formatLocalDisplay(localAbs, home);
         if (opts.direction === '1') {
+            const localMissing = item.directory
+                ? !fs.existsSync(localAbs) || !fs.statSync(localAbs).isDirectory()
+                : !fs.existsSync(localAbs);
+            if (localMissing) {
+                // Nothing local to back up: keep the repository entry and count the item as done.
+                success(`${counter} Kept ${formatRepoDisplay(item.repo)} unchanged (no local copy)`);
+                continue;
+            }
             if (item.directory)
                 await syncDirectory(localAbs, repoAbs, { exclude: item.exclude });
             else
                 await copyFileDataOnly(localAbs, repoAbs);
             note(`${counter} Backed up ${formatRepoDisplay(item.repo)}`);
+            continue;
+        }
+        const repoMissing = item.directory
+            ? !fs.existsSync(repoAbs) || !fs.statSync(repoAbs).isDirectory()
+            : !fs.existsSync(repoAbs);
+        if (repoMissing) {
+            // Repository entry absent (machine-local files never backed up yet): back the
+            // local copy up instead of failing the whole restore.
+            const localExists = item.directory
+                ? fs.existsSync(localAbs) && fs.statSync(localAbs).isDirectory()
+                : fs.existsSync(localAbs);
+            if (localExists) {
+                if (item.directory)
+                    await syncDirectory(localAbs, repoAbs, { exclude: item.exclude });
+                else
+                    await copyFileDataOnly(localAbs, repoAbs);
+                success(`${counter} Backed up ${localDisp} (repository copy missing)`);
+            }
+            else {
+                success(`${counter} Kept ${localDisp} unchanged (no local or repository copy)`);
+            }
             continue;
         }
         let bakName = null;
