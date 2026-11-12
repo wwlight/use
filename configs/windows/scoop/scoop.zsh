@@ -27,7 +27,7 @@ _scoop_ps() {
   # Avoid `pwsh -File script.ps1`: unbound tokens get dropped.
   # Build an explicit call so switches/args always reach the script.
   if (( $# == 0 )); then
-    "$ps_exe" -NoProfile -ExecutionPolicy Bypass -File "$file"
+    "$ps_exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -File "$file"
     return $?
   fi
   local call="& $(_scoop_ps_quote "$file")"
@@ -40,7 +40,7 @@ _scoop_ps() {
       call+=" $(_scoop_ps_quote "$a")"
     fi
   done
-  "$ps_exe" -NoProfile -ExecutionPolicy Bypass -Command "$call"
+  "$ps_exe" -NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "$call"
 }
 
 winsw() {
@@ -228,9 +228,19 @@ scoop() {
     _scoop_prepare_uninstall "${apps[@]}" || return $?
     command scoop "$@"
   elif [[ "$1" == "update" ]]; then
-    local apps ec
-    apps=($(_scoop_apps_from "${@:2}"))
-    _scoop_prepare_update_services "${apps[@]}"
+    local ec arg
+    local -a service_args names
+    service_args=()
+    names=()
+    for arg in "${@:2}"; do
+      case "$arg" in
+        -a|--all|\*) service_args+=(-All) ;;
+        -f|--force) service_args+=(-Force) ;;
+        -*) ;;
+        *) names+=("$arg") ;;
+      esac
+    done
+    _scoop_prepare_update_services "${service_args[@]}" "${names[@]}"
     command scoop "$@"
     ec=$?
     # PrepareUpdate already stopped running services. Resume them even if update failed.

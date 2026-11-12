@@ -102,9 +102,10 @@ export function runGitAsync(cwd, args, timeoutMs = GIT_HARD_CAP_MS) {
             clearTimeout(timer);
             resolve({ ok: code === 0, message: lastStderrLine(stderr), stdout });
         });
-        child.on('error', () => {
+        child.on('error', (err) => {
             clearTimeout(timer);
-            resolve({ ok: false, message: 'failed to start git', stdout: '' });
+            const code = err?.code ? ` (${err.code})` : '';
+            resolve({ ok: false, message: `failed to start git${code}`, stdout: '' });
         });
     });
 }
@@ -125,6 +126,8 @@ function repoHostLabel(url) {
  * never poison the next candidate (git refuses non-empty destinations).
  */
 async function cloneGitRepoWithFallback(repo, targetDir, failPrefix) {
+    // spawn() reports ENOENT as "failed to start git" when cwd is missing.
+    fs.mkdirSync(path.dirname(targetDir), { recursive: true });
     let lastMessage = '';
     for (const url of githubRepoCandidates(repo)) {
         fs.rmSync(targetDir, { recursive: true, force: true });

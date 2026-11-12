@@ -174,6 +174,27 @@ function _scoop_apps {
   $args | Where-Object { $_ -notlike '-*' } | Select-Object -Skip 1
 }
 
+# Tokens for the pre-update service stop. Empty means "Scoop itself only":
+# do not stop nginx/mysql. --all / * become -All; -f / --force becomes -Force.
+function _scoop_update_service_args {
+  $flags = [System.Collections.Generic.List[string]]::new()
+  $names = [System.Collections.Generic.List[string]]::new()
+  foreach ($a in @($args | Select-Object -Skip 1)) {
+    $token = [string]$a
+    if ($token -in @('-a', '--all', '*')) {
+      if (-not $flags.Contains('-All')) { [void]$flags.Add('-All') }
+      continue
+    }
+    if ($token -in @('-f', '--force')) {
+      if (-not $flags.Contains('-Force')) { [void]$flags.Add('-Force') }
+      continue
+    }
+    if ($token -like '-*') { continue }
+    if (-not [string]::IsNullOrWhiteSpace($token)) { [void]$names.Add($token) }
+  }
+  return @($flags.ToArray() + $names.ToArray())
+}
+
 function _scoop_mirror_bucket_repo {
   param(
     [Parameter(Mandatory)][string]$Name,
@@ -247,7 +268,7 @@ function scoop {
   }
   $updateApps = @()
   if ($args.Count -ge 1 -and $args[0] -eq 'update') {
-    $updateApps = @(_scoop_apps @args)
+    $updateApps = @(_scoop_update_service_args @args)
     _scoop_prepare_update_services @updateApps
   }
   & $__scoop @args

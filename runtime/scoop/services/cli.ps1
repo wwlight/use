@@ -4,23 +4,26 @@
 param(
     [switch]$PrepareUninstall,
     [switch]$PrepareUpdate,
-    [switch]$RestartChanged
+    [switch]$RestartChanged,
+    [switch]$All,
+    [switch]$Force
 )
 
 $CommandArgs = @($args | ForEach-Object { [string]$_ })
 
-# Promote a -Marker token (passed via $args) to its switch.
-if (-not $PrepareUninstall -and -not $PrepareUpdate -and -not $RestartChanged -and $CommandArgs.Count -ge 1) {
-    switch ($CommandArgs[0]) {
+# Switches that missed param() binding (pwsh -File) still arrive in $args.
+$filteredArgs = New-Object System.Collections.Generic.List[string]
+foreach ($token in @($CommandArgs)) {
+    switch ($token) {
         '-PrepareUninstall' { $PrepareUninstall = $true }
         '-PrepareUpdate'    { $PrepareUpdate = $true }
         '-RestartChanged'   { $RestartChanged = $true }
-        default             { }
-    }
-    if ($PrepareUninstall -or $PrepareUpdate -or $RestartChanged) {
-        $CommandArgs = @($CommandArgs | Select-Object -Skip 1)
+        '-All'              { $All = $true }
+        '-Force'            { $Force = $true }
+        default             { [void]$filteredArgs.Add($token) }
     }
 }
+$CommandArgs = @($filteredArgs)
 
 if (-not $env:SCOOP) {
     [Console]::Error.WriteLine('scoop services: $env:SCOOP is not set')
@@ -74,16 +77,20 @@ function Test-ScoopServiceRestartOnUpdate {
 
 function Get-ScoopAppVersion {
     param([string]$Name)
-    $manifest = Join-Path $env:SCOOP "apps\$Name\current\manifest.json"
-    if (-not (Test-Path -LiteralPath $manifest)) { return $null }
-    try {
-        $version = [string]((Get-Content -LiteralPath $manifest -Raw -Encoding UTF8 | ConvertFrom-Json).version)
-        if ([string]::IsNullOrWhiteSpace($version)) { return $null }
-        return $version
+    $dir = Join-Path $env:SCOOP "apps\$Name\current"
+    foreach ($file in @('scoop-manifest.json', 'manifest.json')) {
+        $manifest = Join-Path $dir $file
+        if (-not (Test-Path -LiteralPath $manifest)) { continue }
+        try {
+            $version = [string]((Get-Content -LiteralPath $manifest -Raw -Encoding UTF8 | ConvertFrom-Json).version)
+            if ([string]::IsNullOrWhiteSpace($version)) { return $null }
+            return $version
+        }
+        catch {
+            return $null
+        }
     }
-    catch {
-        return $null
-    }
+    return $null
 }
 
 function Get-ScoopWinSwStatusText {
@@ -91,26 +98,120 @@ function Get-ScoopWinSwStatusText {
     return "$(Invoke-ScoopWinSw status $Name)".Trim()
 }
 
+function Get-ScoopInstallRecord {
+    param([string]$Name)
+
+    $dir = Join-Path $env:SCOOP "apps\$Name\current"
+    foreach ($file in @('scoop-install.json', 'install.json')) {
+        $path = Join-Path $dir $file
+        if (-not (Test-Path -LiteralPath $path)) { continue }
+        try {
+            return (Get-Content -LiteralPath $path -Raw -Encoding UTF8 | ConvertFrom-Json)
+        }
+        catch {
+            return $null
+        }
+    }
+    return $null
+}
+
+function Get-ScoopBucketAppVersion {
+    param(
+        [string]$Name,
+        [string]$Bucket
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Bucket)) { return $null }
+    $root = Join-Path $env:SCOOP "buckets\$Bucket"
+    if (-not (Test-Path -LiteralPath $root)) { return $null }
+    $bucketDir = Join-Path $root 'bucket'
+    $search = if (Test-Path -LiteralPath $bucketDir) { $bucketDir } else { $root }
+    $hit = Get-ChildItem -Path $search -Filter "$Name.json" -File -Recurse -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if (-not $hit) { return $null }
+    try {
+        $version = [string]((Get-Content -LiteralPath $hit.FullName -Raw -Encoding UTF8 | ConvertFrom-Json).version)
+    }
+    catch {
+        return $null
+    }
+    if ([string]::IsNullOrWhiteSpace($version)) { return $null }
+    return $version
+}
+
+function Test-ScoopVersionNewer {
+    param(
+        [string]$Installed,
+        [string]$Latest
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Installed) -or [string]::IsNullOrWhiteSpace($Latest)) { return $false }
+    if ($Installed -eq $Latest) { return $false }
+
+    $left = @($Installed -split '[.\-]')
+    $right = @($Latest -split '[.\-]')
+    $count = [Math]::Max($left.Count, $right.Count)
+    for ($i = 0; $i -lt $count; $i++) {
+        $a = if ($i -lt $left.Count) { $left[$i] } else { '0' }
+        $b = if ($i -lt $right.Count) { $right[$i] } else { '0' }
+        $aNum = 0
+        $bNum = 0
+        $aOk = [int]::TryParse($a, [ref]$aNum)
+        $bOk = [int]::TryParse($b, [ref]$bNum)
+        if ($aOk -and $bOk) {
+            if ($bNum -gt $aNum) { return $true }
+            if ($bNum -lt $aNum) { return $false }
+            continue
+        }
+        $cmp = [string]::Compare($b, $a, [StringComparison]::OrdinalIgnoreCase)
+        if ($cmp -gt 0) { return $true }
+        if ($cmp -lt 0) { return $false }
+    }
+    return $false
+}
+
+# Scoop skips held apps, and skips apps whose bucket version is not newer unless -f.
+function Test-ScoopAppPendingUpdate {
+    param(
+        [string]$Name,
+        [switch]$Force
+    )
+
+    $info = Get-ScoopInstallRecord -Name $Name
+    if ($info -and $info.PSObject.Properties['hold'] -and [bool]$info.hold) { return $false }
+    if ($Force) { return $true }
+
+    $bucket = if ($info -and $info.PSObject.Properties['bucket']) { [string]$info.bucket } else { '' }
+    $latest = Get-ScoopBucketAppVersion -Name $Name -Bucket $bucket
+    return (Test-ScoopVersionNewer -Installed (Get-ScoopAppVersion -Name $Name) -Latest $latest)
+}
+
 function Resolve-ScoopServicesUpdateTargets {
-    param([string[]]$Apps)
+    param(
+        [string[]]$Apps,
+        [switch]$All,
+        [switch]$Force
+    )
 
     $manifest = Get-ScoopServicesManifest
     if ($manifest.Count -eq 0) { return @() }
 
-    $all = $false
-    if (-not $Apps -or $Apps.Count -eq 0) { $all = $true }
-    elseif ($Apps.Count -eq 1 -and "$($Apps[0])".Trim() -eq '*') { $all = $true }
+    $wantAll = [bool]$All
+    foreach ($app in @($Apps)) {
+        if ("$app".Trim() -eq '*') { $wantAll = $true }
+    }
 
-    $names = if ($all) {
+    $names = if ($wantAll) {
         @($manifest.Keys)
     }
     else {
-        @($Apps | ForEach-Object { "$_".Trim() } | Where-Object { $_ -and $manifest.ContainsKey($_) })
+        @($Apps | ForEach-Object { "$_".Trim() } | Where-Object { $_ -and $_ -ne '*' -and $manifest.ContainsKey($_) })
     }
 
     $targets = New-Object System.Collections.Generic.List[string]
     foreach ($name in $names) {
         if (-not (Test-Path -LiteralPath (Get-ScoopServiceXmlPath -Name $name))) { continue }
+        if (-not (Test-ScoopAppPendingUpdate -Name $name -Force:$Force)) { continue }
         [void]$targets.Add($name)
     }
     return $targets.ToArray()
@@ -413,13 +514,17 @@ function Invoke-ScoopServicesPrepareUninstall {
 # Stop running managed services and snapshot them before `scoop update`
 # so package files are not locked (nginx, mysql, …).
 function Invoke-ScoopServicesPrepareUpdate {
-    param([string[]]$Apps)
+    param(
+        [string[]]$Apps,
+        [switch]$All,
+        [switch]$Force
+    )
 
     $snapshotPath = Get-ScoopServicesSnapshotPath
     Remove-Item -LiteralPath $snapshotPath -Force -ErrorAction SilentlyContinue
 
     $manifest = Get-ScoopServicesManifest
-    $targets = @(Resolve-ScoopServicesUpdateTargets -Apps $Apps)
+    $targets = @(Resolve-ScoopServicesUpdateTargets -Apps $Apps -All:$All -Force:$Force)
     if ($targets.Count -eq 0) { return }
 
     $entries = [ordered]@{}
@@ -514,7 +619,7 @@ try {
         Stop-ScoopServicesCli -Code 0
     }
     if ($PrepareUpdate) {
-        Invoke-ScoopServicesPrepareUpdate -Apps $CommandArgs
+        Invoke-ScoopServicesPrepareUpdate -Apps $CommandArgs -All:$All -Force:$Force
         Stop-ScoopServicesCli -Code 0
     }
     if ($RestartChanged) {

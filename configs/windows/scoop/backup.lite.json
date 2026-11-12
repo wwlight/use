@@ -2,9 +2,9 @@
     "apps": [
         {
             "Name": "7zip",
-            "Version": "26.04",
+            "Version": "26.06",
             "Source": "main",
-            "Updated": "2026-10-11T07:32:51.6395608+08:00",
+            "Updated": "2026-11-10T22:07:55.5667906+08:00",
             "Info": ""
         },
         {
@@ -30,9 +30,9 @@
         },
         {
             "Name": "fzf",
-            "Version": "0.74.4",
+            "Version": "0.75.0",
             "Source": "main",
-            "Updated": "2026-10-11T07:33:00.4036209+08:00",
+            "Updated": "2026-11-12T10:32:47.6579682+08:00",
             "Info": ""
         },
         {
@@ -44,16 +44,16 @@
         },
         {
             "Name": "starship",
-            "Version": "1.26.0",
+            "Version": "1.27.0",
             "Source": "main",
-            "Updated": "2026-07-03T03:20:48.0852015+08:00",
+            "Updated": "2026-11-12T11:12:07.84065+08:00",
             "Info": ""
         },
         {
             "Name": "tealdeer",
-            "Version": "1.9.0",
+            "Version": "1.9.1",
             "Source": "main",
-            "Updated": "2026-08-28T22:25:20.4956711+08:00",
+            "Updated": "2026-11-12T11:17:43.1399529+08:00",
             "Info": ""
         },
         {
@@ -75,19 +75,19 @@
         {
             "Name": "main",
             "Source": "https://github.com/ScoopInstaller/Main",
-            "Updated": "2026-10-11T04:31:03+08:00",
-            "Manifests": 1671
+            "Updated": "2026-11-12T08:43:38+08:00",
+            "Manifests": 1713
         },
         {
             "Name": "versions",
             "Source": "https://github.com/ScoopInstaller/Versions",
-            "Updated": "2026-10-11T07:41:29+08:00",
-            "Manifests": 626
+            "Updated": "2026-11-12T06:51:38+08:00",
+            "Manifests": 646
         },
         {
             "Name": "nerd-fonts",
             "Source": "https://github.com/matthewjberger/scoop-nerd-fonts",
-            "Updated": "2026-09-27T00:59:28+08:00",
+            "Updated": "2026-11-11T04:21:53+08:00",
             "Manifests": 367
         }
     ]
