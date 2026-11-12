@@ -8,4 +8,4 @@ eval "$(zoxide init bash --cmd cd)"
 . "$HOME/.cargo/env"
 
 # vite+ 环境初始化
-[[ -r $HOME/.vite-plus/env ]] && . "$HOME/.vite-plus/env"
+[[ -r $HOME/.config/vite-plus/env ]] && . "$HOME/.config/vite-plus/env"

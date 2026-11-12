@@ -6,9 +6,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/tt-a1i/archify.git",
       "skillPath": "archify/SKILL.md",
-      "skillFolderHash": "a38bc1bc9e97804aa5d23f09c357ac23e096eb54",
+      "skillFolderHash": "d5fc699feb186e8be4e2d9e86f850a8ea1b6959e",
       "installedAt": "2026-07-08T00:18:38.351Z",
-      "updatedAt": "2026-10-11T01:10:38.961Z"
+      "updatedAt": "2026-11-02T14:08:12.388Z"
     },
     "find-skills": {
       "source": "vercel-labs/skills",
@@ -42,9 +42,9 @@
       "sourceType": "github",
       "sourceUrl": "https://github.com/cathrynlavery/diagram-design.git",
       "skillPath": "skills/diagram-design/SKILL.md",
-      "skillFolderHash": "8ea76af062529d7631b5dc3878e98b3f84031efe",
+      "skillFolderHash": "bcecaf90a9082b1820d32c9416665bec0d9d713e",
       "installedAt": "2026-08-19T16:49:14.426Z",
-      "updatedAt": "2026-10-11T01:10:58.407Z"
+      "updatedAt": "2026-11-02T14:08:28.491Z"
     },
     "grill-me": {
       "source": "mattpocock/skills",
@@ -63,6 +63,15 @@
       "skillFolderHash": "f3427b147df128407221e455b3d42f16e2962aad",
       "installedAt": "2026-10-15T14:06:06.153Z",
       "updatedAt": "2026-10-15T14:06:06.153Z"
+    },
+    "huashu-nuwa": {
+      "source": "alchaincyf/nuwa-skill",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/alchaincyf/nuwa-skill.git",
+      "skillPath": "SKILL.md",
+      "skillFolderHash": "7c7edfeb9d90a28b1f79e7847e1ba27a698cdc24",
+      "installedAt": "2026-10-29T15:07:39.764Z",
+      "updatedAt": "2026-10-29T15:07:39.764Z"
     }
   },
   "dismissed": {}

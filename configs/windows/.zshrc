@@ -1,9 +1,6 @@
 #!/bin/zsh
 # ~/.zshrc — windows
 
-# Machine-local variables, synced at ~/.zsh/.zshrc.local
-[[ -f $HOME/.zsh/.zshrc.local ]] && source $HOME/.zsh/.zshrc.local
-
 # vite+ environment init
 [[ -r $HOME/.vite-plus/env ]] && . "$HOME/.vite-plus/env"
 
@@ -15,6 +12,7 @@ path=(
     ${path:#/}
 )
 
+[[ -r $HOME/.zsh/.zshrc.local ]] && source $HOME/.zsh/.zshrc.local
 [[ -r $HOME/.zsh/.zshrc_core ]] && source $HOME/.zsh/.zshrc_core
 
 # mise — shims only; 'mise activate zsh' fails under MSYS

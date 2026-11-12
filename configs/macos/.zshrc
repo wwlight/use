@@ -5,14 +5,12 @@
 export HOMEBREW_NO_AUTO_UPDATE=1
 export HOMEBREW_NO_ENV_HINTS=1
 export HOMEBREW_UPGRADE_GREEDY=1
-# Machine-local variables, synced at ~/.zsh/.zshrc.local
-[[ -f ~/.zsh/.zshrc.local ]] && source ~/.zsh/.zshrc.local
 
 # docker compose
 export COMPOSE_FILE=$HOME/.docker/compose.yml
 
 # vite+ environment init
-[[ -r $HOME/.vite-plus/env ]] && . "$HOME/.vite-plus/env"
+[[ -r $HOME/.config/vite-plus/env ]] && . "$HOME/.config/vite-plus/env"
 
 # PATH (N == Null Glob)
 typeset -U path PATH
@@ -22,6 +20,7 @@ path=(
     $path
 )
 
+[[ -r $HOME/.zsh/.zshrc.local ]] && source $HOME/.zsh/.zshrc.local
 [[ -r $HOME/.zsh/.zshrc_core ]] && source $HOME/.zsh/.zshrc_core
 
 fpath+=(
