@@ -34,19 +34,23 @@ function convertToGitRepo(targetDir) {
     return true;
 }
 
-/** Fetch origin/main via accel mirrors then official, under a spinner. */
+/** Fetch origin/main via accel mirrors then official. Leave origin on the bare URL. */
 async function fetchOriginMain(targetDir) {
     const origin = spawnSync('git', ['-C', targetDir, 'remote', 'get-url', 'origin'], { encoding: 'utf8' }).stdout.trim();
-    const base = origin || stripGithubAccelPrefix(repoUrl());
+    const base = stripGithubAccelPrefix(origin || repoUrl());
     let lastMessage = '';
     for (const url of githubRepoCandidates(base)) {
         spawnSync('git', ['-C', targetDir, 'remote', 'set-url', 'origin', url], { stdio: 'ignore' });
         const result = await runWithSpinner(`Syncing ${safeHost(url)} ...`, async () => {
             return runGitAsync(targetDir, ['fetch', '--prune', 'origin', 'main']);
         });
-        if (result.ok)
-            return true;
-        lastMessage = result.message;
+        if (!result.ok) {
+            lastMessage = result.message;
+            continue;
+        }
+        if (url !== base)
+            spawnSync('git', ['-C', targetDir, 'remote', 'set-url', 'origin', base], { stdio: 'ignore' });
+        return true;
     }
     warn(lastMessage ? `Sync failed: ${lastMessage}` : 'Sync failed');
     return false;
