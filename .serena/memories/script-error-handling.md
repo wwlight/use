@@ -12,11 +12,11 @@
 
 ### `install.ps1`（引导脚本）
 
-| 阶段 | 行为 | 问题 |
-|------|------|------|
-| 更早 | `throw "[ERROR] ..."` | `irm\|iex` 甩 Exception 堆栈 |
-| 中间 | `exit 1` | 关掉整个 PowerShell 会话（与 `curl\|bash` 的 exit 语义不同） |
-| **当前** | 打印后 `throw 'USE_FATAL'` + 顶层 catch → `Complete-UseFatal`：有 `$PSCommandPath` 则 `exit 1`，否则仅结束脚本 | 干净提示且不杀 iex 会话 |
+| 阶段     | 行为                                                                                                           | 问题                                                         |
+| -------- | -------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
+| 更早     | `throw "[ERROR] ..."`                                                                                          | `irm\|iex` 甩 Exception 堆栈                                 |
+| 中间     | `exit 1`                                                                                                       | 关掉整个 PowerShell 会话（与 `curl\|bash` 的 exit 语义不同） |
+| **当前** | 打印后 `throw 'USE_FATAL'` + 顶层 catch → `Complete-UseFatal`：有 `$PSCommandPath` 则 `exit 1`，否则仅结束脚本 | 干净提示且不杀 iex 会话                                      |
 
 另：检查 `scoop-install`/`init` 的 `$LASTEXITCODE`，避免假报「安装完成」。
 

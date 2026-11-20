@@ -1,0 +1,5 @@
+#!/bin/sh
+git diff --cached --quiet --diff-filter=ACMR && exit 0
+git diff --cached --name-only --diff-filter=ACMR -z |
+  xargs -0 vp fmt -c .oxfmtrc.json --no-error-on-unmatched-pattern || exit $?
+git diff --cached --name-only --diff-filter=ACMR -z | xargs -0 git add --

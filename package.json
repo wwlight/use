@@ -2,10 +2,9 @@
   "name": "use",
   "version": "1.0.0",
   "description": "A tool for managing my development environment",
+  "license": "ISC",
+  "author": "wwlight",
   "type": "module",
-  "engines": {
-    "node": ">=18"
-  },
   "scripts": {
     "pm": "node ./src/cli.js pm",
     "init": "node ./src/cli.js init",
@@ -20,9 +19,12 @@
     "clink": "node ./src/cli.js clink",
     "generate": "node ./src/cli.js generate",
     "repo-update": "node ./src/cli.js repo-update",
+    "fmt": "vp fmt -c .oxfmtrc.json",
+    "prepare": "vp hooks enable",
     "test": "node --test"
   },
-  "author": "wwlight",
-  "license": "ISC",
+  "engines": {
+    "node": ">=18"
+  },
   "packageManager": "pnpm@10.12.4"
 }

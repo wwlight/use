@@ -7,64 +7,58 @@ import fs from 'node:fs';
 import path from 'node:path';
 import readline from 'node:readline';
 import { fileURLToPath } from 'node:url';
-import { menuChoicePageSize, menuWindow, terminalColumns } from "../lib/menu-viewport.js";
-import { truncateWidth } from "../lib/string-width.js";
-import { openTerminal } from "../lib/tty-term.js";
-import { canceled, formatStepTitle, writeCanceled } from "../core/log.js";
-import { formatLocalDisplay, formatRepoDisplay } from "./pairs.js";
+import { menuChoicePageSize, menuWindow, terminalColumns } from '../lib/menu-viewport.js';
+import { truncateWidth } from '../lib/string-width.js';
+import { openTerminal } from '../lib/tty-term.js';
+import { canceled, formatStepTitle, writeCanceled } from '../core/log.js';
+import { formatLocalDisplay, formatRepoDisplay } from './pairs.js';
 /** blank + title + blank + blank + hint (+ optional blank + error) */
 const MENU_CHROME_LINES = 5;
 const MENU_CHROME_WITH_ERROR = 7;
-export function formatSyncChoiceLine(label, { selected = false, active = false, labelMax = 30, widthOptions = {} } = {}) {
-    // Active row only: ◆ checked / ◇ unchecked; idle blank. Selection mark stays in [ ].
-    const pointer = active ? (selected ? '◆' : '◇') : ' ';
-    const mark = selected ? '✓' : ' ';
-    return `${pointer} [${mark}] ${truncateWidth(label, labelMax, widthOptions)}`;
+export function formatSyncChoiceLine(
+  label,
+  { selected = false, active = false, labelMax = 30, widthOptions = {} } = {},
+) {
+  // Active row only: ◆ checked / ◇ unchecked; idle blank. Selection mark stays in [ ].
+  const pointer = active ? (selected ? '◆' : '◇') : ' ';
+  const mark = selected ? '✓' : ' ';
+  return `${pointer} [${mark}] ${truncateWidth(label, labelMax, widthOptions)}`;
 }
 function parseItems(rawLines) {
-    return rawLines.map((line) => {
-        const [local, repo, backup, , defaultSelected] = line.split('\t');
-        return {
-            local,
-            repo,
-            backup,
-            selected: defaultSelected !== '0',
-            line,
-        };
-    });
+  return rawLines.map((line) => {
+    const [local, repo, backup, , defaultSelected] = line.split('\t');
+    return {
+      local,
+      repo,
+      backup,
+      selected: defaultSelected !== '0',
+      line,
+    };
+  });
 }
 function writeResult(lines, outPath) {
-    const content = `${lines.join('\n')}\n`;
-    if (outPath)
-        fs.writeFileSync(outPath, content);
-    else
-        process.stdout.write(content);
+  const content = `${lines.join('\n')}\n`;
+  if (outPath) fs.writeFileSync(outPath, content);
+  else process.stdout.write(content);
 }
 function columns(output) {
-    if (output.columns && output.columns > 0)
-        return output.columns;
-    if (process.platform !== 'win32') {
-        try {
-            const [, cols] = execSync('stty size', { encoding: 'utf8' }).trim().split(/\s+/);
-            const n = Number.parseInt(cols, 10);
-            if (n > 0)
-                return n;
-        }
-        catch { }
-    }
-    return 80;
+  if (output.columns && output.columns > 0) return output.columns;
+  if (process.platform !== 'win32') {
+    try {
+      const [, cols] = execSync('stty size', { encoding: 'utf8' }).trim().split(/\s+/);
+      const n = Number.parseInt(cols, 10);
+      if (n > 0) return n;
+    } catch {}
+  }
+  return 80;
 }
 /** xterm modifyOtherKeys / kitty CSI-u encodings for Shift+Space. */
-export const SHIFT_SPACE_SEQUENCES = [
-    '\x1b[27;2;32~',
-    '\x1b[32;2u',
-];
+export const SHIFT_SPACE_SEQUENCES = ['\x1b[27;2;32~', '\x1b[32;2u'];
 
 /** Space / x without modifiers: toggle the active row. */
 export function isToggleKey(str, key) {
-    if (key?.shift || key?.meta || key?.ctrl)
-        return false;
-    return str === ' ' || key?.name === 'space' || key?.name === 'x';
+  if (key?.shift || key?.meta || key?.ctrl) return false;
+  return str === ' ' || key?.name === 'space' || key?.name === 'x';
 }
 
 /**
@@ -72,291 +66,265 @@ export function isToggleKey(str, key) {
  * in ConPTY/Cursor; prefer `i`, plus Shift/Alt+Space when the terminal reports it.
  */
 export function isInvertKey(str, key) {
-    if (key?.name === 'i')
-        return true;
-    if (key?.name !== 'space' && str !== ' ')
-        return false;
-    return Boolean(key?.shift || key?.meta);
+  if (key?.name === 'i') return true;
+  if (key?.name !== 'space' && str !== ' ') return false;
+  return Boolean(key?.shift || key?.meta);
 }
 
 export function invertChoices(choices) {
-    for (const choice of choices)
-        choice.selected = !choice.selected;
-    return choices;
+  for (const choice of choices) choice.selected = !choice.selected;
+  return choices;
 }
 
 /** Pull one recognized Shift+Space sequence out of a rolling raw buffer. */
 export function consumeShiftSpaceSequence(buffer) {
-    let buf = String(buffer || '');
-    for (const seq of SHIFT_SPACE_SEQUENCES) {
-        const at = buf.indexOf(seq);
-        if (at < 0)
-            continue;
-        return {
-            matched: true,
-            buffer: buf.slice(0, at) + buf.slice(at + seq.length),
-        };
-    }
-    if (buf.length > 64)
-        buf = buf.slice(-64);
-    return { matched: false, buffer: buf };
+  let buf = String(buffer || '');
+  for (const seq of SHIFT_SPACE_SEQUENCES) {
+    const at = buf.indexOf(seq);
+    if (at < 0) continue;
+    return {
+      matched: true,
+      buffer: buf.slice(0, at) + buf.slice(at + seq.length),
+    };
+  }
+  if (buf.length > 64) buf = buf.slice(-64);
+  return { matched: false, buffer: buf };
 }
 function createMultiselect({ message, choices, input, output }) {
-    let cursor = 0;
-    let offset = 0;
-    let prevFrame = '';
-    let state = 'active';
-    let error = '';
-    let altScreen = false;
-    let rawBuf = '';
-    /** @type {import('node:readline').Interface | undefined} */
-    let rl;
-    function leaveAltScreen() {
-        if (!altScreen)
-            return;
-        // Disable modifyOtherKeys, then leave the alt screen.
-        output.write('\x1B[>4;0m\x1B[?1049l');
-        altScreen = false;
+  let cursor = 0;
+  let offset = 0;
+  let prevFrame = '';
+  let state = 'active';
+  let error = '';
+  let altScreen = false;
+  let rawBuf = '';
+  /** @type {import('node:readline').Interface | undefined} */
+  let rl;
+  function leaveAltScreen() {
+    if (!altScreen) return;
+    // Disable modifyOtherKeys, then leave the alt screen.
+    output.write('\x1B[>4;0m\x1B[?1049l');
+    altScreen = false;
+  }
+  function pageSize() {
+    const chrome = error ? MENU_CHROME_WITH_ERROR : MENU_CHROME_LINES;
+    return menuChoicePageSize(output, chrome);
+  }
+  function syncWindow() {
+    const win = menuWindow(cursor, choices.length, offset, pageSize());
+    offset = win.offset;
+    return win;
+  }
+  function renderActiveFrame() {
+    const width = columns(output) || terminalColumns(output);
+    const labelMax = Math.max(30, width - 8);
+    const win = syncWindow();
+    const visible = [];
+    for (let i = win.offset; i < win.end; i++) {
+      visible.push(
+        formatSyncChoiceLine(choices[i].label, {
+          selected: choices[i].selected,
+          active: i === cursor,
+          labelMax,
+        }),
+      );
     }
-    function pageSize() {
-        const chrome = error ? MENU_CHROME_WITH_ERROR : MENU_CHROME_LINES;
-        return menuChoicePageSize(output, chrome);
+    const nav =
+      choices.length > pageSize()
+        ? `↑↓ Move (${cursor + 1}/${choices.length})  Space/x Toggle  i Invert  Enter Confirm  Esc/Ctrl+C Cancel`
+        : '↑↓ Move  Space/x Toggle  i Invert  Enter Confirm  Esc/Ctrl+C Cancel';
+    const lines = ['', formatStepTitle(message), '', ...visible, '', nav];
+    if (error) lines.push('', error);
+    return `${lines.join('\n')}\n`;
+  }
+  function render() {
+    const frame = state === 'submit' ? '' : renderActiveFrame();
+    if (frame === prevFrame) return;
+    let payload = '';
+    if (state === 'submit') {
+      leaveAltScreen();
+    } else if (!prevFrame) {
+      // modifyOtherKeys level 2: terminals that support it can emit Shift+Space.
+      payload += '\x1B[?1049h\x1B[>4;2m\x1B[?25l\x1B[H\x1B[J';
+      altScreen = true;
+      payload += frame;
+    } else {
+      payload += '\x1B[H\x1B[J';
+      payload += frame;
     }
-    function syncWindow() {
-        const win = menuWindow(cursor, choices.length, offset, pageSize());
-        offset = win.offset;
-        return win;
+    if (payload) output.write(payload);
+    prevFrame = frame;
+  }
+  return new Promise((resolve, reject) => {
+    const canInteract = input.isTTY || process.env.SYNC_INTERACTIVE === '1';
+    if (!canInteract) {
+      reject(new Error('Not a TTY'));
+      return;
     }
-    function renderActiveFrame() {
-        const width = columns(output) || terminalColumns(output);
-        const labelMax = Math.max(30, width - 8);
-        const win = syncWindow();
-        const visible = [];
-        for (let i = win.offset; i < win.end; i++) {
-            visible.push(formatSyncChoiceLine(choices[i].label, {
-                selected: choices[i].selected,
-                active: i === cursor,
-                labelMax,
-            }));
-        }
-        const nav = choices.length > pageSize()
-            ? `↑↓ Move (${cursor + 1}/${choices.length})  Space/x Toggle  i Invert  Enter Confirm  Esc/Ctrl+C Cancel`
-            : '↑↓ Move  Space/x Toggle  i Invert  Enter Confirm  Esc/Ctrl+C Cancel';
-        const lines = [
-            '',
-            formatStepTitle(message),
-            '',
-            ...visible,
-            '',
-            nav,
-        ];
-        if (error)
-            lines.push('', error);
-        return `${lines.join('\n')}\n`;
+    try {
+      if (typeof input.setRawMode === 'function') {
+        input.setRawMode(true);
+      }
+    } catch (err) {
+      reject(new Error(`Could not enter interactive mode: ${err.message}`));
+      return;
     }
-    function render() {
-        const frame = state === 'submit' ? '' : renderActiveFrame();
-        if (frame === prevFrame)
-            return;
-        let payload = '';
-        if (state === 'submit') {
-            leaveAltScreen();
-        }
-        else if (!prevFrame) {
-            // modifyOtherKeys level 2: terminals that support it can emit Shift+Space.
-            payload += '\x1B[?1049h\x1B[>4;2m\x1B[?25l\x1B[H\x1B[J';
-            altScreen = true;
-            payload += frame;
-        }
-        else {
-            payload += '\x1B[H\x1B[J';
-            payload += frame;
-        }
-        if (payload)
-            output.write(payload);
-        prevFrame = frame;
-    }
-    return new Promise((resolve, reject) => {
-        const canInteract = input.isTTY || process.env.SYNC_INTERACTIVE === '1';
-        if (!canInteract) {
-            reject(new Error('Not a TTY'));
-            return;
-        }
-        try {
-            if (typeof input.setRawMode === 'function') {
-                input.setRawMode(true);
-            }
-        }
-        catch (err) {
-            reject(new Error(`Could not enter interactive mode: ${err.message}`));
-            return;
-        }
-        // terminal:false — default output is stdout TTY and can inject an extra \n on close.
-        rl = readline.createInterface({ input, terminal: false });
-        readline.emitKeypressEvents(input, rl);
-        const close = ({ endLine = true } = {}) => {
-            input.removeListener('keypress', onKeypress);
-            input.removeListener('data', onRawData);
-            leaveAltScreen();
-            if (endLine)
-                output.write('\n');
-            output.write('\x1B[?25h');
-            if (typeof input.setRawMode === 'function') {
-                input.setRawMode(false);
-            }
-            rl?.close();
-            rl = undefined;
-        };
-        const rejectCanceled = () => {
-            close({ endLine: false });
-            writeCanceled(output);
-            const err = new Error('Canceled');
-            err.code = 'CANCELLED';
-            err.printed = true;
-            reject(err);
-        };
-        const doInvert = () => {
-            invertChoices(choices);
-            error = '';
-            render();
-        };
-        // Node's keypress parser does not decode modifyOtherKeys / CSI-u; scan raw bytes.
-        const onRawData = (chunk) => {
-            if (state === 'submit')
-                return;
-            rawBuf += Buffer.isBuffer(chunk) ? chunk.toString('latin1') : String(chunk);
-            const result = consumeShiftSpaceSequence(rawBuf);
-            rawBuf = result.buffer;
-            if (result.matched)
-                doInvert();
-        };
-        const onKeypress = (str, key) => {
-            if (state === 'submit')
-                return;
-            if (isInvertKey(str, key)) {
-                doInvert();
-                return;
-            }
-            if (isToggleKey(str, key)) {
-                choices[cursor].selected = !choices[cursor].selected;
-                error = '';
-                render();
-                return;
-            }
-            if (!key)
-                return;
-            if (key.name === 'return' || key.name === 'enter') {
-                const picked = choices.filter((c) => c.selected);
-                if (picked.length === 0) {
-                    error = 'Select at least one item';
-                    render();
-                    return;
-                }
-                error = '';
-                state = 'submit';
-                render();
-                close({ endLine: false });
-                resolve(picked);
-                return;
-            }
-            if (key.name === 'up') {
-                cursor = (cursor - 1 + choices.length) % choices.length;
-            }
-            else if (key.name === 'down') {
-                cursor = (cursor + 1) % choices.length;
-            }
-            else if (key.name === 'pageup') {
-                cursor = Math.max(0, cursor - pageSize());
-            }
-            else if (key.name === 'pagedown') {
-                cursor = Math.min(choices.length - 1, cursor + pageSize());
-            }
-            else if (key.name === 'home') {
-                cursor = 0;
-            }
-            else if (key.name === 'end') {
-                cursor = Math.max(0, choices.length - 1);
-            }
-            else if (key.ctrl && key.name === 'c') {
-                rejectCanceled();
-                return;
-            }
-            else if (key.name === 'escape') {
-                rejectCanceled();
-                return;
-            }
-            else {
-                return;
-            }
-            render();
-        };
-        input.on('data', onRawData);
-        input.on('keypress', onKeypress);
+    // terminal:false — default output is stdout TTY and can inject an extra \n on close.
+    rl = readline.createInterface({ input, terminal: false });
+    readline.emitKeypressEvents(input, rl);
+    const close = ({ endLine = true } = {}) => {
+      input.removeListener('keypress', onKeypress);
+      input.removeListener('data', onRawData);
+      leaveAltScreen();
+      if (endLine) output.write('\n');
+      output.write('\x1B[?25h');
+      if (typeof input.setRawMode === 'function') {
+        input.setRawMode(false);
+      }
+      rl?.close();
+      rl = undefined;
+    };
+    const rejectCanceled = () => {
+      close({ endLine: false });
+      writeCanceled(output);
+      const err = new Error('Canceled');
+      err.code = 'CANCELLED';
+      err.printed = true;
+      reject(err);
+    };
+    const doInvert = () => {
+      invertChoices(choices);
+      error = '';
+      render();
+    };
+    // Node's keypress parser does not decode modifyOtherKeys / CSI-u; scan raw bytes.
+    const onRawData = (chunk) => {
+      if (state === 'submit') return;
+      rawBuf += Buffer.isBuffer(chunk) ? chunk.toString('latin1') : String(chunk);
+      const result = consumeShiftSpaceSequence(rawBuf);
+      rawBuf = result.buffer;
+      if (result.matched) doInvert();
+    };
+    const onKeypress = (str, key) => {
+      if (state === 'submit') return;
+      if (isInvertKey(str, key)) {
+        doInvert();
+        return;
+      }
+      if (isToggleKey(str, key)) {
+        choices[cursor].selected = !choices[cursor].selected;
+        error = '';
         render();
-    });
+        return;
+      }
+      if (!key) return;
+      if (key.name === 'return' || key.name === 'enter') {
+        const picked = choices.filter((c) => c.selected);
+        if (picked.length === 0) {
+          error = 'Select at least one item';
+          render();
+          return;
+        }
+        error = '';
+        state = 'submit';
+        render();
+        close({ endLine: false });
+        resolve(picked);
+        return;
+      }
+      if (key.name === 'up') {
+        cursor = (cursor - 1 + choices.length) % choices.length;
+      } else if (key.name === 'down') {
+        cursor = (cursor + 1) % choices.length;
+      } else if (key.name === 'pageup') {
+        cursor = Math.max(0, cursor - pageSize());
+      } else if (key.name === 'pagedown') {
+        cursor = Math.min(choices.length - 1, cursor + pageSize());
+      } else if (key.name === 'home') {
+        cursor = 0;
+      } else if (key.name === 'end') {
+        cursor = Math.max(0, choices.length - 1);
+      } else if (key.ctrl && key.name === 'c') {
+        rejectCanceled();
+        return;
+      } else if (key.name === 'escape') {
+        rejectCanceled();
+        return;
+      } else {
+        return;
+      }
+      render();
+    };
+    input.on('data', onRawData);
+    input.on('keypress', onKeypress);
+    render();
+  });
 }
 export async function runSyncSelectPrompt({ direction, rawLines, outPath }) {
-    const items = parseItems(rawLines);
-    if (items.length === 0) {
-        writeResult(rawLines, outPath);
-        return 0;
+  const items = parseItems(rawLines);
+  if (items.length === 0) {
+    writeResult(rawLines, outPath);
+    return 0;
+  }
+  const term = openTerminal({ allowWindowsConsole: true });
+  if (!term) {
+    if (process.env.SYNC_INTERACTIVE === '1') {
+      throw new Error(
+        'Could not open an interactive terminal; use SYNC_SELECT_ALL=1 to sync the default selection',
+      );
     }
-    const term = openTerminal({ allowWindowsConsole: true });
-    if (!term) {
-        if (process.env.SYNC_INTERACTIVE === '1') {
-            throw new Error('Could not open an interactive terminal; use SYNC_SELECT_ALL=1 to sync the default selection');
-        }
-        writeResult(rawLines, outPath);
-        return rawLines.length;
+    writeResult(rawLines, outPath);
+    return rawLines.length;
+  }
+  const title =
+    direction === '1'
+      ? 'Choose files to back up to the repository'
+      : 'Choose files to restore locally';
+  const choices = items.map((item) => ({
+    label: direction === '1' ? formatRepoDisplay(item.repo) : formatLocalDisplay(item.local),
+    selected: item.selected,
+    line: item.line,
+  }));
+  try {
+    const picked = await createMultiselect({
+      message: title,
+      choices,
+      input: term.input,
+      output: term.output,
+    });
+    writeResult(
+      picked.map((c) => c.line),
+      outPath,
+    );
+    return picked.length;
+  } catch (err) {
+    if (process.env.SYNC_INTERACTIVE === '1') {
+      throw err;
     }
-    const title = direction === '1' ? 'Choose files to back up to the repository' : 'Choose files to restore locally';
-    const choices = items.map((item) => ({
-        label: direction === '1' ? formatRepoDisplay(item.repo) : formatLocalDisplay(item.local),
-        selected: item.selected,
-        line: item.line,
-    }));
-    try {
-        const picked = await createMultiselect({
-            message: title,
-            choices,
-            input: term.input,
-            output: term.output,
-        });
-        writeResult(picked.map((c) => c.line), outPath);
-        return picked.length;
-    }
-    catch (err) {
-        if (process.env.SYNC_INTERACTIVE === '1') {
-            throw err;
-        }
-        writeResult(rawLines, outPath);
-        return rawLines.length;
-    }
-    finally {
-        term.close();
-    }
+    writeResult(rawLines, outPath);
+    return rawLines.length;
+  } finally {
+    term.close();
+  }
 }
-const isCli = process.argv[1]
-    && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+const isCli = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isCli) {
-    const direction = process.argv[2];
-    const pairsPath = process.argv[3];
-    const outPath = process.argv[4];
-    if (!direction || !pairsPath) {
-        console.error('Usage: node src/sync/select.js <1|2> <pairs-file> [out-file]');
-        process.exit(1);
+  const direction = process.argv[2];
+  const pairsPath = process.argv[3];
+  const outPath = process.argv[4];
+  if (!direction || !pairsPath) {
+    console.error('Usage: node src/sync/select.js <1|2> <pairs-file> [out-file]');
+    process.exit(1);
+  }
+  const rawLines = fs.readFileSync(pairsPath, 'utf8').trim().split('\n').filter(Boolean);
+  try {
+    await runSyncSelectPrompt({ direction, rawLines, outPath });
+  } catch (err) {
+    if (err.code === 'CANCELLED') {
+      if (!err.printed) canceled();
+      process.exit(130);
     }
-    const rawLines = fs.readFileSync(pairsPath, 'utf8').trim().split('\n').filter(Boolean);
-    try {
-        await runSyncSelectPrompt({ direction, rawLines, outPath });
-    }
-    catch (err) {
-        if (err.code === 'CANCELLED') {
-            if (!err.printed)
-                canceled();
-            process.exit(130);
-        }
-        console.error(err?.message || String(err));
-        process.exit(1);
-    }
+    console.error(err?.message || String(err));
+    process.exit(1);
+  }
 }

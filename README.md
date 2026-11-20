@@ -1,6 +1,7 @@
 # 个人配置
 
 <!-- BEGIN GENERATED GITHUB ACCEL DOCS -->
+
 使用需要 Node.js 环境。
 
 ## 一键安装
@@ -94,6 +95,7 @@ $env:USE_PROFILE='full'; $env:USE_ACCEL='ghproxy'; irm https://gh-proxy.com/http
 ```powershell
 $env:USE_PROFILE='full'; $env:USE_ACCEL='ghproxy-net'; irm https://ghproxy.net/https://raw.githubusercontent.com/wwlight/use/main/install.ps1 | iex
 ```
+
 <!-- END GENERATED GITHUB ACCEL DOCS -->
 
 ## 通用命令
@@ -124,6 +126,8 @@ vpr generate all                  # 生成全部产物
 vpr generate github-accel         # 更新 GitHub 加速配置与 README
 vpr generate brew-mirror          # 更新 Homebrew 镜像目录 mirrors.tsv
 vpr test                          # 运行项目检查
+vpr fmt                           # 按 .oxfmtrc.json 格式化
+vp hooks enable                   # 生成 .vite-hooks/_
 vpr repo-update [dir]             # 把已有检出重置为 origin/main
 ```
 
@@ -227,11 +231,10 @@ configs/macos/
     └── tty-term.js
 ```
 
-
-
 ## windows
 
 <!-- BEGIN GENERATED GITHUB ACCEL WINDOWS PM -->
+
 ```sh
 vpr pm                            # 安装 scoop，交互选加速镜像
 vpr pm -- ghproxy                 # gh-proxy.com 加速镜像
@@ -241,6 +244,7 @@ vpr init                          # 初始化（会启用已选加速）
 vpr init -- lite                  # 尝鲜版
 vpr init -- full                  # 完整版
 ```
+
 <!-- END GENERATED GITHUB ACCEL WINDOWS PM -->
 
 > [!NOTE]
@@ -273,6 +277,7 @@ configs/windows/
 ### scoop mirror
 
 <!-- BEGIN GENERATED GITHUB ACCEL SCOOP MIRROR -->
+
 一键同步切换 Scoop 仓库、GitHub bucket 远端及下载镜像。
 
 ```sh
@@ -282,6 +287,7 @@ scoop mirror ghproxy              # 直接切换到 gh-proxy.com
 scoop mirror ghproxy-net          # 直接切换到 ghproxy.net
 scoop mirror official             # 恢复官方源
 ```
+
 <!-- END GENERATED GITHUB ACCEL SCOOP MIRROR -->
 
 ### scoop services
@@ -312,8 +318,6 @@ clink autorun uninstall           # 禁用自动运行
 clink inject                      # 临时运行
 scoop hold clink                  # 禁止更新
 ```
-
-
 
 ## common 配置
 
