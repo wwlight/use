@@ -1,7 +1,6 @@
 .DS_Store
 configs/common/.zshrc.local
 .vscode
-.serena/
 node_modules/
 .tmp-vpr-sync-test/
 error.log

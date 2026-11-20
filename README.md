@@ -124,6 +124,7 @@ vpr generate all                  # 生成全部产物
 vpr generate github-accel         # 更新 GitHub 加速配置与 README
 vpr generate brew-mirror          # 更新 Homebrew 镜像目录 mirrors.tsv
 vpr test                          # 运行项目检查
+vpr repo-update [dir]             # 把已有检出重置为 origin/main
 ```
 
 > [!TIP]
@@ -300,8 +301,7 @@ scoop update nginx                # 有新版本时先停服务，结束后按�
 ```
 
 > [!NOTE]
-> 只有这次真正会更新的已注册服务才会先停再恢复。`scoop update` 只更新 Scoop 自身，不停 nginx / mysql。`scoop update --all` 在全部已是最新、或应用被 hold 时也不停。`-f` 强制重装时会停。版本变了用 restart，没变用 start。
-> 清单项可设 `"restartOnUpdate": false` 退出该行为；缺省为启用。
+> `manifest.json` 里给应用加上 `"restartOnUpdate": false`，更新时不停、也不自动拉起。不写则先停再恢复。
 
 ### clink
 
@@ -333,6 +333,10 @@ configs/common/
 ├── agents/
 │   ├── AGENTS.md                 # ~/.config/opencode/AGENTS.md
 │   └── skill-lock.json           # ~/.agents 全局 skill 锁
+├── cursor/                       # Cursor 本机配置，同步清单里不默认勾选
+│   ├── rules/                    # ~/.cursor/rules
+│   ├── hooks.json                # ~/.cursor/hooks.json
+│   └── mcp.json                  # ~/.cursor/mcp.json
 └── starship.toml                 # starship 配置
 ```
 

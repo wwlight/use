@@ -27,6 +27,9 @@
       { "local": "~/.config/opencode", "repo": "configs/common/opencode", "backup": true, "lite": false, "defaultSelected": false, "directory": true, "exclude": ["node_modules", "package-lock.json", "bun.lock", ".gitignore", ".DS_Store", "AGENTS.md", "cli.json", "service.json", "tui.json", "vibeguard.config.json"] },
       { "local": "~/.config/opencode/AGENTS.md", "repo": "configs/common/agents/AGENTS.md", "backup": true, "lite": false },
       { "local": "~/.agents/.skill-lock.json", "repo": "configs/common/agents/skill-lock.json", "backup": true, "lite": false },
+      { "local": "~/.cursor/rules", "repo": "configs/common/cursor/rules", "backup": true, "lite": false, "defaultSelected": false, "directory": true, "exclude": [".DS_Store"] },
+      { "local": "~/.cursor/hooks.json", "repo": "configs/common/cursor/hooks.json", "backup": true, "lite": false, "defaultSelected": false },
+      { "local": "~/.cursor/mcp.json", "repo": "configs/common/cursor/mcp.json", "backup": true, "lite": false, "defaultSelected": false },
       { "local": "~/.config/mise/config.toml", "repo": "configs/common/mise.config.toml", "backup": true, "lite": false }
     ]
   },

@@ -22,6 +22,8 @@ test('unchecked items stay in the menu and drop out of the default sync', () => 
     const defaults = readSyncItems('macos', '2', undefined, { defaultsOnly: true });
     assert.equal(menu.find((entry) => entry.repo === 'configs/common/opencode')?.defaultSelected, false);
     assert.equal(defaults.some((entry) => entry.repo === 'configs/common/opencode'), false);
+    assert.equal(menu.find((entry) => entry.repo === 'configs/common/cursor/rules')?.defaultSelected, false);
+    assert.equal(defaults.some((entry) => entry.repo.startsWith('configs/common/cursor/')), false);
     assert.ok(defaults.some((entry) => entry.repo === 'configs/common/agents/skill-lock.json'));
 });
 

@@ -1,0 +1,39 @@
+{
+  "mcpServers": {
+    "chrome-devtools": {
+      "command": "npx",
+      "args": ["chrome-devtools-mcp@latest", "--autoConnect"]
+    },
+    "headroom": {
+      "command": "docker",
+      "args": ["exec", "-i", "headroom", "headroom", "mcp", "serve", "--proxy-url", "http://localhost:20129"]
+    },
+    "mdn": {
+      "type": "http",
+      "url": "https://mcp.mdn.mozilla.net/",
+      "headers": {
+        "X-Moz-1st-Party-Data-Opt-Out": "1"
+      }
+    },
+    "serena": {
+      "type": "stdio",
+      "command": "serena",
+      "args": ["start-mcp-server", "--context=vscode", "--project-from-cwd"]
+    },
+    "nuxt-ui": {
+      "type": "http",
+      "url": "https://ui.nuxt.com/mcp",
+      "headers": {
+        "X-MCP-Tools": "search-components,get-component,get-component-metadata,search-documentation,get-documentation-page,search-icons"
+      }
+    },
+    "nuxt-content": {
+      "type": "http",
+      "url": "https://content.nuxt.com/mcp"
+    },
+    "nuxt": {
+      "type": "http",
+      "url": "https://nuxt.com/mcp"
+    }
+  }
+}
