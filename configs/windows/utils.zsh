@@ -77,7 +77,7 @@ function cloned() {
 function history_clean() {
     local tmp=$(mktemp)
 
-    grep -v $'\ufffd' $HISTFILE | awk '
+    LC_ALL=C grep -v $'\ufffd' "$HISTFILE" | LC_ALL=C awk '
     function is_bad(cmd) {
         if (length(cmd) <= 1) return 1
         if (cmd ~ /^(cat|node|python|python3|bash|cargo|rustc|uv|clear)$/) return 1

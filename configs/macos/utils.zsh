@@ -66,7 +66,7 @@ function cloned() {
 function history_clean() {
     local tmp=$(mktemp)
 
-    grep -v $'\ufffd' $HISTFILE | tail -r | awk '
+    LC_ALL=C grep -v $'\ufffd' "$HISTFILE" | LC_ALL=C tail -r | LC_ALL=C awk '
     /^#/ { next }
     function is_bad(cmd) {
         if (length(cmd) <= 1) return 1
