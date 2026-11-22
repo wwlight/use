@@ -3,20 +3,25 @@
 ## 入口形态
 
 - macOS: `curl -fsSL .../install.sh | bash`（及 `bash -s -- lite|full`）
-- Windows: `irm .../install.ps1 | iex`（及 `$env:USE_PROFILE=...`）
+- Windows: `irm .../install.ps1 | iex`（及 `$env:USE_PROFILE=lite|full`）
 
-此时**只有安装脚本本身在跑**，本地还没有仓库，也读不到 `scripts/**/_manifest.json`。
+此时只有安装脚本本身在跑，本地还没有仓库，读不到 `manifests/`、`src/`、`runtime/`。
+
+## 顺序
+
+两边相同：
+
+1. 解析 help / `lite|full`（脚本内写死）。
+2. 准备 Node.js >= 18（没有则走 vite-plus）。这一步在拉仓库之前。
+3. 拉仓库：先 zip，失败再 `git clone`。全新安装不要求本机已有 Git；更新已有检出才要求 Git。
+4. 进入检出后执行 `node src/cli.js pm`，再执行 `node src/cli.js init`。`pm` 已部署过的 helper 不进入随后的 config sync（`USE_INSTALLER=1`）。
+
+Windows 的 Scoop 安装发生在第 4 步，由 `src/pm/scoop` 调用 `runtime/scoop/bootstrap/entry.ps1`。macOS 的 Homebrew 同样在第 4 步，由 `src/pm/brew` 完成。引导脚本本身不在克隆前安装 Scoop 或 Git。
 
 ## 规则
 
-1. **clone 之前**（usage/help、参数解析、`resolve_profile`）：必须自包含。不要依赖仓内 manifest 或其它脚本；文案与 `lite|full` 写在脚本内即可。
-2. **`ensure_repo` / clone 之后**：可以读 manifest、调用 `scripts/...` 子脚本——这与后续 `init` / `brew-install` 同一前提。
-3. **不要为了「与 init 同步」把 `initStepCount` 抽进 manifest**：`install` 主路径若继续硬编码步数，单侧提取无法防漂移；用注释约定两边的 `4` 即可。
-4. **profiles 标签的单一来源**留给仓内脚本（如 `init.sh` / `init.ps1` 读 `common/_manifest.json` 的 `profiles`）；bootstrap 的 help 保持静态，避免 curl/iex 下无效的动态读取 + 回退双轨。
-
-## 对照
-
-| 阶段                             | 可否读仓内文件 |
-| -------------------------------- | -------------- |
-| help / 参数                      | 否（通常）     |
-| clone 后 install_macos / 调 init | 是             |
+1. **仓库落地之前**（usage、参数解析、`resolve_profile` / `$InstallProfile`、加速前缀、Node、zip/git 拉取）：必须自包含。不要读 manifest，也不要调用 `src/` 或 `runtime/`。
+2. **profile id 有两处，标签只有一处。** `lite` 和 `full` 在引导脚本里写死，因为那时还没有 `manifests/common.json`。菜单和 `vpr init` 的中文标签只来自该文件的 `profiles`。包列表路径在 `manifests/macos.json` 与 `manifests/windows.json` 的 `profileArtifacts`。新增 id 时三处一起改。引导脚本的 help 保持静态英文，不要在 `curl|bash` / `irm|iex` 下动态读 manifest 再回退。
+3. **不要恢复 install 与 init 共用的步数计数。** `USE_STEP_*` 和 `initStepCount` 已删除。`src/commands/init.js` 里的 `step()` 只是日志。
+4. **仓库落地之后**只通过 `node <checkout>/src/cli.js` 进入后续命令。没有 `scripts/**`、`init.sh`、`init.ps1`。
+5. **Windows 一键安装传 `init <profile>`，不传 `--`。** PowerShell 5.1 会吃掉 `.ps1` shim 上的裸 `--`。`install.ps1` 的 `Invoke-UseCli` 会丢掉 `--`，并优先调用 `node.exe`。macOS 传 `init -- <profile>`。`src/core/args.js` 两边都能解析，不要改成只接受其中一种。
