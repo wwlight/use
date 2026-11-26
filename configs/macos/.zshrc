@@ -1,8 +1,7 @@
 #!/bin/zsh
 # ~/.zshrc — macos
 
-# Homebrew: skip auto-update, quiet env hints, include auto_updates / :latest casks
-export HOMEBREW_NO_AUTO_UPDATE=1
+# Homebrew: quiet env hints, include auto_updates / :latest casks
 export HOMEBREW_NO_ENV_HINTS=1
 export HOMEBREW_UPGRADE_GREEDY=1
 
